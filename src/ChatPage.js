@@ -38,15 +38,22 @@ function ChatPage() {
 
   useEffect(() => {
     console.log('🔌 Connecting to socket server...');
-    socketRef.current = io('https://blahbluh.onrender.com');
+    socketRef.current = io('https://blahbluh.onrender.com', {
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
+    });
     
     socketRef.current.on('connect', () => {
       console.log('✅ Connected to server with socket ID:', socketRef.current.id);
-      // Register user with socket if we have one
       if (currentUser) {
         console.log('📝 Registering user with socket:', currentUser.userId);
         socketRef.current.emit('register-user', { userId: currentUser.userId });
       }
+    });
+    
+    socketRef.current.on('registration-confirmed', ({ userId }) => {
+      console.log('✅ Registration confirmed for:', userId);
     });
     
     socketRef.current.on('chat-paired', (data) => {
@@ -106,18 +113,17 @@ function ChatPage() {
         setCurrentUser(user);
       }
       
+      if (socketRef.current && socketRef.current.connected) {
+        console.log('📝 Registering user with socket before queue join:', user.userId);
+        socketRef.current.emit('register-user', { userId: user.userId });
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       const response = await api.joinQueue(user.userId, user.username);
       console.log('📝 Join queue response:', response);
       
       if (response.userId && response.username) {
-        const updatedUser = { userId: response.userId, username: response.username };
-        setCurrentUser(updatedUser);
-        
-        // Register user with socket
-        if (socketRef.current && socketRef.current.connected) {
-          console.log('📝 Registering user with socket after queue join:', updatedUser.userId);
-          socketRef.current.emit('register-user', { userId: updatedUser.userId });
-        }
+        setCurrentUser({ userId: response.userId, username: response.username });
       }
       
       setInQueue(true);
