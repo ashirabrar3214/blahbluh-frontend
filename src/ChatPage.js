@@ -85,6 +85,8 @@ function ChatPage({ user }) {
 
         socketRef.current.emit('register-user', { userId });
         console.log('Registered user immediately:', userId);
+
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       console.log('Attempting to join queue...');
@@ -135,9 +137,8 @@ const handleSendMessage = async () => {
   };
 
   const handleDisconnect = () => {
-    if (socketRef.current) {
+    if (socketRef.current && chatId && currentUserId) {
       socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
-      socketRef.current.disconnect();
     }
 
     setChatId(null);
