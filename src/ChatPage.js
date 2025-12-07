@@ -71,10 +71,16 @@ function ChatPage({ user }) {
         const gen = await api.generateUserId();
         userId = gen.userId;
         setCurrentUserId(userId);
+        
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('register-user', { userId });
+          console.log('Registered user immediately:', userId);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
 
       console.log('Attempting to join queue...');
-      const result = await api.joinQueue(userId);
+      const result = await api.joinQueue(userId, user.displayName);
       console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.position ?? 0);
