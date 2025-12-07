@@ -23,14 +23,10 @@ function ChatPage({ user }) {
     });
 
     socketRef.current.on('connect', () => {
-      console.log('Connected to server | Socket ID:', socketRef.current.id);
+    console.log('Connected to server | Socket ID:', socketRef.current.id);
+    // Registration is handled by the other useEffect when currentUserId changes
+  });
 
-      // Register user immediately if we already have userId
-      if (currentUserId) {
-        socketRef.current.emit('register-user', { userId: currentUserId });
-        console.log('Registered existing user on reconnect:', currentUserId);
-      }
-    });
 
     socketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired!', data);
