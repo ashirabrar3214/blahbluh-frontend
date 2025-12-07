@@ -23,10 +23,8 @@ function ChatPage({ user }) {
     });
 
     socketRef.current.on('connect', () => {
-    console.log('Connected to server | Socket ID:', socketRef.current.id);
-    // Registration is handled by the other useEffect when currentUserId changes
-  });
-
+      console.log('Connected to server | Socket ID:', socketRef.current.id);
+    });
 
     socketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired!', data);
@@ -54,7 +52,7 @@ function ChatPage({ user }) {
       console.log('Cleaning up socket...');
       socketRef.current?.disconnect();
     };
-  }, []); // Run only once on mount
+  }, [currentUserId]); // Re-run when currentUserId changes so ESLint is happy
 
   // Re-register user when currentUserId is set
   useEffect(() => {
@@ -75,20 +73,17 @@ function ChatPage({ user }) {
         setCurrentUserId(userId);
       }
 
-      console.log('Joining queue as:', userId);
-      const response = await api.joinQueue(userId, user.displayName);
-      console.log('Join queue response:', response);
-
+      console.log('Attempting to join queue...');
+      const result = await api.joinQueue(userId);
+      console.log('Queue joined:', result);
       setInQueue(true);
-      pollQueueStatus();
+      setQueuePosition(result.position ?? 0);
     } catch (error) {
-      console.error('Failed to join queue:', error);
+      console.error('Error joining queue:', error);
     }
   };
 
   const leaveQueue = async () => {
-    if (!currentUserId) return;
-
     try {
       await api.leaveQueue(currentUserId);
       setInQueue(false);
@@ -105,40 +100,52 @@ function ChatPage({ user }) {
         clearInterval(interval);
         return;
       }
-
+      if (!inQueue) {
+        clearInterval(interval);
+        return;
+      }
       try {
         const status = await api.getQueueStatus(currentUserId);
-        if (!status.inQueue) {
-          clearInterval(interval);
-          setInQueue(false);
-          setQueuePosition(0);
-        } else {
-          setQueuePosition(status.queuePosition);
+        console.log('Queue status:', status);
+        if (status?.position !== undefined) {
+          setQueuePosition(status.position);
         }
-      } catch (err) {
-        console.error('Queue polling error:', err);
+      } catch (error) {
+        console.error('Error polling queue status:', error);
         clearInterval(interval);
       }
-    }, 2000);
-
-    return () => clearInterval(interval);
+    }, 3000);
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim() || !chatId || !currentUserId) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+    if (!chatId || !currentUserId || !socketRef.current) {
+      console.error('Cannot send message: missing chatId, currentUserId, or socket');
+      return;
+    }
 
-    const msgData = {
+    const messageData = {
       chatId,
-      message: newMessage.trim(),
+      message: newMessage,
       userId: currentUserId,
-      username: user.displayName,
+      username: user?.username || 'You',
     };
 
-    socketRef.current.emit('send-message', msgData);
-    setNewMessage('');
+    try {
+      socketRef.current.emit('send-message', messageData);
+      setMessages(prev => [...prev, { ...messageData, timestamp: new Date().toISOString() }]);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   };
 
-  const startNewChat = () => {
+  const handleDisconnect = () => {
+    if (socketRef.current) {
+      socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
+      socketRef.current.disconnect();
+    }
+
     setChatId(null);
     setChatPartner(null);
     setMessages([]);
@@ -154,34 +161,49 @@ function ChatPage({ user }) {
         <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-semibold">Chatting with {chatPartner.username}</h1>
-            <button onClick={startNewChat} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm">
-              New Chat
+            <button
+              onClick={handleDisconnect}
+              className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium"
+            >
+              End Chat
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.userId === currentUserId ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs px-4 py-2 rounded-lg ${msg.userId === currentUserId ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                <p className="text-xs opacity-80">{msg.username}</p>
-                <p>{msg.message}</p>
+        <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto px-4 py-6">
+          <div className="flex-1 overflow-y-auto mb-4 space-y-3">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex ${msg.userId === currentUserId ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs px-4 py-2 rounded-2xl text-sm shadow-md ${
+                    msg.userId === currentUserId ? 'bg-blue-600 rounded-br-none' : 'bg-gray-700 rounded-bl-none'
+                  }`}
+                >
+                  {msg.userId !== currentUserId && (
+                    <div className="text-xs text-gray-300 mb-1">{msg.username}</div>
+                  )}
+                  <div>{msg.message}</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="p-4 border-t border-gray-700">
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="Type a message..."
-              className="flex-1 bg-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Type your message..."
+              className="flex-1 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button onClick={sendMessage} className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium">
+            <button
+              onClick={handleSendMessage}
+              className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
+            >
               Send
             </button>
           </div>
@@ -192,37 +214,64 @@ function ChatPage({ user }) {
 
   // Queue / Landing UI
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Random Chat</h1>
-          <span className="text-sm opacity-80">
-            {user.displayName} {currentUserId && `(${currentUserId.slice(0, 8)}...)`}
-          </span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-black text-white flex flex-col">
+      <nav className="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-black/40 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xl">
+            💬
+          </div>
+          <div>
+            <div className="font-bold text-lg tracking-tight">blahbluh</div>
+            <div className="text-xs text-gray-400">Anonymous chat, made simple</div>
+          </div>
         </div>
-      </div>
+        <div className="text-xs text-gray-400">
+          Connected as <span className="font-mono text-gray-200">{currentUserId || 'guest'}</span>
+        </div>
+      </nav>
 
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-8">
-            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-            </svg>
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="max-w-3xl w-full grid md:grid-cols-2 gap-10 items-center">
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-5xl font-black leading-tight">
+              Talk to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">someone new</span>,
+              right now.
+            </h1>
+            <p className="text-gray-300 text-sm md:text-base">
+              Join a live chat with a random stranger. No sign-up, no history, just a space to talk.
+            </p>
+
+            <div className="space-y-3 text-xs text-gray-400">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span>Socket status: <span className="font-mono">{socketRef.current?.connected ? 'connected' : 'connecting...'}</span></span>
+              </div>
+              {inQueue && (
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-400" />
+                  <span>In queue · Position: {queuePosition}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {inQueue ? (
-            <div>
-              <h2 className="text-3xl font-bold mb-3">Finding someone...</h2>
-              <p className="text-gray-400 mb-6">Position in queue: {queuePosition}</p>
-              <button onClick={leaveQueue} className="px-8 py-4 bg-red-600 hover:bg-red-700 rounded-xl text-lg font-medium">
-                Cancel
+            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6 shadow-xl">
+              <div className="text-sm text-gray-300 mb-4">You're in the queue...</div>
+              <div className="text-5xl font-black mb-2">#{queuePosition || 1}</div>
+              <div className="text-xs text-gray-400 mb-6">Waiting to be matched with another user</div>
+              <button
+                onClick={leaveQueue}
+                className="w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm font-medium"
+              >
+                Leave queue
               </button>
             </div>
           ) : (
             <div>
               <h2 className="text-3xl font-bold mb-3">Ready to chat?</h2>
               <p className="text-gray-400 mb-8">Connect with a random stranger instantly</p>
-              <button onClick={joinQueue} className="px-10 py-5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl text-xl font-bold shadow-lg">
+              <button onClick={joinQueue} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-pink-700 rounded-xl text-xl font-bold shadow-lg">
                 Start Chatting
               </button>
             </div>
