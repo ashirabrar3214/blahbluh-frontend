@@ -70,6 +70,11 @@ function ChatPage({ user }) {
 
   const joinQueue = async () => {
     try {
+      if (!socketRef.current?.connected) {
+        console.warn('Socket not connected yet');
+        return;
+      }
+
       let userId = currentUserId;
 
       if (!userId) {
@@ -77,6 +82,9 @@ function ChatPage({ user }) {
         const gen = await api.generateUserId();
         userId = gen.userId;
         setCurrentUserId(userId);
+
+        socketRef.current.emit('register-user', { userId });
+        console.log('Registered user immediately:', userId);
       }
 
       console.log('Attempting to join queue...');
