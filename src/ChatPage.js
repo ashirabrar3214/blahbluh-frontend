@@ -10,7 +10,12 @@ function ChatPage({ user }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
+  const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   // Socket setup + registration
   useEffect(() => {
@@ -28,7 +33,8 @@ function ChatPage({ user }) {
 
     socketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired!', data);
-      const partner = data.users.find(u => u.userId !== currentUserId);
+      const myId = currentUserIdRef.current;
+      const partner = data.users.find(u => u.userId !== myId);
       if (partner) {
         setChatId(data.chatId);
         setChatPartner(partner);
@@ -52,7 +58,7 @@ function ChatPage({ user }) {
       console.log('Cleaning up socket...');
       socketRef.current?.disconnect();
     };
-  }, [currentUserId]); // Re-run when currentUserId changes so ESLint is happy
+  }, []);
 
   // Re-register user when currentUserId is set
   useEffect(() => {
@@ -71,19 +77,13 @@ function ChatPage({ user }) {
         const gen = await api.generateUserId();
         userId = gen.userId;
         setCurrentUserId(userId);
-        
-        if (socketRef.current?.connected) {
-          socketRef.current.emit('register-user', { userId });
-          console.log('Registered user immediately:', userId);
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
       }
 
       console.log('Attempting to join queue...');
       const result = await api.joinQueue(userId, user.displayName);
       console.log('Queue joined:', result);
       setInQueue(true);
-      setQueuePosition(result.position ?? 0);
+      setQueuePosition(result.queuePosition ?? 0);
     } catch (error) {
       console.error('Error joining queue:', error);
     }
