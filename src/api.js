@@ -1,11 +1,10 @@
-const API_BASE_URL = 'https://blahbluh.onrender.com';
-
+const API_BASE_URL = 'https://blahbluh-production.up.railway.app';
 export const api = {
-  async generateUser() {
-    console.log('🆔 Generating random user...');
-    const response = await fetch(`${API_BASE_URL}/api/generate-user`);
+  async generateUserId() {
+    console.log('🆔 Generating random user ID...');
+    const response = await fetch(`${API_BASE_URL}/api/generate-user-id`);
     const data = await response.json();
-    console.log('✅ Generated user:', data);
+    console.log('✅ Generated user ID:', data.userId);
     return data;
   },
 
