@@ -94,30 +94,10 @@ function ChatPage({ user }) {
     }
   };
 
-  const pollQueueStatus = () => {
-    const interval = setInterval(async () => {
-      if (!currentUserId) {
-        clearInterval(interval);
-        return;
-      }
-      if (!inQueue) {
-        clearInterval(interval);
-        return;
-      }
-      try {
-        const status = await api.getQueueStatus(currentUserId);
-        console.log('Queue status:', status);
-        if (status?.position !== undefined) {
-          setQueuePosition(status.position);
-        }
-      } catch (error) {
-        console.error('Error polling queue status:', error);
-        clearInterval(interval);
-      }
-    }, 3000);
-  };
 
-  const handleSendMessage = async () => {
+  // Removed unused pollQueueStatus to satisfy ESLint
+
+const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     if (!chatId || !currentUserId || !socketRef.current) {
       console.error('Cannot send message: missing chatId, currentUserId, or socket');
