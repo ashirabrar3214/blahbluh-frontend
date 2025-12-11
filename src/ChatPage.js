@@ -2,6 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
 
+// Animated dots component
+function AnimatedDots() {
+  const [dots, setDots] = useState('.');
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots(prev => {
+        if (prev === '.') return '..';
+        if (prev === '..') return '...';
+        return '.';
+      });
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return <span>{dots}</span>;
+}
+
 function ChatPage({ user }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
@@ -63,6 +82,7 @@ function ChatPage({ user }) {
         setChatPartner(partner);
         setInQueue(false);
         setMessages([]);
+        setNotification(null); // Clear notification when matched
         socketRef.current.emit('join-chat', { chatId: data.chatId });
         console.log('Joined room:', data.chatId);
       }
@@ -75,15 +95,12 @@ function ChatPage({ user }) {
 
     socketRef.current.on('partner-disconnected', () => {
       console.log('Partner disconnected');
-      setNotification('Your partner disconnected. Looking for a new chat...');
+      setNotification('partner-disconnected');
       setChatId(null);
       setChatPartner(null);
       setMessages([]);
       setInQueue(false);
       setQueuePosition(0);
-      
-      // Clear notification after 5 seconds
-      setTimeout(() => setNotification(null), 5000);
       
       // Automatically rejoin the queue
       joinQueue();
@@ -135,6 +152,7 @@ function ChatPage({ user }) {
       await api.leaveQueue(currentUserId);
       setInQueue(false);
       setQueuePosition(0);
+      setNotification(null); // Clear notification when leaving queue
       console.log('Left queue');
     } catch (error) {
       console.error('Error leaving queue:', error);
@@ -260,9 +278,14 @@ const handleSendMessage = async () => {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="max-w-3xl w-full grid md:grid-cols-2 gap-10 items-center">
           <div className="space-y-4">
-            {notification && (
+            {notification === 'partner-disconnected' && (
               <div className="mb-4 text-sm text-yellow-300 bg-yellow-900/30 border border-yellow-700 px-4 py-3 rounded-lg">
-                {notification}
+                Your partner disconnected. Looking for a new chat<AnimatedDots />
+                {inQueue && (
+                  <div className="mt-2 text-xs text-yellow-400">
+                    Currently in queue #{queuePosition || 1}
+                  </div>
+                )}
               </div>
             )}
             <h1 className="text-4xl md:text-5xl font-black leading-tight">
@@ -289,7 +312,9 @@ const handleSendMessage = async () => {
 
           {inQueue ? (
             <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6 shadow-xl">
-              <div className="text-sm text-gray-300 mb-4">You're in the queue...</div>
+              <div className="text-sm text-gray-300 mb-4">
+                {notification === 'partner-disconnected' ? 'Finding you a new chat' : 'You\'re in the queue'}<AnimatedDots />
+              </div>
               <div className="text-5xl font-black mb-2">#{queuePosition || 1}</div>
               <div className="text-xs text-gray-400 mb-6">Waiting to be matched with another user</div>
               <button
