@@ -173,7 +173,7 @@ const handleSendMessage = async () => {
       chatId,
       message: newMessage,
       userId: currentUserId,
-      username: user?.username || 'You',
+      username: currentUsername,
     };
 
     try {
