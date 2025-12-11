@@ -325,13 +325,15 @@ const handleSendMessage = async () => {
               </button>
             </div>
           ) : (
-            <div>
-              <h2 className="text-3xl font-bold mb-3">Ready to chat?</h2>
-              <p className="text-gray-400 mb-8">Connect with a random stranger instantly</p>
-              <button onClick={joinQueue} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-pink-700 rounded-xl text-xl font-bold shadow-lg">
-                Start Chatting
-              </button>
-            </div>
+            notification !== 'partner-disconnected' && (
+              <div>
+                <h2 className="text-3xl font-bold mb-3">Ready to chat?</h2>
+                <p className="text-gray-400 mb-8">Connect with a random stranger instantly</p>
+                <button onClick={joinQueue} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-pink-700 rounded-xl text-xl font-bold shadow-lg">
+                  Start Chatting
+                </button>
+              </div>
+            )
           )}
         </div>
       </div>
