@@ -10,6 +10,7 @@ function ChatPage({ user }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUsername, setCurrentUsername] = useState(null);
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
 
@@ -82,15 +83,16 @@ function ChatPage({ user }) {
         const gen = await api.generateUserId();
         userId = gen.userId;
         setCurrentUserId(userId);
+        setCurrentUsername(gen.username);
 
         socketRef.current.emit('register-user', { userId });
-        console.log('Registered user immediately:', userId);
+        console.log('Registered user immediately:', userId, 'with username:', gen.username);
 
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       console.log('Attempting to join queue...');
-      const result = await api.joinQueue(userId, user.displayName);
+      const result = await api.joinQueue(userId, currentUsername || user.displayName);
       console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
@@ -145,6 +147,7 @@ const handleSendMessage = async () => {
     setChatPartner(null);
     setMessages([]);
     setCurrentUserId(null);
+    setCurrentUsername(null);
     setInQueue(false);
     setQueuePosition(0);
   };
@@ -221,7 +224,7 @@ const handleSendMessage = async () => {
           </div>
         </div>
         <div className="text-xs text-gray-400">
-          Connected as <span className="font-mono text-gray-200">{currentUserId || 'guest'}</span>
+          Connected as <span className="font-mono text-gray-200">{currentUsername || 'guest'}</span>
         </div>
       </nav>
 
