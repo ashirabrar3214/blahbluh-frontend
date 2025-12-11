@@ -92,7 +92,7 @@ function ChatPage({ user }) {
       console.log('Cleaning up socket...');
       socketRef.current?.disconnect();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-register user when currentUserId is set
   useEffect(() => {
