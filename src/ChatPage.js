@@ -35,6 +35,8 @@ function ChatPage({ user }) {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -42,15 +44,24 @@ function ChatPage({ user }) {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (only if user is at bottom)
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (isAtBottom && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'end',
       });
     }
-  }, [messages, chatId]);
+  }, [messages, chatId, isAtBottom]);
+
+  // Check if user is at bottom when they scroll
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50; // 50px threshold
+      setIsAtBottom(isNearBottom);
+    }
+  };
 
   // Generate user immediately on mount
   useEffect(() => {
@@ -235,7 +246,11 @@ const handleSendMessage = async () => {
         </div>
 
         <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto">
-          <div className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-3">
+          <div 
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-3"
+          >
             {messages.map((msg, index) => (
               <div
                 key={index}
