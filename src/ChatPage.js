@@ -46,22 +46,34 @@ function ChatPage({ user }) {
 
   // Auto-scroll to bottom when messages change (only if user is at bottom)
   useEffect(() => {
-    if (isAtBottom && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end',
-      });
+    if (isAtBottom && messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 100);
     }
   }, [messages, chatId, isAtBottom]);
 
   // Check if user is at bottom when they scroll
   const handleScroll = () => {
     if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50; // 50px threshold
+      const container = messagesContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px threshold for mobile
       setIsAtBottom(isNearBottom);
     }
   };
+
+  // Force scroll to bottom on new chat
+  useEffect(() => {
+    if (chatId && messagesContainerRef.current) {
+      setIsAtBottom(true);
+      const container = messagesContainerRef.current;
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 200);
+    }
+  }, [chatId]);
 
   // Generate user immediately on mount
   useEffect(() => {
