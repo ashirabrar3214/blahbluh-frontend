@@ -45,12 +45,15 @@ function ChatPage({ user }) {
 
   // Always auto-scroll to bottom when messages change
   useEffect(() => {
-    if (messagesContainerRef.current) {
+    if (messagesContainerRef.current && messagesEndRef.current) {
       const container = messagesContainerRef.current;
-      // small timeout to let layout (and keyboard resize) settle
+      // Multiple approaches for better compatibility
       setTimeout(() => {
+        // Method 1: scrollIntoView
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Method 2: direct scrollTop (backup)
         container.scrollTop = container.scrollHeight;
-      }, 100);
+      }, 200);
     }
   }, [messages, chatId]);
 
