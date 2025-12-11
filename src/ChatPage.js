@@ -11,6 +11,7 @@ function ChatPage({ user }) {
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
+  const [notification, setNotification] = useState(null);
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
 
@@ -74,11 +75,15 @@ function ChatPage({ user }) {
 
     socketRef.current.on('partner-disconnected', () => {
       console.log('Partner disconnected');
+      setNotification('Your partner disconnected. Looking for a new chat...');
       setChatId(null);
       setChatPartner(null);
       setMessages([]);
       setInQueue(false);
       setQueuePosition(0);
+      
+      // Clear notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
       
       // Automatically rejoin the queue
       joinQueue();
@@ -255,6 +260,11 @@ const handleSendMessage = async () => {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="max-w-3xl w-full grid md:grid-cols-2 gap-10 items-center">
           <div className="space-y-4">
+            {notification && (
+              <div className="mb-4 text-sm text-yellow-300 bg-yellow-900/30 border border-yellow-700 px-4 py-3 rounded-lg">
+                {notification}
+              </div>
+            )}
             <h1 className="text-4xl md:text-5xl font-black leading-tight">
               Talk to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">someone new</span>,
               right now.
