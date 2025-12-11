@@ -18,6 +18,21 @@ function ChatPage({ user }) {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
+  // Generate user immediately on mount
+  useEffect(() => {
+    const generateUser = async () => {
+      try {
+        const gen = await api.generateUserId();
+        setCurrentUserId(gen.userId);
+        setCurrentUsername(gen.username);
+        console.log('Generated user on mount:', gen.userId, 'with username:', gen.username);
+      } catch (error) {
+        console.error('Error generating user:', error);
+      }
+    };
+    generateUser();
+  }, []);
+
   // Socket setup + registration
   useEffect(() => {
     console.log('Connecting to socket server...');
@@ -76,23 +91,14 @@ function ChatPage({ user }) {
         return;
       }
 
-      let userId = currentUserId;
-
+      const userId = currentUserId;
       if (!userId) {
-        console.log('Generating new user...');
-        const gen = await api.generateUserId();
-        userId = gen.userId;
-        setCurrentUserId(userId);
-        setCurrentUsername(gen.username);
-
-        socketRef.current.emit('register-user', { userId });
-        console.log('Registered user immediately:', userId, 'with username:', gen.username);
-
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.warn('No user ID available yet');
+        return;
       }
 
       console.log('Attempting to join queue...');
-      const result = await api.joinQueue(userId, currentUsername || user.displayName);
+      const result = await api.joinQueue(userId);
       console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
@@ -126,7 +132,7 @@ const handleSendMessage = async () => {
       chatId,
       message: newMessage,
       userId: currentUserId,
-      username: user?.username || 'You',
+      username: currentUsername,
     };
 
     try {
