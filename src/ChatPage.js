@@ -33,10 +33,21 @@ function ChatPage({ user }) {
   const [notification, setNotification] = useState(null);
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+      });
+    }
+  }, [messages, chatId]);
 
   // Generate user immediately on mount
   useEffect(() => {
@@ -233,6 +244,7 @@ const handleSendMessage = async () => {
                 </div>
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="flex items-center gap-3">
