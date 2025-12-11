@@ -44,8 +44,14 @@ function ChatPage({ user }) {
     });
 
     socketRef.current.on('connect', () => {
-      console.log('Connected to server | Socket ID:', socketRef.current.id);
-    });
+    console.log('Connected to server | Socket ID:', socketRef.current.id);
+    const myId = currentUserIdRef.current;
+    if (myId) {
+      socketRef.current.emit('register-user', { userId: myId });
+      console.log('Registered user on connect:', myId);
+    }
+  });
+
 
     socketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired!', data);
@@ -98,7 +104,7 @@ function ChatPage({ user }) {
       }
 
       console.log('Attempting to join queue...');
-      const result = await api.joinQueue(userId);
+      const result = await api.joinQueue(userId, currentUsername);
       console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
@@ -132,7 +138,7 @@ const handleSendMessage = async () => {
       chatId,
       message: newMessage,
       userId: currentUserId,
-      username: currentUsername,
+      username: user?.username || 'You',
     };
 
     try {
@@ -152,11 +158,11 @@ const handleSendMessage = async () => {
     setChatId(null);
     setChatPartner(null);
     setMessages([]);
-    setCurrentUserId(null);
-    setCurrentUsername(null);
+    // keep the same user so they can rejoin later
     setInQueue(false);
     setQueuePosition(0);
   };
+
 
   // Chat UI
   if (chatId && chatPartner) {

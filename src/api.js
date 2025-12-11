@@ -8,12 +8,12 @@ export const api = {
     return data;
   },
 
-  async joinQueue(userId) {
-    console.log('🔄 API: Joining queue with userId:', userId);
+  async joinQueue(userId, username) {
+    console.log('🔄 API: Joining queue with userId:', userId, 'username:', username);
     const response = await fetch(`${API_BASE_URL}/api/join-queue`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
+      body: JSON.stringify({ userId, username })
     });
     const data = await response.json();
     console.log('📝 API: Join queue response:', data);
