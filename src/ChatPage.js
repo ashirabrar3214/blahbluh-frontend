@@ -77,8 +77,8 @@ function ChatPage({ user }) {
       setChatId(null);
       setChatPartner(null);
       setMessages([]);
-      setInQueue(true);
-      setQueuePosition(1);
+      setInQueue(false);
+      setQueuePosition(0);
     });
 
     socketRef.current.on('disconnect', () => {
@@ -113,7 +113,7 @@ function ChatPage({ user }) {
       }
 
       console.log('Attempting to join queue...');
-      const result = await api.joinQueue(userId, currentUsername);
+      const result = await api.joinQueue(userId);
       console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
