@@ -35,6 +35,8 @@ function ChatPage({ user }) {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
@@ -191,9 +193,14 @@ const handleSendMessage = async () => {
     try {
       socketRef.current.emit('send-message', messageData);
       setNewMessage('');
-      inputRef.current?.focus();
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (isMobile && chatId) {
+      setTimeout(() => inputRef.current?.focus(), 0);
     }
   };
 
@@ -250,25 +257,28 @@ const handleSendMessage = async () => {
           </div>
 
           <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 p-4">
-            <div className="max-w-5xl mx-auto flex items-center gap-3">
-              <input
-                ref={inputRef}
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Type your message..."
-                className="flex-1 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onTouchStart={(e) => e.preventDefault()}
-                onClick={handleSendMessage}
-                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
-              >
-                Send
-              </button>
+            <div className="max-w-5xl mx-auto">
+              <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-3">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  onBlur={handleInputBlur}
+                  autoComplete="off"
+                  inputMode="text"
+                  className="flex-1 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  className="hidden sm:inline-block px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchStart={(e) => e.preventDefault()}
+                >
+                  Send
+                </button>
+              </form>
             </div>
           </div>
         </div>
