@@ -36,7 +36,6 @@ function ChatPage({ user }) {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const [isAtBottom, setIsAtBottom] = useState(true);
   
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -44,36 +43,16 @@ function ChatPage({ user }) {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
-  // Auto-scroll to bottom when messages change (only if user is at bottom)
+  // Always auto-scroll to bottom when messages change
   useEffect(() => {
-    if (isAtBottom && messagesContainerRef.current) {
+    if (messagesContainerRef.current) {
       const container = messagesContainerRef.current;
+      // small timeout to let layout (and keyboard resize) settle
       setTimeout(() => {
         container.scrollTop = container.scrollHeight;
       }, 100);
     }
-  }, [messages, chatId, isAtBottom]);
-
-  // Check if user is at bottom when they scroll
-  const handleScroll = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px threshold for mobile
-      setIsAtBottom(isNearBottom);
-    }
-  };
-
-  // Force scroll to bottom on new chat
-  useEffect(() => {
-    if (chatId && messagesContainerRef.current) {
-      setIsAtBottom(true);
-      const container = messagesContainerRef.current;
-      setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-      }, 200);
-    }
-  }, [chatId]);
+  }, [messages, chatId]);
 
   // Generate user immediately on mount
   useEffect(() => {
@@ -260,7 +239,6 @@ const handleSendMessage = async () => {
         <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto">
           <div 
             ref={messagesContainerRef}
-            onScroll={handleScroll}
             className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-3"
           >
             {messages.map((msg, index) => (
