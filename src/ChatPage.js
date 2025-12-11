@@ -34,6 +34,7 @@ function ChatPage({ user }) {
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
@@ -190,6 +191,7 @@ const handleSendMessage = async () => {
     try {
       socketRef.current.emit('send-message', messageData);
       setNewMessage('');
+      inputRef.current?.focus();
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -250,6 +252,7 @@ const handleSendMessage = async () => {
           <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 p-4">
             <div className="max-w-5xl mx-auto flex items-center gap-3">
               <input
+                ref={inputRef}
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
