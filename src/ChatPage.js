@@ -178,7 +178,6 @@ const handleSendMessage = async () => {
 
     try {
       socketRef.current.emit('send-message', messageData);
-      setMessages(prev => [...prev, { ...messageData, timestamp: new Date().toISOString() }]);
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
