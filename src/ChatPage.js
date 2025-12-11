@@ -261,6 +261,9 @@ const handleSendMessage = async () => {
                 className="flex-1 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
                 onClick={handleSendMessage}
                 className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
               >
