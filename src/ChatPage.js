@@ -72,6 +72,15 @@ function ChatPage({ user }) {
       setMessages(prev => [...prev, msg]);
     });
 
+    socketRef.current.on('partner-disconnected', () => {
+      console.log('Partner disconnected');
+      setChatId(null);
+      setChatPartner(null);
+      setMessages([]);
+      setInQueue(true);
+      setQueuePosition(1);
+    });
+
     socketRef.current.on('disconnect', () => {
       console.log('Disconnected from server');
     });
