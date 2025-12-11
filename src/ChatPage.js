@@ -79,6 +79,9 @@ function ChatPage({ user }) {
       setMessages([]);
       setInQueue(false);
       setQueuePosition(0);
+      
+      // Automatically rejoin the queue
+      joinQueue();
     });
 
     socketRef.current.on('disconnect', () => {
@@ -99,7 +102,7 @@ function ChatPage({ user }) {
     }
   }, [currentUserId]);
 
-  const joinQueue = async () => {
+  async function joinQueue() {
     try {
       if (!socketRef.current?.connected) {
         console.warn('Socket not connected yet');
@@ -113,14 +116,14 @@ function ChatPage({ user }) {
       }
 
       console.log('Attempting to join queue...');
-      const result = await api.joinQueue(userId);
+      const result = await api.joinQueue(userId, currentUsername);
       console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
     } catch (error) {
       console.error('Error joining queue:', error);
     }
-  };
+  }
 
   const leaveQueue = async () => {
     try {
