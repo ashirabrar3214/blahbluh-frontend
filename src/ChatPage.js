@@ -47,17 +47,19 @@ function ChatPage({ user }) {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
-  // Safe mobile-friendly auto-scroll
+  // Always auto-scroll to bottom when messages change
   useEffect(() => {
-    if (!messagesContainerRef.current) return;
-
-    const container = messagesContainerRef.current;
-    const bottom = container.scrollHeight - container.clientHeight;
-
-    requestAnimationFrame(() => {
-      container.scrollTop = bottom;
-    });
-  }, [messages]);
+    if (messagesContainerRef.current && messagesEndRef.current) {
+      const container = messagesContainerRef.current;
+      // Multiple approaches for better compatibility
+      setTimeout(() => {
+        // Method 1: scrollIntoView
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Method 2: direct scrollTop (backup)
+        container.scrollTop = container.scrollHeight;
+      }, 200);
+    }
+  }, [messages, chatId]);
 
   // Generate user immediately on mount
   useEffect(() => {
