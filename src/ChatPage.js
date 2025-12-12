@@ -33,6 +33,7 @@ function ChatPage({ user }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
   const longPressTimer = useRef(null);
@@ -301,6 +302,45 @@ const handleSendMessage = async () => {
     
     // Check if it's a vertical swipe upward (bottom to top)
     if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY < -100) {
+      // Show warning popup
+      setShowWarning(true);
+    }
+    
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+  };
+
+  const confirmLeaveChat = () => {
+    if (chatId && socketRef.current && currentUserId) {
+      socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
+      setChatId(null);
+      setChatPartner(null);
+      setMessages([]);
+      setReplyingTo(null);
+      setShowActions(null);
+      setShowWarning(false);
+      joinQueue();
+    }
+  };
+      }, 2000); // 2 second delay
+    }
+  };
+
+  const handleSwipeStart = (e) => {
+    const touch = e.touches[0];
+    swipeStartX.current = touch.clientX;
+    swipeStartY.current = touch.clientY;
+  };
+
+  const handleSwipeEnd = (e) => {
+    if (!swipeStartX.current || !swipeStartY.current) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - swipeStartX.current;
+    const deltaY = touch.clientY - swipeStartY.current;
+    
+    // Check if it's a vertical swipe upward (bottom to top)
+    if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY < -100) {
       // Swipe up detected - end chat and rejoin queue
       if (chatId && socketRef.current && currentUserId) {
         socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
@@ -333,7 +373,7 @@ const handleSendMessage = async () => {
             </div>
             <div>
               <h2 className="font-medium text-white text-sm">{chatPartner?.username || 'Anonymous'}</h2>
-              <p className="text-xs text-gray-400">Swipe up to end chat</p>
+              <p className="text-xs text-gray-400">Swipe up to move to next person</p>
             </div>
           </div>
         </div>
@@ -364,11 +404,7 @@ const handleSendMessage = async () => {
                       onMouseEnter={() => handleMouseEnter(msg.id)}
                       onMouseLeave={handleMouseLeave}
                     >
-                      {!isOwn && (
-                        <div className="text-[10px] uppercase tracking-wide text-gray-300/70 mb-1">
-                          {msg.username}
-                        </div>
-                      )}
+
 
                       {replyMsg && (
                         <div className="mb-2 pl-3 py-1 rounded-lg bg-black/15 border-l-2 border-white/25">
@@ -482,6 +518,30 @@ const handleSendMessage = async () => {
             </div>
           </div>
         </div>
+
+        {/* Warning Popup */}
+        {showWarning && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+            <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full">
+              <h3 className="text-lg font-semibold mb-3">Move to next person?</h3>
+              <p className="text-gray-300 text-sm mb-6">Are you sure you want to move to the next person?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowWarning(false)}
+                  className="flex-1 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLeaveChat}
+                  className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm font-medium"
+                >
+                  Yes, move on
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
