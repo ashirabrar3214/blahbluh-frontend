@@ -363,57 +363,54 @@ const handleSendMessage = async () => {
   if (chatId && chatPartner) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-        <div className="sticky top-0 z-20 bg-gray-800/95 border-b border-gray-700 px-4 py-2 backdrop-blur">
-          <div className="flex items-center justify-between gap-2">
-            {/* Left: avatar + name */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+        <div className="sticky top-0 z-20 bg-gray-800/95 border-b border-gray-700 px-4 py-3 backdrop-blur">
+          <div className="flex items-center justify-between">
+            {/* Left: Block */}
+            <button
+              onClick={handleBlockUser}
+              className="px-3 py-1.5 rounded-full bg-red-600/20 hover:bg-red-600/30 text-red-300 text-xs font-medium border border-red-600/30"
+            >
+              Block
+            </button>
+
+            {/* Center: avatar + name */}
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-1">
                 <span className="text-white text-sm font-bold">
                   {chatPartner?.username?.[0]?.toUpperCase() || '?'}
                 </span>
               </div>
-              <div className="min-w-0">
-                <h2 className="font-medium text-white text-sm truncate">
-                  {chatPartner?.username || 'Anonymous'}
-                </h2>
-                <p className="text-[11px] text-gray-400">
-                  Swipe up or tap Next to skip
-                </p>
-              </div>
+              <h2 className="font-medium text-white text-sm">
+                {chatPartner?.username || 'Anonymous'}
+              </h2>
+              <p className="text-[10px] text-gray-400">
+                Swipe up or tap Next
+              </p>
             </div>
 
-            {/* Right: actions */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleAddFriend}
-                className="hidden sm:inline-flex items-center px-2 py-1 rounded-full bg-gray-700 hover:bg-gray-600 text-[11px] font-medium"
-              >
-                + Friend
-              </button>
+            {/* Right: Add Friend */}
+            <button
+              onClick={handleAddFriend}
+              className="px-3 py-1.5 rounded-full bg-green-600/20 hover:bg-green-600/30 text-green-300 text-xs font-medium border border-green-600/30"
+            >
+              Add Friend
+            </button>
+          </div>
 
-              <button
-                onClick={handleReportUser}
-                className="w-8 h-8 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-xs text-red-300"
-                title="Report"
-              >
-                !
-              </button>
-
-              <button
-                onClick={handleBlockUser}
-                className="w-8 h-8 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-xs text-yellow-300"
-                title="Block"
-              >
-                ⛔
-              </button>
-
-              <button
-                onClick={handleNextUser}
-                className="px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-xs font-semibold"
-              >
-                Next
-              </button>
-            </div>
+          {/* Bottom row: Report and Next */}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700/50">
+            <button
+              onClick={handleReportUser}
+              className="px-2 py-1 rounded text-red-400 hover:text-red-300 text-xs"
+            >
+              Report
+            </button>
+            <button
+              onClick={handleNextUser}
+              className="px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
+            >
+              Next
+            </button>
           </div>
         </div>
 
