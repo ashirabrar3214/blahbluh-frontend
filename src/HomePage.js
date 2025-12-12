@@ -21,10 +21,16 @@ function AnimatedDots() {
   return <span>{dots}</span>;
 }
 
-function HomePage({ onChatStart, currentUsername, currentUserId }) {
+function HomePage({ onChatStart, currentUsername, currentUserId, notification: externalNotification, onNotificationChange }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState(externalNotification || null);
+
+  useEffect(() => {
+    if (externalNotification) {
+      setNotification(externalNotification);
+    }
+  }, [externalNotification]);
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -43,8 +49,14 @@ function HomePage({ onChatStart, currentUsername, currentUserId }) {
       const partner = data.users.find(u => u.userId !== currentUserId);
       if (partner) {
         setInQueue(false);
+        setNotification(null);
         onChatStart(data.chatId, partner, socketRef.current);
       }
+    });
+
+    socketRef.current.on('partner-disconnected', () => {
+      setNotification('partner-disconnected');
+      setInQueue(false);
     });
 
     return () => socketRef.current?.disconnect();
@@ -57,6 +69,7 @@ function HomePage({ onChatStart, currentUsername, currentUserId }) {
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
       setNotification(null);
+      if (onNotificationChange) onNotificationChange(null);
     } catch (error) {
       console.error('Error joining queue:', error);
     }

@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import io from 'socket.io-client';
-import { api } from './api';
 import ReviewPopup from './ReviewPopup';
 
 // --- SVGs ---
@@ -22,25 +20,6 @@ const ReplyIcon = () => (
 const SwipeUpIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
 );
-
-// Animated dots component
-function AnimatedDots() {
-  const [dots, setDots] = useState('.');
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDots(prev => {
-        if (prev === '.') return '..';
-        if (prev === '..') return '...';
-        return '.';
-      });
-    }, 500);
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  return <span>{dots}</span>;
-}
 
 function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername, onChatEnd }) {
   // --- STATE AND REFS ---
@@ -130,6 +109,8 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
       if (chatPartner) {
         setPartnerToReview(chatPartner);
         setShowReviewPopup(true);
+      } else {
+        onChatEnd('partner-disconnected');
       }
     });
 
@@ -149,7 +130,7 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
       return;
     }
     
-    if (!socketRef.current || !socketRef.current.connected) {
+    if (!socket || !socket.connected) {
       console.error('❌ Socket not connected');
       setActionToast('Connection lost. Reconnecting...');
       return;
@@ -166,7 +147,7 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
     console.log('📤 Sending message:', messageData);
     
     try {
-      socketRef.current.emit('send-message', messageData, (ack) => {
+      socket.emit('send-message', messageData, (ack) => {
         if (ack && ack.error) {
           console.error('❌ Message send failed:', ack.error);
           setActionToast('Failed to send message');
@@ -184,7 +165,7 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
   };
 
   const handleReaction = (messageId, emoji) => {
-    if (!chatId || !currentUserId || !socketRef.current) return;
+    if (!chatId || !currentUserId || !socket) return;
     
     setMessages(prev => prev.map(msg => {
       if (msg.id === messageId) {
@@ -200,7 +181,7 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
       return msg;
     }));
     
-    socketRef.current.emit('add-reaction', { chatId, messageId, emoji, userId: currentUserId });
+    socket.emit('add-reaction', { chatId, messageId, emoji, userId: currentUserId });
     setShowActions(null);
   };
 
@@ -269,15 +250,13 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
   };
 
   const finishLeavingChat = () => {
-    if (chatId && socketRef.current && currentUserId) {
-      socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
-      setChatId(null);
-      setChatPartner(null);
+    if (chatId && socket && currentUserId) {
+      socket.emit('leave-chat', { chatId, userId: currentUserId });
       setMessages([]);
       setReplyingTo(null);
       setShowActions(null);
       setPartnerToReview(null);
-      joinQueue();
+      onChatEnd();
     }
   };
 
@@ -315,21 +294,12 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
     
     setShowReviewPopup(false);
     setPartnerToReview(null);
-    
-    // Continue with leaving chat or joining queue
-    if (notification === 'partner-disconnected') {
-      joinQueue();
-    } else {
-      finishLeavingChat();
-    }
+    onChatEnd('partner-disconnected');
   };
 
 
-  // --- RENDER: CHAT UI ---
-  if (chatId && chatPartner) {
-    return (
-      // Changed: Use h-[100dvh] for mobile viewport consistency
-      <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
+  return (
+    <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
         {/* Apple-style Glass Header */}
         <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between shadow-sm transition-all">
           {/* Left: User Info (Clean) */}
@@ -545,98 +515,13 @@ function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername,
             onClose={() => {
               setShowReviewPopup(false);
               setPartnerToReview(null);
-              if (notification === 'partner-disconnected') {
-                joinQueue();
-              } else {
-                finishLeavingChat();
-              }
+              onChatEnd('partner-disconnected');
             }}
             onSubmit={handleReviewSubmit}
           />
         )}
       </div>
     );
-  }
-
-  // --- RENDER: LANDING / QUEUE UI ---
-  return (
-    <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
-      <nav className="fixed top-0 w-full z-10 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
-            B
-          </div>
-          <span className="font-bold text-lg tracking-tight text-white">blahbluh</span>
-        </div>
-        <div className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">
-           {currentUsername || 'guest'}
-        </div>
-      </nav>
-
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px] pointer-events-none"></div>
-
-        <div className="max-w-lg w-full text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
-            <span className={`w-2 h-2 rounded-full ${socketRef.current?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
-            <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-              {socketRef.current?.connected ? 'System Online' : 'Connecting...'}
-            </span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6">
-            Chat with <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-              anyone.
-            </span>
-          </h1>
-          
-          <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
-            Instant anonymous connections. No login required. Just pure conversation.
-          </p>
-
-          {inQueue ? (
-            <div className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-8 rounded-[32px] shadow-2xl">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
-                <div className="text-center">
-                   <h3 className="text-xl font-bold text-white mb-1">Finding a match<AnimatedDots /></h3>
-                   <p className="text-zinc-500 text-sm">Position in queue: <span className="text-white font-mono">{queuePosition}</span></p>
-                </div>
-                <button
-                  onClick={leaveQueue}
-                  className="mt-4 px-6 py-3 rounded-full bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {notification === 'partner-disconnected' && (
-                <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
-                  Partner disconnected. ready to go again?
-                </div>
-              )}
-              
-              <button 
-                onClick={joinQueue} 
-                className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
-              >
-                Start Chatting
-                <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      <div className="py-6 text-center text-zinc-600 text-xs font-medium">
-        &copy; 2025 blahbluh. Crafted for anonymity.
-      </div>
-    </div>
-  );
 }
 
 export default ChatPage;

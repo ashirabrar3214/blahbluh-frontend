@@ -8,6 +8,7 @@ function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const [chatData, setChatData] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     const generateUser = async () => {
@@ -27,9 +28,12 @@ function App() {
     setCurrentView('chat');
   };
 
-  const handleChatEnd = () => {
+  const handleChatEnd = (reason = null) => {
     setChatData(null);
     setCurrentView('home');
+    if (reason === 'partner-disconnected') {
+      setNotification('partner-disconnected');
+    }
   };
 
   if (currentView === 'chat' && chatData) {
@@ -50,6 +54,8 @@ function App() {
       onChatStart={handleChatStart}
       currentUsername={currentUsername}
       currentUserId={currentUserId}
+      notification={notification}
+      onNotificationChange={setNotification}
     />
   );
 }
