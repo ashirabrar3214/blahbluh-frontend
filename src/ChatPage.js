@@ -30,9 +30,12 @@ function ChatPage({ user }) {
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [showActions, setShowActions] = useState(null);
   const [notification, setNotification] = useState(null);
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
+  const longPressTimer = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -72,6 +75,18 @@ function ChatPage({ user }) {
     generateUser();
   }, []);
 
+  // Click outside to close actions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showActions && !event.target.closest('.message-actions')) {
+        setShowActions(null);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showActions]);
+
   // Socket setup + registration
   useEffect(() => {
     console.log('Connecting to socket server...');
@@ -109,7 +124,21 @@ function ChatPage({ user }) {
 
     socketRef.current.on('new-message', (msg) => {
       console.log('New message:', msg);
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => [...prev, { ...msg, reactions: msg.reactions || {} }]);
+    });
+
+    socketRef.current.on('message-reaction', ({ messageId, emoji, userId }) => {
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          const reactions = { ...msg.reactions };
+          if (!reactions[emoji]) reactions[emoji] = [];
+          if (!reactions[emoji].includes(userId)) {
+            reactions[emoji].push(userId);
+          }
+          return { ...msg, reactions };
+        }
+        return msg;
+      }));
     });
 
     socketRef.current.on('partner-disconnected', () => {
@@ -157,7 +186,7 @@ function ChatPage({ user }) {
       }
 
       console.log('Attempting to join queue...');
-      const result = await api.joinQueue(userId, currentUsername);
+      const result = await api.joinQueue(userId);
       console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
@@ -183,23 +212,42 @@ function ChatPage({ user }) {
 
 const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    if (!chatId || !currentUserId || !socketRef.current) {
-      console.error('Cannot send message: missing chatId, currentUserId, or socket');
-      return;
-    }
+    if (!chatId || !currentUserId || !socketRef.current) return;
 
     const messageData = {
       chatId,
       message: newMessage,
       userId: currentUserId,
       username: currentUsername,
+      replyTo: replyingTo
     };
 
-    try {
-      socketRef.current.emit('send-message', messageData);
-      setNewMessage('');
-    } catch (error) {
-      console.error('Error sending message:', error);
+    socketRef.current.emit('send-message', messageData);
+    setNewMessage('');
+    setReplyingTo(null);
+  };
+
+  const handleReaction = (messageId, emoji) => {
+    if (!chatId || !currentUserId || !socketRef.current) return;
+    socketRef.current.emit('add-reaction', { chatId, messageId, emoji, userId: currentUserId });
+    setShowActions(null);
+  };
+
+  const handleReply = (message) => {
+    setReplyingTo(message);
+    setShowActions(null);
+    inputRef.current?.focus();
+  };
+
+  const handleLongPress = (messageId) => {
+    longPressTimer.current = setTimeout(() => {
+      setShowActions(messageId);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
     }
   };
 
@@ -244,35 +292,109 @@ const handleSendMessage = async () => {
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-3"
           >
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.userId === currentUserId ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-2xl text-sm shadow-md ${
-                    msg.userId === currentUserId ? 'bg-blue-600 rounded-br-none' : 'bg-gray-700 rounded-bl-none'
-                  }`}
-                >
-                  {msg.userId !== currentUserId && (
-                    <div className="text-xs text-gray-300 mb-1">{msg.username}</div>
-                  )}
-                  <div>{msg.message}</div>
+            {messages.map((msg, index) => {
+              const isOwn = msg.userId === currentUserId;
+              const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
+              
+              return (
+                <div key={msg.id || index} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div className="relative max-w-xs">
+                    <div
+                      className={`px-4 py-3 rounded-2xl text-sm shadow-lg transition-all duration-200 ${
+                        isOwn ? 'bg-gradient-to-r from-blue-600 to-blue-500 rounded-br-md' : 'bg-gray-700 rounded-bl-md'
+                      }`}
+                      onTouchStart={() => handleLongPress(msg.id)}
+                      onTouchEnd={handleTouchEnd}
+                      onMouseDown={() => !isMobile && handleLongPress(msg.id)}
+                      onMouseUp={handleTouchEnd}
+                      onMouseLeave={handleTouchEnd}
+                    >
+                      {!isOwn && (
+                        <div className="text-xs text-gray-300 mb-1 font-medium">{msg.username}</div>
+                      )}
+                      
+                      {replyMsg && (
+                        <div className="mb-2 p-2 rounded-lg bg-black/20 border-l-2 border-gray-400">
+                          <div className="text-xs text-gray-300 mb-1">↳ {replyMsg.username}</div>
+                          <div className="text-xs text-gray-200 opacity-80">{replyMsg.message}</div>
+                        </div>
+                      )}
+                      
+                      <div className="break-words">{msg.message}</div>
+                      
+                      {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {Object.entries(msg.reactions).map(([emoji, users]) => (
+                            <button
+                              key={emoji}
+                              onClick={() => handleReaction(msg.id, emoji)}
+                              className={`px-2 py-1 rounded-full text-xs bg-black/30 hover:bg-black/50 transition-colors ${
+                                users.includes(currentUserId) ? 'ring-1 ring-white/50' : ''
+                              }`}
+                            >
+                              {emoji} {users.length}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {showActions === msg.id && (
+                      <div className={`message-actions absolute top-0 ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} bg-gray-800 rounded-xl shadow-xl border border-gray-600 p-2 z-10 animate-in fade-in duration-200`}>
+                        <div className="flex gap-2">
+                          {['❤️', '😂', '👍', '😮', '😢', '😡'].map(emoji => (
+                            <button
+                              key={emoji}
+                              onClick={() => handleReaction(msg.id, emoji)}
+                              className="w-8 h-8 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center text-lg"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="border-t border-gray-600 mt-2 pt-2">
+                          <button
+                            onClick={() => handleReply(msg)}
+                            className="w-full px-3 py-1 text-xs text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+                          >
+                            Reply
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })
             <div ref={messagesEndRef} />
           </div>
 
           <div className="bg-gray-900 border-t border-gray-700 p-4">
             <div className="max-w-5xl mx-auto">
+              {replyingTo && (
+                <div className="mb-3 p-3 bg-gray-800 rounded-lg border-l-4 border-blue-500">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">Replying to {replyingTo.username}</div>
+                      <div className="text-sm text-gray-200">{replyingTo.message}</div>
+                    </div>
+                    <button
+                      onClick={() => setReplyingTo(null)}
+                      className="text-gray-400 hover:text-white ml-2"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+              
               <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-3">
                 <input
                   ref={inputRef}
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message..."
+                  placeholder={replyingTo ? 'Reply...' : 'Type your message...'}
                   onBlur={handleInputBlur}
                   autoComplete="off"
                   inputMode="text"
@@ -280,7 +402,7 @@ const handleSendMessage = async () => {
                 />
                 <button
                   type="submit"
-                  className="hidden sm:inline-block px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
+                  className="hidden sm:inline-block px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm transition-colors"
                   onMouseDown={(e) => e.preventDefault()}
                   onTouchStart={(e) => e.preventDefault()}
                 >
