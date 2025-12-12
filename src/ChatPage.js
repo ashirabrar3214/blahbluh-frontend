@@ -302,7 +302,7 @@ const handleSendMessage = async () => {
   if (chatId && chatPartner) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-        <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 px-4 py-2">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-semibold">Chatting with {chatPartner.username}</h1>
             <button
