@@ -369,8 +369,6 @@ function ChatPage({ user }) {
     }
   };
 
-  // Removed unused handleReportUser to fix build error
-  
   const handleBlockUser = () => {
     if (!chatPartner) return;
     setActionToast('Blocked');
@@ -389,7 +387,8 @@ function ChatPage({ user }) {
   // --- RENDER: CHAT UI ---
   if (chatId && chatPartner) {
     return (
-      <div className="fixed inset-0 bg-black text-white flex flex-col font-sans">
+      // Changed: Use h-[100dvh] for mobile viewport consistency
+      <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
         {/* Apple-style Glass Header */}
         <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between shadow-sm transition-all">
           {/* Left: User Info (Clean) */}
@@ -438,10 +437,10 @@ function ChatPage({ user }) {
           </div>
         </header>
 
-        {/* Message Area */}
-        <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto relative">
+        {/* Main Content Area - FLEXBOX LAYOUT (Fixes Keyboard Issue) */}
+        <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto overflow-hidden">
           
-          {/* Mobile Swipe Hint (Only visible on mobile) */}
+          {/* Mobile Swipe Hint */}
           <div className="md:hidden absolute top-20 left-0 right-0 z-10 flex justify-center pointer-events-none opacity-60">
              <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
                 <SwipeUpIcon />
@@ -449,9 +448,10 @@ function ChatPage({ user }) {
              </div>
           </div>
 
+          {/* Messages Area - Grow to fill space */}
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-4 pt-24 pb-32 space-y-3"
+            className="flex-1 overflow-y-auto px-4 pt-24 pb-4 space-y-3"
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}
           >
@@ -521,8 +521,8 @@ function ChatPage({ user }) {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Floating Input Area */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+          {/* Static Input Area (Not Absolute) - Sits naturally at the bottom */}
+          <div className="w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent shrink-0 z-30">
             <div className="max-w-2xl mx-auto">
               {replyingTo && (
                 <div className="flex items-center justify-between px-4 py-2 mb-2 bg-zinc-800/80 backdrop-blur rounded-xl border border-white/5 text-xs text-zinc-300">
