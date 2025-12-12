@@ -40,6 +40,8 @@ function ChatPage({ user }) {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const swipeStartX = useRef(null);
+  const swipeStartY = useRef(null);
   
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -284,6 +286,36 @@ const handleSendMessage = async () => {
     }
   };
 
+  const handleSwipeStart = (e) => {
+    const touch = e.touches[0];
+    swipeStartX.current = touch.clientX;
+    swipeStartY.current = touch.clientY;
+  };
+
+  const handleSwipeEnd = (e) => {
+    if (!swipeStartX.current || !swipeStartY.current) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - swipeStartX.current;
+    const deltaY = touch.clientY - swipeStartY.current;
+    
+    // Check if it's a horizontal swipe (more horizontal than vertical)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 100) {
+      // Swipe detected - end chat and rejoin queue
+      if (chatId) {
+        setChatId(null);
+        setChatPartner(null);
+        setMessages([]);
+        setReplyingTo(null);
+        setShowActions(null);
+        joinQueue();
+      }
+    }
+    
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+  };
+
   const handleDisconnect = () => {
     if (socketRef.current && chatId && currentUserId) {
       socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
@@ -302,15 +334,17 @@ const handleSendMessage = async () => {
   if (chatId && chatPartner) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 px-4 py-2">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold">Chatting with {chatPartner.username}</h1>
-            <button
-              onClick={handleDisconnect}
-              className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium"
-            >
-              End Chat
-            </button>
+        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 px-4 py-1">
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">
+                {chatPartner?.username?.[0]?.toUpperCase() || '?'}
+              </span>
+            </div>
+            <div>
+              <h2 className="font-medium text-white text-sm">{chatPartner?.username || 'Anonymous'}</h2>
+              <p className="text-xs text-gray-400">Swipe to end chat</p>
+            </div>
           </div>
         </div>
 
@@ -318,6 +352,8 @@ const handleSendMessage = async () => {
           <div 
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-3"
+            onTouchStart={handleSwipeStart}
+            onTouchEnd={handleSwipeEnd}
           >
             {messages.map((msg, index) => {
               const isOwn = msg.userId === currentUserId;
