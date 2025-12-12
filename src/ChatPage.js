@@ -229,6 +229,23 @@ const handleSendMessage = async () => {
 
   const handleReaction = (messageId, emoji) => {
     if (!chatId || !currentUserId || !socketRef.current) return;
+    
+    // Remove any existing reaction from this user first (one reaction per message)
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId) {
+        const reactions = { ...msg.reactions };
+        // Remove user from all existing reactions
+        Object.keys(reactions).forEach(existingEmoji => {
+          reactions[existingEmoji] = reactions[existingEmoji].filter(uid => uid !== currentUserId);
+          if (reactions[existingEmoji].length === 0) {
+            delete reactions[existingEmoji];
+          }
+        });
+        return { ...msg, reactions };
+      }
+      return msg;
+    }));
+    
     socketRef.current.emit('add-reaction', { chatId, messageId, emoji, userId: currentUserId });
     setShowActions(null);
   };
@@ -308,9 +325,8 @@ const handleSendMessage = async () => {
                       }`}
                       onTouchStart={() => handleLongPress(msg.id)}
                       onTouchEnd={handleTouchEnd}
-                      onMouseDown={() => !isMobile && handleLongPress(msg.id)}
-                      onMouseUp={handleTouchEnd}
-                      onMouseLeave={handleTouchEnd}
+                      onMouseEnter={() => !isMobile && setShowActions(msg.id)}
+                      onMouseLeave={() => !isMobile && setShowActions(null)}
                     >
                       {!isOwn && (
                         <div className="text-[10px] uppercase tracking-wide text-gray-300/70 mb-1">
