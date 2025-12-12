@@ -322,40 +322,6 @@ const handleSendMessage = async () => {
       joinQueue();
     }
   };
-      }, 2000); // 2 second delay
-    }
-  };
-
-  const handleSwipeStart = (e) => {
-    const touch = e.touches[0];
-    swipeStartX.current = touch.clientX;
-    swipeStartY.current = touch.clientY;
-  };
-
-  const handleSwipeEnd = (e) => {
-    if (!swipeStartX.current || !swipeStartY.current) return;
-    
-    const touch = e.changedTouches[0];
-    const deltaX = touch.clientX - swipeStartX.current;
-    const deltaY = touch.clientY - swipeStartY.current;
-    
-    // Check if it's a vertical swipe upward (bottom to top)
-    if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY < -100) {
-      // Swipe up detected - end chat and rejoin queue
-      if (chatId && socketRef.current && currentUserId) {
-        socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
-        setChatId(null);
-        setChatPartner(null);
-        setMessages([]);
-        setReplyingTo(null);
-        setShowActions(null);
-        joinQueue();
-      }
-    }
-    
-    swipeStartX.current = null;
-    swipeStartY.current = null;
-  };
 
 
 
