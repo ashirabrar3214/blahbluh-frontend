@@ -45,6 +45,18 @@ function ReviewPopup({ partner, currentUserId, onClose, onSubmit }) {
   const [hoveredRating, setHoveredRating] = useState(0);
 
   const handleSubmit = (action) => {
+    // Save review if rating is provided
+    if (rating > 0) {
+      const existingReviews = JSON.parse(localStorage.getItem(`reviews_${partner.userId}`) || '[]');
+      const newReview = {
+        rating,
+        fromUser: 'Anonymous',
+        timestamp: Date.now()
+      };
+      existingReviews.push(newReview);
+      localStorage.setItem(`reviews_${partner.userId}`, JSON.stringify(existingReviews));
+    }
+    
     if (action === 'friend') {
       // Save friend to localStorage
       if (currentUserId) {

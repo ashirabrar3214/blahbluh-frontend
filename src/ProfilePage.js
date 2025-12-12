@@ -14,6 +14,12 @@ const BackIcon = () => (
   </svg>
 );
 
+const StarIcon = ({ filled }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={filled ? 'text-yellow-400' : 'text-zinc-600'}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+  </svg>
+);
+
 function ProfilePage({ currentUsername, currentUserId, onBack }) {
   const [profile, setProfile] = useState({
     username: currentUsername || '',
@@ -23,20 +29,28 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState(profile);
+  const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
-    // Load profile from localStorage or API
+    // Load profile from localStorage
     const savedProfile = localStorage.getItem(`profile_${currentUserId}`);
     if (savedProfile) {
       const parsed = JSON.parse(savedProfile);
       setProfile({ ...parsed, username: currentUsername });
       setEditedProfile({ ...parsed, username: currentUsername });
     }
+    
+    // Load reviews from localStorage
+    const savedReviews = localStorage.getItem(`reviews_${currentUserId}`);
+    if (savedReviews) {
+      setReviews(JSON.parse(savedReviews));
+    }
   }, [currentUserId, currentUsername]);
 
   const handleSave = () => {
-    setProfile(editedProfile);
-    localStorage.setItem(`profile_${currentUserId}`, JSON.stringify(editedProfile));
+    const updatedProfile = { ...profile, interests: editedProfile.interests };
+    setProfile(updatedProfile);
+    localStorage.setItem(`profile_${currentUserId}`, JSON.stringify(updatedProfile));
     setIsEditing(false);
   };
 
@@ -47,6 +61,12 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
 
   const getInitials = (name) => {
     return name ? name.charAt(0).toUpperCase() : '?';
+  };
+
+  const getAverageRating = () => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return (sum / reviews.length).toFixed(1);
   };
 
   return (
@@ -93,37 +113,13 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
             {/* Gender */}
             <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800">
               <label className="block text-zinc-400 text-sm font-medium mb-2">Gender</label>
-              {isEditing ? (
-                <select
-                  value={editedProfile.gender}
-                  onChange={(e) => setEditedProfile({...editedProfile, gender: e.target.value})}
-                  className="w-full bg-zinc-800 text-white rounded-xl px-3 py-2 border border-zinc-700 focus:border-blue-500 focus:ring-0"
-                >
-                  <option value="">Select gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="prefer-not-to-say">Prefer not to say</option>
-                </select>
-              ) : (
-                <p className="text-white">{profile.gender || 'Not specified'}</p>
-              )}
+              <p className="text-white">{profile.gender || 'Not specified'}</p>
             </div>
 
             {/* Country */}
             <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800">
               <label className="block text-zinc-400 text-sm font-medium mb-2">Country</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editedProfile.country}
-                  onChange={(e) => setEditedProfile({...editedProfile, country: e.target.value})}
-                  placeholder="Enter your country"
-                  className="w-full bg-zinc-800 text-white rounded-xl px-3 py-2 border border-zinc-700 focus:border-blue-500 focus:ring-0"
-                />
-              ) : (
-                <p className="text-white">{profile.country || 'Not specified'}</p>
-              )}
+              <p className="text-white">{profile.country || 'Not specified'}</p>
             </div>
 
             {/* Interests */}
@@ -139,6 +135,46 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                 />
               ) : (
                 <p className="text-white">{profile.interests || 'No interests added yet'}</p>
+              )}
+            </div>
+
+            {/* Your Reviews */}
+            <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800">
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-zinc-400 text-sm font-medium">Your Reviews</label>
+                {reviews.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <StarIcon key={star} filled={star <= Math.round(getAverageRating())} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-zinc-400 ml-1">{getAverageRating()}/5 ({reviews.length})</span>
+                  </div>
+                )}
+              </div>
+              
+              {reviews.length === 0 ? (
+                <p className="text-zinc-500 text-sm">No reviews yet. Chat with people to get reviews!</p>
+              ) : (
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {reviews.slice(-3).reverse().map((review, index) => (
+                    <div key={index} className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-2">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <StarIcon key={star} filled={star <= review.rating} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-zinc-400">from {review.fromUser}</span>
+                      </div>
+                      <span className="text-xs text-zinc-500">{new Date(review.timestamp).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+                  {reviews.length > 3 && (
+                    <p className="text-xs text-zinc-500 text-center pt-1">+{reviews.length - 3} more reviews</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
