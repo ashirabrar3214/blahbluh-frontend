@@ -34,6 +34,7 @@ function ChatPage({ user }) {
   const [showActions, setShowActions] = useState(null);
   const [notification, setNotification] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
+  const [actionToast, setActionToast] = useState(null);
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
   const longPressTimer = useRef(null);
@@ -49,6 +50,12 @@ function ChatPage({ user }) {
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
+
+  useEffect(() => {
+    if (!actionToast) return;
+    const t = setTimeout(() => setActionToast(null), 2000);
+    return () => clearTimeout(t);
+  }, [actionToast]);
 
   // Always auto-scroll to bottom when messages change
   useEffect(() => {
@@ -323,6 +330,32 @@ const handleSendMessage = async () => {
     }
   };
 
+  const handleReportUser = () => {
+    if (!chatPartner) return;
+    console.log('Reported user:', chatPartner.userId);
+    setActionToast('User reported');
+    // TODO: send to backend when ready
+  };
+
+  const handleBlockUser = () => {
+    if (!chatPartner) return;
+    console.log('Blocked user:', chatPartner.userId);
+    setActionToast('User blocked');
+    // TODO: send to backend + prevent future matches
+  };
+
+  const handleAddFriend = () => {
+    if (!chatPartner) return;
+    console.log('Sent friend request to:', chatPartner.userId);
+    setActionToast('Friend request sent');
+    // TODO: send to backend
+  };
+
+  const handleNextUser = () => {
+    // Just reuse the same warning popup you already have
+    setShowWarning(true);
+  };
+
 
 
 
@@ -330,16 +363,56 @@ const handleSendMessage = async () => {
   if (chatId && chatPartner) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 px-4 py-1">
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-bold">
-                {chatPartner?.username?.[0]?.toUpperCase() || '?'}
-              </span>
+        <div className="sticky top-0 z-20 bg-gray-800/95 border-b border-gray-700 px-4 py-2 backdrop-blur">
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: avatar + name */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">
+                  {chatPartner?.username?.[0]?.toUpperCase() || '?'}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-medium text-white text-sm truncate">
+                  {chatPartner?.username || 'Anonymous'}
+                </h2>
+                <p className="text-[11px] text-gray-400">
+                  Swipe up or tap Next to skip
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-medium text-white text-sm">{chatPartner?.username || 'Anonymous'}</h2>
-              <p className="text-xs text-gray-400">Swipe up to move to next person</p>
+
+            {/* Right: actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddFriend}
+                className="hidden sm:inline-flex items-center px-2 py-1 rounded-full bg-gray-700 hover:bg-gray-600 text-[11px] font-medium"
+              >
+                + Friend
+              </button>
+
+              <button
+                onClick={handleReportUser}
+                className="w-8 h-8 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-xs text-red-300"
+                title="Report"
+              >
+                !
+              </button>
+
+              <button
+                onClick={handleBlockUser}
+                className="w-8 h-8 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-xs text-yellow-300"
+                title="Block"
+              >
+                ⛔
+              </button>
+
+              <button
+                onClick={handleNextUser}
+                className="px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-xs font-semibold"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
@@ -505,6 +578,14 @@ const handleSendMessage = async () => {
                   Yes, move on
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {actionToast && (
+          <div className="fixed bottom-20 left-0 right-0 flex justify-center z-30">
+            <div className="px-4 py-2 rounded-full bg-black/80 border border-gray-700 text-xs text-gray-100 shadow-lg">
+              {actionToast}
             </div>
           </div>
         )}
