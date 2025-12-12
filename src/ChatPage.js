@@ -316,18 +316,7 @@ const handleSendMessage = async () => {
     swipeStartY.current = null;
   };
 
-  const handleDisconnect = () => {
-    if (socketRef.current && chatId && currentUserId) {
-      socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
-    }
 
-    setChatId(null);
-    setChatPartner(null);
-    setMessages([]);
-    // keep the same user so they can rejoin later
-    setInQueue(false);
-    setQueuePosition(0);
-  };
 
 
   // Chat UI
