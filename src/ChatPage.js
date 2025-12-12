@@ -56,7 +56,6 @@ function ChatPage({ user }) {
   // --- REFS ---
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
-  // NEW: Track queue state in ref to access it inside socket listeners
   const inQueueRef = useRef(false); 
   const queueWatchdogRef = useRef(null);
   
@@ -81,8 +80,6 @@ function ChatPage({ user }) {
     inQueueRef.current = inQueue;
     
     // --- QUEUE WATCHDOG ---
-    // If we are at position 0 for more than 10 seconds, something is wrong.
-    // Force a re-join to update the socket ID on the backend.
     if (inQueue && queuePosition === 0) {
       if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
       
@@ -91,7 +88,7 @@ function ChatPage({ user }) {
         if (socketRef.current?.connected) {
           joinQueue(); // Re-emit join event
         }
-      }, 10000); // 10 seconds tolerance
+      }, 10000); 
     } else {
       if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
     }
@@ -99,6 +96,7 @@ function ChatPage({ user }) {
     return () => {
       if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inQueue, queuePosition]);
 
   // Handle ESC Key
@@ -160,9 +158,9 @@ function ChatPage({ user }) {
     socketRef.current = io('https://blahbluh-production.up.railway.app', {
       transports: ['websocket'],
       reconnection: true,
-      reconnectionAttempts: 10, // Increased attempts
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
-      forceNew: true // Ensure fresh connection
+      forceNew: true
     });
 
     socketRef.current.on('connect', () => {
@@ -170,14 +168,10 @@ function ChatPage({ user }) {
       const myId = currentUserIdRef.current;
       
       if (myId) {
-        // 1. Always re-register user Identity
         socketRef.current.emit('register-user', { userId: myId });
         
-        // 2. ANTI-STUCK FIX: If we thought we were in queue, tell backend again!
-        // This handles the "disconnect/reconnect" scenario causing zombie sockets.
         if (inQueueRef.current) {
           console.log('🔄 Socket reconnected. Re-joining queue to update Socket ID...');
-          // We call api.joinQueue again to update the backend's map
           api.joinQueue(myId).catch(console.error);
         }
       }
@@ -196,7 +190,7 @@ function ChatPage({ user }) {
         setChatId(data.chatId);
         setChatPartner(partner);
         setInQueue(false);
-        setQueuePosition(0); // Reset position
+        setQueuePosition(0);
         setMessages([]);
         setNotification(null);
         socketRef.current.emit('join-chat', { chatId: data.chatId });
@@ -232,8 +226,6 @@ function ChatPage({ user }) {
       setMessages([]);
       setInQueue(false);
       setQueuePosition(0);
-      // Removed auto-rejoin here to let user handle Review Popup logic
-      // The ReviewPopup close handler will trigger joinQueue()
     });
 
     return () => {
@@ -262,7 +254,7 @@ function ChatPage({ user }) {
       if (!userId) return;
 
       console.log('🚀 Joining Queue...');
-      setInQueue(true); // Update UI immediately
+      setInQueue(true); 
       
       const result = await api.joinQueue(userId);
       console.log('✅ Joined Queue:', result);
@@ -270,7 +262,7 @@ function ChatPage({ user }) {
       
     } catch (error) {
       console.error('Error joining queue:', error);
-      setInQueue(false); // Revert UI if fail
+      setInQueue(false);
       setActionToast("Could not join queue");
     }
   }
