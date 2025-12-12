@@ -299,10 +299,11 @@ const handleSendMessage = async () => {
     const deltaX = touch.clientX - swipeStartX.current;
     const deltaY = touch.clientY - swipeStartY.current;
     
-    // Check if it's a horizontal swipe (more horizontal than vertical)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 100) {
-      // Swipe detected - end chat and rejoin queue
-      if (chatId) {
+    // Check if it's a vertical swipe upward (bottom to top)
+    if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY < -100) {
+      // Swipe up detected - end chat and rejoin queue
+      if (chatId && socketRef.current && currentUserId) {
+        socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
         setChatId(null);
         setChatPartner(null);
         setMessages([]);
@@ -332,7 +333,7 @@ const handleSendMessage = async () => {
             </div>
             <div>
               <h2 className="font-medium text-white text-sm">{chatPartner?.username || 'Anonymous'}</h2>
-              <p className="text-xs text-gray-400">Swipe to end chat</p>
+              <p className="text-xs text-gray-400">Swipe up to end chat</p>
             </div>
           </div>
         </div>
