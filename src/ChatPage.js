@@ -347,7 +347,7 @@ const handleSendMessage = async () => {
         <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto">
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-3"
+            className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-1"
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}
           >
