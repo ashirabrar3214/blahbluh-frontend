@@ -73,12 +73,10 @@ function ChatPage({ user }) {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
-  // NEW: Handle ESC Key for Desktop Skip
+  // Handle ESC Key for Desktop Skip
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (chatId && e.key === 'Escape') {
-        // If warning is already open, Esc can close it, or if not open, open it.
-        // Let's make Esc toggle the warning or open it.
         setShowWarning(prev => !prev);
       }
     };
@@ -126,6 +124,7 @@ function ChatPage({ user }) {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showActions]);
 
+  // --- SOCKET CONNECTION ---
   useEffect(() => {
     socketRef.current = io('https://blahbluh-production.up.railway.app', {
       transports: ['websocket'],
@@ -181,6 +180,7 @@ function ChatPage({ user }) {
     return () => {
       socketRef.current?.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -320,11 +320,8 @@ function ChatPage({ user }) {
     }
   };
 
-  const handleReportUser = () => {
-    if (!chatPartner) return;
-    setActionToast('Reported');
-  };
-
+  // Removed unused handleReportUser to fix build error
+  
   const handleBlockUser = () => {
     if (!chatPartner) return;
     setActionToast('Blocked');
@@ -554,7 +551,7 @@ function ChatPage({ user }) {
     );
   }
 
-  // --- RENDER: LANDING / QUEUE UI (UNCHANGED) ---
+  // --- RENDER: LANDING / QUEUE UI ---
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
       <nav className="fixed top-0 w-full z-10 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
