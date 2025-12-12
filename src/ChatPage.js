@@ -36,6 +36,7 @@ function ChatPage({ user }) {
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
   const longPressTimer = useRef(null);
+  const hoverTimer = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -268,9 +269,18 @@ const handleSendMessage = async () => {
     }
   };
 
-  const handleInputBlur = () => {
-    if (isMobile && chatId) {
-      setTimeout(() => inputRef.current?.focus(), 0);
+  const handleMouseEnter = (messageId) => {
+    if (!isMobile) {
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+      setShowActions(messageId);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (!isMobile) {
+      hoverTimer.current = setTimeout(() => {
+        setShowActions(null);
+      }, 2000); // 2 second delay
     }
   };
 
@@ -325,8 +335,8 @@ const handleSendMessage = async () => {
                       }`}
                       onTouchStart={() => handleLongPress(msg.id)}
                       onTouchEnd={handleTouchEnd}
-                      onMouseEnter={() => !isMobile && setShowActions(msg.id)}
-                      onMouseLeave={() => !isMobile && setShowActions(null)}
+                      onMouseEnter={() => handleMouseEnter(msg.id)}
+                      onMouseLeave={handleMouseLeave}
                     >
                       {!isOwn && (
                         <div className="text-[10px] uppercase tracking-wide text-gray-300/70 mb-1">
@@ -430,7 +440,6 @@ const handleSendMessage = async () => {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder={replyingTo ? 'Reply...' : 'Type your message...'}
-                  onBlur={handleInputBlur}
                   autoComplete="off"
                   inputMode="text"
                   className="flex-1 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
