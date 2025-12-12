@@ -42,25 +42,16 @@ function AnimatedDots() {
   return <span>{dots}</span>;
 }
 
-function ChatPage({ user }) {
+function ChatPage({ chatId, chatPartner, socket, currentUserId, currentUsername, onChatEnd }) {
   // --- STATE AND REFS ---
-  const [inQueue, setInQueue] = useState(false);
-  const [queuePosition, setQueuePosition] = useState(0);
-  const [chatId, setChatId] = useState(null);
-  const [chatPartner, setChatPartner] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [currentUsername, setCurrentUsername] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
-  const [notification, setNotification] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
   const [actionToast, setActionToast] = useState(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
-  const currentUserIdRef = useRef(null);
-  const socketRef = useRef(null);
   const longPressTimer = useRef(null);
   const hoverTimer = useRef(null);
   const messagesEndRef = useRef(null);
@@ -70,11 +61,6 @@ function ChatPage({ user }) {
   const swipeStartY = useRef(null);
   
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  // --- EFFECT HOOKS ---
-  useEffect(() => {
-    currentUserIdRef.current = currentUserId;
-  }, [currentUserId]);
 
   // Handle ESC Key for Desktop Skip
   useEffect(() => {
@@ -102,20 +88,7 @@ function ChatPage({ user }) {
         container.scrollTop = container.scrollHeight;
       }, 200);
     }
-  }, [messages, chatId]);
-
-  useEffect(() => {
-    const generateUser = async () => {
-      try {
-        const gen = await api.generateUserId();
-        setCurrentUserId(gen.userId);
-        setCurrentUsername(gen.username);
-      } catch (error) {
-        console.error('Error generating user:', error);
-      }
-    };
-    generateUser();
-  }, []);
+  }, [messages]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -127,54 +100,19 @@ function ChatPage({ user }) {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showActions]);
 
-  // --- SOCKET CONNECTION ---
+  // --- SOCKET EVENT SETUP ---
   useEffect(() => {
-    socketRef.current = io('https://blahbluh-production.up.railway.app', {
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    if (!socket) return;
 
-    socketRef.current.on('connect', () => {
-      console.log('✅ Socket connected');
-      const myId = currentUserIdRef.current;
-      if (myId) {
-        console.log('📡 Registering user:', myId);
-        socketRef.current.emit('register-user', { userId: myId });
-      }
-    });
+    // Join the chat room
+    socket.emit('join-chat', { chatId });
 
-    socketRef.current.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
-      if (reason === 'io server disconnect') {
-        socketRef.current.connect();
-      }
-    });
-
-    socketRef.current.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
-    });
-
-    socketRef.current.on('chat-paired', (data) => {
-      const myId = currentUserIdRef.current;
-      const partner = data.users.find(u => u.userId !== myId);
-      if (partner) {
-        setChatId(data.chatId);
-        setChatPartner(partner);
-        setInQueue(false);
-        setMessages([]);
-        setNotification(null);
-        socketRef.current.emit('join-chat', { chatId: data.chatId });
-      }
-    });
-
-    socketRef.current.on('new-message', (msg) => {
+    socket.on('new-message', (msg) => {
       console.log('📨 Received new message:', msg);
       setMessages(prev => [...prev, { ...msg, reactions: msg.reactions || {} }]);
     });
 
-    socketRef.current.on('message-reaction', ({ messageId, emoji, userId }) => {
+    socket.on('message-reaction', ({ messageId, emoji, userId }) => {
       setMessages(prev => prev.map(msg => {
         if (msg.id === messageId) {
           const reactions = { ...msg.reactions };
@@ -188,63 +126,21 @@ function ChatPage({ user }) {
       }));
     });
 
-    socketRef.current.on('partner-disconnected', () => {
+    socket.on('partner-disconnected', () => {
       if (chatPartner) {
         setPartnerToReview(chatPartner);
         setShowReviewPopup(true);
       }
-      setNotification('partner-disconnected');
-      setChatId(null);
-      setChatPartner(null);
-      setMessages([]);
-      setInQueue(false);
-      setQueuePosition(0);
     });
 
     return () => {
-      socketRef.current?.disconnect();
+      socket.off('new-message');
+      socket.off('message-reaction');
+      socket.off('partner-disconnected');
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (currentUserId && socketRef.current?.connected) {
-      console.log('📡 Re-registering user on connection:', currentUserId);
-      socketRef.current.emit('register-user', { userId: currentUserId });
-      
-      // If we were in a chat, rejoin it
-      if (chatId) {
-        console.log('📡 Rejoining chat:', chatId);
-        socketRef.current.emit('join-chat', { chatId });
-      }
-    }
-  }, [currentUserId, chatId]);
+  }, [socket, chatId, chatPartner]);
 
   // --- FUNCTIONS ---
-  async function joinQueue() {
-    try {
-      if (!socketRef.current?.connected) return;
-      const userId = currentUserId;
-      if (!userId) return;
-
-      const result = await api.joinQueue(userId);
-      setInQueue(true);
-      setQueuePosition(result.queuePosition ?? 0);
-    } catch (error) {
-      console.error('Error joining queue:', error);
-    }
-  }
-
-  const leaveQueue = async () => {
-    try {
-      await api.leaveQueue(currentUserId);
-      setInQueue(false);
-      setQueuePosition(0);
-      setNotification(null);
-    } catch (error) {
-      console.error('Error leaving queue:', error);
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
