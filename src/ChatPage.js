@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
+import ReviewPopup from './ReviewPopup';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -56,6 +57,8 @@ function ChatPage({ user }) {
   const [notification, setNotification] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
   const [actionToast, setActionToast] = useState(null);
+  const [showReviewPopup, setShowReviewPopup] = useState(false);
+  const [partnerToReview, setPartnerToReview] = useState(null);
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
   const longPressTimer = useRef(null);
@@ -186,13 +189,16 @@ function ChatPage({ user }) {
     });
 
     socketRef.current.on('partner-disconnected', () => {
+      if (chatPartner) {
+        setPartnerToReview(chatPartner);
+        setShowReviewPopup(true);
+      }
       setNotification('partner-disconnected');
       setChatId(null);
       setChatPartner(null);
       setMessages([]);
       setInQueue(false);
       setQueuePosition(0);
-      joinQueue();
     });
 
     return () => {
@@ -357,6 +363,16 @@ function ChatPage({ user }) {
   };
 
   const confirmLeaveChat = () => {
+    setShowWarning(false);
+    if (chatPartner) {
+      setPartnerToReview(chatPartner);
+      setShowReviewPopup(true);
+    } else {
+      finishLeavingChat();
+    }
+  };
+
+  const finishLeavingChat = () => {
     if (chatId && socketRef.current && currentUserId) {
       socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
       setChatId(null);
@@ -364,7 +380,7 @@ function ChatPage({ user }) {
       setMessages([]);
       setReplyingTo(null);
       setShowActions(null);
-      setShowWarning(false);
+      setPartnerToReview(null);
       joinQueue();
     }
   };
@@ -381,6 +397,35 @@ function ChatPage({ user }) {
 
   const handleNextUser = () => {
     setShowWarning(true);
+  };
+
+  const handleReviewSubmit = (reviewData) => {
+    console.log('📝 Review submitted:', reviewData);
+    
+    // Handle different actions
+    switch (reviewData.action) {
+      case 'friend':
+        setActionToast('Friend request sent');
+        break;
+      case 'block':
+        setActionToast('User blocked');
+        break;
+      case 'report':
+        setActionToast('User reported');
+        break;
+      default:
+        break;
+    }
+    
+    setShowReviewPopup(false);
+    setPartnerToReview(null);
+    
+    // Continue with leaving chat or joining queue
+    if (notification === 'partner-disconnected') {
+      joinQueue();
+    } else {
+      finishLeavingChat();
+    }
   };
 
 
@@ -595,6 +640,23 @@ function ChatPage({ user }) {
               {actionToast}
             </div>
           </div>
+        )}
+
+        {/* Review Popup */}
+        {showReviewPopup && partnerToReview && (
+          <ReviewPopup
+            partner={partnerToReview}
+            onClose={() => {
+              setShowReviewPopup(false);
+              setPartnerToReview(null);
+              if (notification === 'partner-disconnected') {
+                joinQueue();
+              } else {
+                finishLeavingChat();
+              }
+            }}
+            onSubmit={handleReviewSubmit}
+          />
         )}
       </div>
     );
