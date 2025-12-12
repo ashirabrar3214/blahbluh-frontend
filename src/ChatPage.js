@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
 
-// --- SVGs for a cleaner look without external libraries ---
+// --- SVGs ---
 const SendIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
 );
@@ -17,6 +17,9 @@ const BlockIcon = () => (
 );
 const ReplyIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>
+);
+const SwipeUpIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
 );
 
 // Animated dots component
@@ -39,7 +42,7 @@ function AnimatedDots() {
 }
 
 function ChatPage({ user }) {
-  // --- STATE AND REFS (UNCHANGED) ---
+  // --- STATE AND REFS ---
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
   const [chatId, setChatId] = useState(null);
@@ -65,10 +68,24 @@ function ChatPage({ user }) {
   
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // --- EFFECT HOOKS (UNCHANGED) ---
+  // --- EFFECT HOOKS ---
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
+
+  // NEW: Handle ESC Key for Desktop Skip
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (chatId && e.key === 'Escape') {
+        // If warning is already open, Esc can close it, or if not open, open it.
+        // Let's make Esc toggle the warning or open it.
+        setShowWarning(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [chatId]);
 
   useEffect(() => {
     if (!actionToast) return;
@@ -92,7 +109,6 @@ function ChatPage({ user }) {
         const gen = await api.generateUserId();
         setCurrentUserId(gen.userId);
         setCurrentUsername(gen.username);
-        console.log('Generated user on mount:', gen.userId, 'with username:', gen.username);
       } catch (error) {
         console.error('Error generating user:', error);
       }
@@ -111,25 +127,17 @@ function ChatPage({ user }) {
   }, [showActions]);
 
   useEffect(() => {
-    console.log('Connecting to socket server...');
     socketRef.current = io('https://blahbluh-production.up.railway.app', {
       transports: ['websocket'],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
     });
 
     socketRef.current.on('connect', () => {
-      console.log('Connected to server | Socket ID:', socketRef.current.id);
       const myId = currentUserIdRef.current;
-      if (myId) {
-        socketRef.current.emit('register-user', { userId: myId });
-        console.log('Registered user on connect:', myId);
-      }
+      if (myId) socketRef.current.emit('register-user', { userId: myId });
     });
 
     socketRef.current.on('chat-paired', (data) => {
-      console.log('Chat paired!', data);
       const myId = currentUserIdRef.current;
       const partner = data.users.find(u => u.userId !== myId);
       if (partner) {
@@ -139,12 +147,10 @@ function ChatPage({ user }) {
         setMessages([]);
         setNotification(null);
         socketRef.current.emit('join-chat', { chatId: data.chatId });
-        console.log('Joined room:', data.chatId);
       }
     });
 
     socketRef.current.on('new-message', (msg) => {
-      console.log('New message:', msg);
       setMessages(prev => [...prev, { ...msg, reactions: msg.reactions || {} }]);
     });
 
@@ -163,7 +169,6 @@ function ChatPage({ user }) {
     });
 
     socketRef.current.on('partner-disconnected', () => {
-      console.log('Partner disconnected');
       setNotification('partner-disconnected');
       setChatId(null);
       setChatPartner(null);
@@ -173,33 +178,25 @@ function ChatPage({ user }) {
       joinQueue();
     });
 
-    socketRef.current.on('disconnect', () => {
-      console.log('Disconnected from server');
-    });
-
     return () => {
-      console.log('Cleaning up socket...');
       socketRef.current?.disconnect();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (currentUserId && socketRef.current?.connected) {
       socketRef.current.emit('register-user', { userId: currentUserId });
-      console.log('Registered user with server:', currentUserId);
     }
   }, [currentUserId]);
 
-  // --- FUNCTIONS (UNCHANGED) ---
+  // --- FUNCTIONS ---
   async function joinQueue() {
     try {
       if (!socketRef.current?.connected) return;
       const userId = currentUserId;
       if (!userId) return;
 
-      console.log('Attempting to join queue...');
       const result = await api.joinQueue(userId);
-      console.log('Queue joined:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
     } catch (error) {
@@ -348,7 +345,7 @@ function ChatPage({ user }) {
     return (
       <div className="fixed inset-0 bg-black text-white flex flex-col font-sans">
         {/* Apple-style Glass Header */}
-        <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between shadow-sm">
+        <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between shadow-sm transition-all">
           {/* Left: User Info (Clean) */}
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner">
@@ -384,10 +381,10 @@ function ChatPage({ user }) {
               <BlockIcon />
             </button>
             
-            {/* Primary Action: NEXT (Rich Gradient) */}
+            {/* Primary Action: NEXT (Desktop Only - hidden on mobile) */}
             <button 
               onClick={handleNextUser}
-              className="ml-2 pl-4 pr-5 py-2 rounded-full bg-white text-black font-bold text-xs flex items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5"
+              className="hidden md:flex ml-2 pl-4 pr-5 py-2 rounded-full bg-white text-black font-bold text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5"
             >
               <span>Next</span>
               <NextIcon />
@@ -397,19 +394,21 @@ function ChatPage({ user }) {
 
         {/* Message Area */}
         <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto relative">
+          
+          {/* Mobile Swipe Hint (Only visible on mobile) */}
+          <div className="md:hidden absolute top-20 left-0 right-0 z-10 flex justify-center pointer-events-none opacity-60">
+             <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
+                <SwipeUpIcon />
+                <span>Swipe up to skip</span>
+             </div>
+          </div>
+
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-4 pt-24 pb-32 space-y-3" // Increased padding for header/footer
+            className="flex-1 overflow-y-auto px-4 pt-24 pb-32 space-y-3"
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}
           >
-            {/* Report Button - Subtle & Inline at top */}
-            <div className="w-full flex justify-center mb-6 opacity-0 hover:opacity-100 transition-opacity">
-               <button onClick={handleReportUser} className="text-[10px] text-zinc-600 hover:text-red-500 underline decoration-zinc-800">
-                  Report conversation
-               </button>
-            </div>
-
             {messages.map((msg, index) => {
               const isOwn = msg.userId === currentUserId;
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
@@ -423,8 +422,8 @@ function ChatPage({ user }) {
                     <div
                       className={`relative px-4 py-2.5 shadow-sm transition-all duration-200 cursor-default
                         ${isOwn 
-                          ? 'bg-blue-600 text-white rounded-[20px] rounded-br-sm' // Apple Blue
-                          : 'bg-zinc-800 text-gray-100 rounded-[20px] rounded-bl-sm' // Apple Neutral Gray
+                          ? 'bg-blue-600 text-white rounded-[20px] rounded-br-sm' 
+                          : 'bg-zinc-800 text-gray-100 rounded-[20px] rounded-bl-sm' 
                         }
                       `}
                       onTouchStart={() => handleLongPress(msg.id)}
@@ -521,7 +520,9 @@ function ChatPage({ user }) {
             <div className="w-full max-w-xs bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl scale-100">
               <h3 className="text-lg font-bold text-white text-center mb-2">Skip Chat?</h3>
               <p className="text-zinc-400 text-sm text-center mb-6 leading-relaxed">
-                Are you sure you want to disconnect and find someone new?
+                Are you sure you want to disconnect?
+                <br/>
+                <span className="text-xs text-zinc-500 hidden md:inline-block mt-2">(Press ESC to close)</span>
               </p>
               <div className="flex gap-3">
                 <button
@@ -553,10 +554,9 @@ function ChatPage({ user }) {
     );
   }
 
-  // --- RENDER: LANDING / QUEUE UI ---
+  // --- RENDER: LANDING / QUEUE UI (UNCHANGED) ---
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
-      {/* Navbar */}
       <nav className="fixed top-0 w-full z-10 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
@@ -569,15 +569,11 @@ function ChatPage({ user }) {
         </div>
       </nav>
 
-      {/* Hero Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        {/* Abstract Background Blobs */}
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px] pointer-events-none"></div>
 
         <div className="max-w-lg w-full text-center relative z-10">
-          
-          {/* Status Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
             <span className={`w-2 h-2 rounded-full ${socketRef.current?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
             <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
@@ -632,7 +628,6 @@ function ChatPage({ user }) {
         </div>
       </div>
       
-      {/* Footer */}
       <div className="py-6 text-center text-zinc-600 text-xs font-medium">
         &copy; 2025 blahbluh. Crafted for anonymity.
       </div>
