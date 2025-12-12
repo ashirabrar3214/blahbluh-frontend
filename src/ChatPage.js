@@ -365,7 +365,7 @@ const handleSendMessage = async () => {
                   </div>
                 </div>
               );
-            })
+            })}
             <div ref={messagesEndRef} />
           </div>
 
