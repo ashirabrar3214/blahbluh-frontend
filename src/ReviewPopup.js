@@ -40,11 +40,32 @@ const FlagIcon = () => (
   </svg>
 );
 
-function ReviewPopup({ partner, onClose, onSubmit }) {
+function ReviewPopup({ partner, currentUserId, onClose, onSubmit }) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
 
   const handleSubmit = (action) => {
+    if (action === 'friend') {
+      // Save friend to localStorage
+      if (currentUserId) {
+        const existingFriends = JSON.parse(localStorage.getItem(`friends_${currentUserId}`) || '[]');
+        const newFriend = {
+          userId: partner.userId,
+          username: partner.username,
+          addedAt: Date.now(),
+          lastMessage: null,
+          unreadCount: 0
+        };
+        
+        // Check if friend already exists
+        const friendExists = existingFriends.some(f => f.userId === partner.userId);
+        if (!friendExists) {
+          existingFriends.push(newFriend);
+          localStorage.setItem(`friends_${currentUserId}`, JSON.stringify(existingFriends));
+        }
+      }
+    }
+    
     onSubmit({ rating, action });
     onClose();
   };

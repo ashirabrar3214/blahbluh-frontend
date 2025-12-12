@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import HomePage from './HomePage';
 import ChatPage from './ChatPage';
 import ProfilePage from './ProfilePage';
+import InboxPage from './InboxPage';
 import { api } from './api';
 
 function App() {
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'chat', 'profile'
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'chat', 'profile', 'inbox'
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const [chatData, setChatData] = useState(null);
@@ -41,6 +42,10 @@ function App() {
     setCurrentView('profile');
   };
 
+  const handleInboxOpen = () => {
+    setCurrentView('inbox');
+  };
+
   const handleBackToHome = () => {
     setCurrentView('home');
   };
@@ -68,10 +73,20 @@ function App() {
     );
   }
 
+  if (currentView === 'inbox') {
+    return (
+      <InboxPage
+        currentUserId={currentUserId}
+        onBack={handleBackToHome}
+      />
+    );
+  }
+
   return (
     <HomePage
       onChatStart={handleChatStart}
       onProfileOpen={handleProfileOpen}
+      onInboxOpen={handleInboxOpen}
       currentUsername={currentUsername}
       currentUserId={currentUserId}
       notification={notification}
