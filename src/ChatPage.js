@@ -295,13 +295,16 @@ const handleSendMessage = async () => {
             {messages.map((msg, index) => {
               const isOwn = msg.userId === currentUserId;
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
-              
+              const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
+
               return (
                 <div key={msg.id || index} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                  <div className="relative max-w-xs">
+                  <div className="relative max-w-xs pb-4">
                     <div
                       className={`px-4 py-3 rounded-2xl text-sm shadow-lg transition-all duration-200 ${
-                        isOwn ? 'bg-gradient-to-r from-blue-600 to-blue-500 rounded-br-md' : 'bg-gray-700 rounded-bl-md'
+                        isOwn
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-500 rounded-br-md'
+                          : 'bg-gray-700 rounded-bl-md'
                       }`}
                       onTouchStart={() => handleLongPress(msg.id)}
                       onTouchEnd={handleTouchEnd}
@@ -310,56 +313,70 @@ const handleSendMessage = async () => {
                       onMouseLeave={handleTouchEnd}
                     >
                       {!isOwn && (
-                        <div className="text-xs text-gray-300 mb-1 font-medium">{msg.username}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-gray-300/70 mb-1">
+                          {msg.username}
+                        </div>
                       )}
-                      
+
                       {replyMsg && (
-                        <div className="mb-2 p-2 rounded-lg bg-black/20 border-l-2 border-gray-400">
-                          <div className="text-xs text-gray-300 mb-1">↳ {replyMsg.username}</div>
-                          <div className="text-xs text-gray-200 opacity-80">{replyMsg.message}</div>
+                        <div className="mb-2 pl-3 py-1 rounded-lg bg-black/15 border-l-2 border-white/25">
+                          <div className="text-[11px] text-gray-300/80 mb-0.5">
+                            Replying to <span className="font-semibold">{replyMsg.username}</span>
+                          </div>
+                          <div className="text-[11px] text-gray-200/80 line-clamp-2">
+                            {replyMsg.message}
+                          </div>
                         </div>
                       )}
-                      
-                      <div className="break-words">{msg.message}</div>
-                      
-                      {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {Object.entries(msg.reactions).map(([emoji, users]) => (
-                            <button
-                              key={emoji}
-                              onClick={() => handleReaction(msg.id, emoji)}
-                              className={`px-2 py-1 rounded-full text-xs bg-black/30 hover:bg-black/50 transition-colors ${
-                                users.includes(currentUserId) ? 'ring-1 ring-white/50' : ''
-                              }`}
-                            >
-                              {emoji} {users.length}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+
+                      <div className="break-words leading-relaxed">
+                        {msg.message}
+                      </div>
                     </div>
-                    
+
+                    {hasReactions && (
+                      <div
+                        className={`absolute -bottom-2 ${
+                          isOwn ? 'right-3' : 'left-3'
+                        } flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-900/90 border border-gray-700/70 shadow-md`}
+                      >
+                        {Object.entries(msg.reactions).map(([emoji, users]) => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleReaction(msg.id, emoji)}
+                            className="flex items-center gap-0.5 text-xs hover:scale-105 transition-transform"
+                          >
+                            <span>{emoji}</span>
+                            <span className="text-[10px] text-gray-300">{users.length}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     {showActions === msg.id && (
-                      <div className={`message-actions absolute top-0 ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} bg-gray-800 rounded-xl shadow-xl border border-gray-600 p-2 z-10 animate-in fade-in duration-200`}>
-                        <div className="flex gap-2">
+                      <div
+                        className={`message-actions absolute -top-2 ${
+                          isOwn ? 'right-full mr-2' : 'left-full ml-2'
+                        } bg-gray-900/95 rounded-2xl shadow-2xl border border-gray-700 p-2 z-10`}
+                      >
+                        <div className="flex gap-1 mb-1">
                           {['❤️', '😂', '👍', '😮', '😢', '😡'].map(emoji => (
                             <button
                               key={emoji}
                               onClick={() => handleReaction(msg.id, emoji)}
-                              className="w-8 h-8 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center text-lg"
+                              className="w-8 h-8 rounded-xl bg-gray-800/80 hover:bg-gray-700 flex items-center justify-center text-lg"
                             >
                               {emoji}
                             </button>
                           ))}
                         </div>
-                        <div className="border-t border-gray-600 mt-2 pt-2">
-                          <button
-                            onClick={() => handleReply(msg)}
-                            className="w-full px-3 py-1 text-xs text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
-                          >
-                            Reply
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleReply(msg)}
+                          className="w-full mt-1 px-3 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg flex items-center justify-center gap-1"
+                        >
+                          <span className="text-sm">↩</span>
+                          <span>Reply</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -372,19 +389,21 @@ const handleSendMessage = async () => {
           <div className="bg-gray-900 border-t border-gray-700 p-4">
             <div className="max-w-5xl mx-auto">
               {replyingTo && (
-                <div className="mb-3 p-3 bg-gray-800 rounded-lg border-l-4 border-blue-500">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="text-xs text-gray-400 mb-1">Replying to {replyingTo.username}</div>
-                      <div className="text-sm text-gray-200">{replyingTo.message}</div>
+                <div className="mb-2 px-3 py-2 bg-gray-900/80 rounded-xl border border-gray-700 flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-[11px] text-gray-400 mb-0.5">
+                      Replying to <span className="font-semibold text-gray-200">{replyingTo.username}</span>
                     </div>
-                    <button
-                      onClick={() => setReplyingTo(null)}
-                      className="text-gray-400 hover:text-white ml-2"
-                    >
-                      ✕
-                    </button>
+                    <div className="text-xs text-gray-300 line-clamp-1">
+                      {replyingTo.message}
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setReplyingTo(null)}
+                    className="text-gray-500 hover:text-gray-200 text-sm"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
               
