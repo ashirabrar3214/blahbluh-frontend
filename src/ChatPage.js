@@ -26,24 +26,17 @@ const SwipeUpIcon = () => (
 // Animated dots component
 function AnimatedDots() {
   const [dots, setDots] = useState('.');
-  
   useEffect(() => {
     const interval = setInterval(() => {
-      setDots(prev => {
-        if (prev === '.') return '..';
-        if (prev === '..') return '...';
-        return '.';
-      });
+      setDots(prev => (prev === '...' ? '.' : prev + '.'));
     }, 500);
-    
     return () => clearInterval(interval);
   }, []);
-  
   return <span>{dots}</span>;
 }
 
 function ChatPage({ user }) {
-  // --- STATE AND REFS ---
+  // --- STATE ---
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
   const [chatId, setChatId] = useState(null);
@@ -59,8 +52,14 @@ function ChatPage({ user }) {
   const [actionToast, setActionToast] = useState(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
+
+  // --- REFS ---
   const currentUserIdRef = useRef(null);
   const socketRef = useRef(null);
+  // NEW: Track queue state in ref to access it inside socket listeners
+  const inQueueRef = useRef(false); 
+  const queueWatchdogRef = useRef(null);
+  
   const longPressTimer = useRef(null);
   const hoverTimer = useRef(null);
   const messagesEndRef = useRef(null);
@@ -72,28 +71,55 @@ function ChatPage({ user }) {
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // --- EFFECT HOOKS ---
+
+  // Sync refs
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
-  // Handle ESC Key for Desktop Skip
+  useEffect(() => {
+    inQueueRef.current = inQueue;
+    
+    // --- QUEUE WATCHDOG ---
+    // If we are at position 0 for more than 10 seconds, something is wrong.
+    // Force a re-join to update the socket ID on the backend.
+    if (inQueue && queuePosition === 0) {
+      if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
+      
+      queueWatchdogRef.current = setTimeout(() => {
+        console.log("🐶 Watchdog: Stuck at #0 for 10s. Force refreshing connection...");
+        if (socketRef.current?.connected) {
+          joinQueue(); // Re-emit join event
+        }
+      }, 10000); // 10 seconds tolerance
+    } else {
+      if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
+    }
+
+    return () => {
+      if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
+    };
+  }, [inQueue, queuePosition]);
+
+  // Handle ESC Key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (chatId && e.key === 'Escape') {
         setShowWarning(prev => !prev);
       }
     };
-    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [chatId]);
 
+  // Toast Timer
   useEffect(() => {
     if (!actionToast) return;
     const t = setTimeout(() => setActionToast(null), 2000);
     return () => clearTimeout(t);
   }, [actionToast]);
 
+  // Auto-scroll
   useEffect(() => {
     if (messagesContainerRef.current && messagesEndRef.current) {
       const container = messagesContainerRef.current;
@@ -104,6 +130,7 @@ function ChatPage({ user }) {
     }
   }, [messages, chatId]);
 
+  // Generate User
   useEffect(() => {
     const generateUser = async () => {
       try {
@@ -117,6 +144,7 @@ function ChatPage({ user }) {
     generateUser();
   }, []);
 
+  // Click Outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showActions && !event.target.closest('.message-actions')) {
@@ -132,37 +160,43 @@ function ChatPage({ user }) {
     socketRef.current = io('https://blahbluh-production.up.railway.app', {
       transports: ['websocket'],
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10, // Increased attempts
       reconnectionDelay: 1000,
+      forceNew: true // Ensure fresh connection
     });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ Socket connected');
+      console.log('✅ Socket connected:', socketRef.current.id);
       const myId = currentUserIdRef.current;
+      
       if (myId) {
-        console.log('📡 Registering user:', myId);
+        // 1. Always re-register user Identity
         socketRef.current.emit('register-user', { userId: myId });
+        
+        // 2. ANTI-STUCK FIX: If we thought we were in queue, tell backend again!
+        // This handles the "disconnect/reconnect" scenario causing zombie sockets.
+        if (inQueueRef.current) {
+          console.log('🔄 Socket reconnected. Re-joining queue to update Socket ID...');
+          // We call api.joinQueue again to update the backend's map
+          api.joinQueue(myId).catch(console.error);
+        }
       }
     });
 
     socketRef.current.on('disconnect', (reason) => {
       console.log('❌ Socket disconnected:', reason);
-      if (reason === 'io server disconnect') {
-        socketRef.current.connect();
-      }
-    });
-
-    socketRef.current.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
     });
 
     socketRef.current.on('chat-paired', (data) => {
+      console.log('🤝 Chat Paired!');
       const myId = currentUserIdRef.current;
       const partner = data.users.find(u => u.userId !== myId);
+      
       if (partner) {
         setChatId(data.chatId);
         setChatPartner(partner);
         setInQueue(false);
+        setQueuePosition(0); // Reset position
         setMessages([]);
         setNotification(null);
         socketRef.current.emit('join-chat', { chatId: data.chatId });
@@ -170,7 +204,6 @@ function ChatPage({ user }) {
     });
 
     socketRef.current.on('new-message', (msg) => {
-      console.log('📨 Received new message:', msg);
       setMessages(prev => [...prev, { ...msg, reactions: msg.reactions || {} }]);
     });
 
@@ -199,6 +232,8 @@ function ChatPage({ user }) {
       setMessages([]);
       setInQueue(false);
       setQueuePosition(0);
+      // Removed auto-rejoin here to let user handle Review Popup logic
+      // The ReviewPopup close handler will trigger joinQueue()
     });
 
     return () => {
@@ -207,31 +242,36 @@ function ChatPage({ user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sync user registration when ID is ready
   useEffect(() => {
     if (currentUserId && socketRef.current?.connected) {
-      console.log('📡 Re-registering user on connection:', currentUserId);
       socketRef.current.emit('register-user', { userId: currentUserId });
-      
-      // If we were in a chat, rejoin it
-      if (chatId) {
-        console.log('📡 Rejoining chat:', chatId);
-        socketRef.current.emit('join-chat', { chatId });
-      }
     }
-  }, [currentUserId, chatId]);
+  }, [currentUserId]);
+
 
   // --- FUNCTIONS ---
   async function joinQueue() {
     try {
-      if (!socketRef.current?.connected) return;
+      if (!socketRef.current?.connected) {
+        console.log('🔌 Socket disconnected, attempting reconnect before queueing...');
+        socketRef.current.connect();
+      }
+      
       const userId = currentUserId;
       if (!userId) return;
 
+      console.log('🚀 Joining Queue...');
+      setInQueue(true); // Update UI immediately
+      
       const result = await api.joinQueue(userId);
-      setInQueue(true);
+      console.log('✅ Joined Queue:', result);
       setQueuePosition(result.queuePosition ?? 0);
+      
     } catch (error) {
       console.error('Error joining queue:', error);
+      setInQueue(false); // Revert UI if fail
+      setActionToast("Could not join queue");
     }
   }
 
@@ -248,15 +288,12 @@ function ChatPage({ user }) {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    if (!chatId || !currentUserId) {
-      console.error('❌ Missing required data:', { chatId, currentUserId });
-      return;
-    }
+    if (!chatId || !currentUserId) return;
     
-    if (!socketRef.current || !socketRef.current.connected) {
-      console.error('❌ Socket not connected');
-      setActionToast('Connection lost. Reconnecting...');
-      return;
+    if (!socketRef.current?.connected) {
+        setActionToast('Reconnecting...');
+        socketRef.current.connect();
+        return;
     }
 
     const messageData = {
@@ -267,24 +304,9 @@ function ChatPage({ user }) {
       replyTo: replyingTo
     };
 
-    console.log('📤 Sending message:', messageData);
-    
-    try {
-      socketRef.current.emit('send-message', messageData, (ack) => {
-        if (ack && ack.error) {
-          console.error('❌ Message send failed:', ack.error);
-          setActionToast('Failed to send message');
-        } else {
-          console.log('✅ Message sent successfully');
-        }
-      });
-      
-      setNewMessage('');
-      setReplyingTo(null);
-    } catch (error) {
-      console.error('❌ Error sending message:', error);
-      setActionToast('Failed to send message');
-    }
+    socketRef.current.emit('send-message', messageData);
+    setNewMessage('');
+    setReplyingTo(null);
   };
 
   const handleReaction = (messageId, emoji) => {
@@ -400,27 +422,16 @@ function ChatPage({ user }) {
   };
 
   const handleReviewSubmit = (reviewData) => {
-    console.log('📝 Review submitted:', reviewData);
-    
-    // Handle different actions
     switch (reviewData.action) {
-      case 'friend':
-        setActionToast('Friend request sent');
-        break;
-      case 'block':
-        setActionToast('User blocked');
-        break;
-      case 'report':
-        setActionToast('User reported');
-        break;
-      default:
-        break;
+      case 'friend': setActionToast('Friend request sent'); break;
+      case 'block': setActionToast('User blocked'); break;
+      case 'report': setActionToast('User reported'); break;
+      default: break;
     }
     
     setShowReviewPopup(false);
     setPartnerToReview(null);
     
-    // Continue with leaving chat or joining queue
     if (notification === 'partner-disconnected') {
       joinQueue();
     } else {
@@ -432,11 +443,9 @@ function ChatPage({ user }) {
   // --- RENDER: CHAT UI ---
   if (chatId && chatPartner) {
     return (
-      // Changed: Use h-[100dvh] for mobile viewport consistency
       <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
         {/* Apple-style Glass Header */}
         <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between shadow-sm transition-all">
-          {/* Left: User Info (Clean) */}
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner">
                 <span className="text-sm font-bold text-white tracking-wide">
@@ -454,38 +463,23 @@ function ChatPage({ user }) {
              </div>
           </div>
 
-          {/* Right: Unified Action Pills */}
           <div className="flex items-center gap-2">
-            <button 
-              onClick={handleAddFriend}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95"
-              aria-label="Add Friend"
-            >
+            <button onClick={handleAddFriend} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
               <UserPlusIcon />
             </button>
-            <button 
-              onClick={handleBlockUser}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95"
-              aria-label="Block"
-            >
+            <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
               <BlockIcon />
             </button>
-            
-            {/* Primary Action: NEXT (Desktop Only - hidden on mobile) */}
-            <button 
-              onClick={handleNextUser}
-              className="hidden md:flex ml-2 pl-4 pr-5 py-2 rounded-full bg-white text-black font-bold text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5"
-            >
+            <button onClick={handleNextUser} className="hidden md:flex ml-2 pl-4 pr-5 py-2 rounded-full bg-white text-black font-bold text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5">
               <span>Next</span>
               <NextIcon />
             </button>
           </div>
         </header>
 
-        {/* Main Content Area - FLEXBOX LAYOUT (Fixes Keyboard Issue) */}
+        {/* Content */}
         <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto overflow-hidden">
-          
-          {/* Mobile Swipe Hint */}
+          {/* Mobile Hint */}
           <div className="md:hidden absolute top-20 left-0 right-0 z-10 flex justify-center pointer-events-none opacity-60">
              <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
                 <SwipeUpIcon />
@@ -493,7 +487,7 @@ function ChatPage({ user }) {
              </div>
           </div>
 
-          {/* Messages Area - Grow to fill space */}
+          {/* Messages */}
           <div 
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto px-4 pt-24 pb-4 space-y-3"
@@ -509,7 +503,6 @@ function ChatPage({ user }) {
                 <div key={msg.id || index} className={`group flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
                   <div className={`relative max-w-[80%] sm:max-w-[70%]`}>
                     
-                    {/* Message Bubble */}
                     <div
                       className={`relative px-4 py-2.5 shadow-sm transition-all duration-200 cursor-default
                         ${isOwn 
@@ -528,13 +521,11 @@ function ChatPage({ user }) {
                           <span className="truncate block opacity-80">{replyMsg.message}</span>
                         </div>
                       )}
-
                       <div className="text-[15px] leading-relaxed break-words font-normal">
                         {msg.message}
                       </div>
                     </div>
 
-                    {/* Reactions Pill */}
                     {hasReactions && (
                       <div className={`absolute -bottom-2 ${isOwn ? 'right-0' : 'left-0'} z-10 flex gap-0.5 px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700 shadow-lg scale-90`}>
                         {Object.entries(msg.reactions).map(([emoji, users]) => (
@@ -545,7 +536,6 @@ function ChatPage({ user }) {
                       </div>
                     )}
 
-                    {/* Context Menu (Hover/Long Press) */}
                     {showActions === msg.id && (
                       <div className={`absolute -top-12 ${isOwn ? 'right-0' : 'left-0'} flex items-center gap-2 p-1.5 bg-zinc-800/90 backdrop-blur-md rounded-full shadow-2xl border border-white/10 z-20 animate-in fade-in zoom-in duration-200`}>
                         {['❤️', '😂', '👍', '👎', '🔥'].map(emoji => (
@@ -566,7 +556,7 @@ function ChatPage({ user }) {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Static Input Area (Not Absolute) - Sits naturally at the bottom */}
+          {/* Input Area */}
           <div className="w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent shrink-0 z-30">
             <div className="max-w-2xl mx-auto">
               {replyingTo && (
@@ -586,7 +576,7 @@ function ChatPage({ user }) {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="iMessage..."
-                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 text-[16px]" // 16px prevents zoom on iOS
+                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 text-[16px]"
                   autoComplete="off"
                 />
                 <button
@@ -605,7 +595,7 @@ function ChatPage({ user }) {
           </div>
         </div>
 
-        {/* Modal: Warning Popup */}
+        {/* Warning Popup */}
         {showWarning && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="w-full max-w-xs bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl scale-100">
@@ -616,16 +606,10 @@ function ChatPage({ user }) {
                 <span className="text-xs text-zinc-500 hidden md:inline-block mt-2">(Press ESC to close)</span>
               </p>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowWarning(false)}
-                  className="flex-1 py-3.5 rounded-2xl bg-zinc-800 text-white font-medium text-sm hover:bg-zinc-700 transition-colors"
-                >
+                <button onClick={() => setShowWarning(false)} className="flex-1 py-3.5 rounded-2xl bg-zinc-800 text-white font-medium text-sm hover:bg-zinc-700 transition-colors">
                   Cancel
                 </button>
-                <button
-                  onClick={confirmLeaveChat}
-                  className="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors"
-                >
+                <button onClick={confirmLeaveChat} className="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors">
                   Yes, Skip
                 </button>
               </div>
@@ -633,7 +617,7 @@ function ChatPage({ user }) {
           </div>
         )}
 
-        {/* Toast Notification */}
+        {/* Toast */}
         {actionToast && (
           <div className="fixed top-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
             <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-sm font-medium text-white shadow-xl animate-in slide-in-from-top-4 fade-in">
@@ -708,10 +692,7 @@ function ChatPage({ user }) {
                    <h3 className="text-xl font-bold text-white mb-1">Finding a match<AnimatedDots /></h3>
                    <p className="text-zinc-500 text-sm">Position in queue: <span className="text-white font-mono">{queuePosition}</span></p>
                 </div>
-                <button
-                  onClick={leaveQueue}
-                  className="mt-4 px-6 py-3 rounded-full bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 transition-colors"
-                >
+                <button onClick={leaveQueue} className="mt-4 px-6 py-3 rounded-full bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 transition-colors">
                   Cancel
                 </button>
               </div>
