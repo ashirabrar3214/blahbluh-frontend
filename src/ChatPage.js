@@ -129,11 +129,28 @@ function ChatPage({ user }) {
     socketRef.current = io('https://blahbluh-production.up.railway.app', {
       transports: ['websocket'],
       reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     socketRef.current.on('connect', () => {
+      console.log('✅ Socket connected');
       const myId = currentUserIdRef.current;
-      if (myId) socketRef.current.emit('register-user', { userId: myId });
+      if (myId) {
+        console.log('📡 Registering user:', myId);
+        socketRef.current.emit('register-user', { userId: myId });
+      }
+    });
+
+    socketRef.current.on('disconnect', (reason) => {
+      console.log('❌ Socket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        socketRef.current.connect();
+      }
+    });
+
+    socketRef.current.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
     });
 
     socketRef.current.on('chat-paired', (data) => {
@@ -150,6 +167,7 @@ function ChatPage({ user }) {
     });
 
     socketRef.current.on('new-message', (msg) => {
+      console.log('📨 Received new message:', msg);
       setMessages(prev => [...prev, { ...msg, reactions: msg.reactions || {} }]);
     });
 
@@ -185,9 +203,16 @@ function ChatPage({ user }) {
 
   useEffect(() => {
     if (currentUserId && socketRef.current?.connected) {
+      console.log('📡 Re-registering user on connection:', currentUserId);
       socketRef.current.emit('register-user', { userId: currentUserId });
+      
+      // If we were in a chat, rejoin it
+      if (chatId) {
+        console.log('📡 Rejoining chat:', chatId);
+        socketRef.current.emit('join-chat', { chatId });
+      }
     }
-  }, [currentUserId]);
+  }, [currentUserId, chatId]);
 
   // --- FUNCTIONS ---
   async function joinQueue() {
@@ -217,19 +242,43 @@ function ChatPage({ user }) {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    if (!chatId || !currentUserId || !socketRef.current) return;
+    if (!chatId || !currentUserId) {
+      console.error('❌ Missing required data:', { chatId, currentUserId });
+      return;
+    }
+    
+    if (!socketRef.current || !socketRef.current.connected) {
+      console.error('❌ Socket not connected');
+      setActionToast('Connection lost. Reconnecting...');
+      return;
+    }
 
     const messageData = {
       chatId,
-      message: newMessage,
+      message: newMessage.trim(),
       userId: currentUserId,
       username: currentUsername,
       replyTo: replyingTo
     };
 
-    socketRef.current.emit('send-message', messageData);
-    setNewMessage('');
-    setReplyingTo(null);
+    console.log('📤 Sending message:', messageData);
+    
+    try {
+      socketRef.current.emit('send-message', messageData, (ack) => {
+        if (ack && ack.error) {
+          console.error('❌ Message send failed:', ack.error);
+          setActionToast('Failed to send message');
+        } else {
+          console.log('✅ Message sent successfully');
+        }
+      });
+      
+      setNewMessage('');
+      setReplyingTo(null);
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+      setActionToast('Failed to send message');
+    }
   };
 
   const handleReaction = (messageId, emoji) => {
