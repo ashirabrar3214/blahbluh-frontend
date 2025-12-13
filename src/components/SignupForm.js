@@ -47,14 +47,35 @@ function SignupForm({ onComplete, loading = false }) {
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Country
             </label>
-            <input
-              type="text"
+            <select
               value={formData.country}
               onChange={(e) => setFormData({...formData, country: e.target.value})}
-              placeholder="e.g. United States"
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-            />
+            >
+              <option value="">Select your country</option>
+              <option value="United States">United States</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Canada">Canada</option>
+              <option value="Australia">Australia</option>
+              <option value="Germany">Germany</option>
+              <option value="France">France</option>
+              <option value="Italy">Italy</option>
+              <option value="Spain">Spain</option>
+              <option value="Netherlands">Netherlands</option>
+              <option value="Sweden">Sweden</option>
+              <option value="Norway">Norway</option>
+              <option value="Denmark">Denmark</option>
+              <option value="Finland">Finland</option>
+              <option value="Japan">Japan</option>
+              <option value="South Korea">South Korea</option>
+              <option value="Singapore">Singapore</option>
+              <option value="India">India</option>
+              <option value="Brazil">Brazil</option>
+              <option value="Mexico">Mexico</option>
+              <option value="Argentina">Argentina</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
 
           <button
