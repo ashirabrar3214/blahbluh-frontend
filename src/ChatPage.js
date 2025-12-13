@@ -49,6 +49,7 @@ function ChatPage({ user }) {
   const [currentUsername, setCurrentUsername] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [showSignup, setShowSignup] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -134,6 +135,7 @@ function ChatPage({ user }) {
   }, [messages, chatId]);
 
   const handleSignupComplete = async (signupData) => {
+    setIsLoading(true);
     try {
       const gen = await api.generateUserId();
       setCurrentUserId(gen.userId);
@@ -146,6 +148,7 @@ function ChatPage({ user }) {
     } catch (error) {
       console.error('Error creating user:', error);
     }
+    setIsLoading(false);
   };
 
   const handleProfileUpdate = (updatedUser) => {
@@ -445,7 +448,7 @@ function ChatPage({ user }) {
 
   // --- RENDER: SIGNUP FORM ---
   if (showSignup) {
-    return <SignupForm onComplete={handleSignupComplete} />;
+    return <SignupForm onComplete={handleSignupComplete} loading={isLoading} />;
   }
 
   // --- RENDER: CHAT UI ---

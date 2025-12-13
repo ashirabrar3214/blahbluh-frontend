@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 
-function SignupForm({ onComplete }) {
+function SignupForm({ onComplete, loading = false }) {
   const [formData, setFormData] = useState({
     gender: '',
     country: ''
   });
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.gender || !formData.country) return;
-    
-    setLoading(true);
     onComplete(formData);
   };
 
