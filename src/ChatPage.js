@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
+import ProfileModal from './components/ProfileModal';
 import ReviewPopup from './ReviewPopup';
 
 // --- SVGs ---
@@ -45,8 +46,10 @@ function ChatPage({ user }) {
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [notification, setNotification] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
   const [actionToast, setActionToast] = useState(null);
@@ -135,12 +138,20 @@ function ChatPage({ user }) {
         const gen = await api.generateUserId();
         setCurrentUserId(gen.userId);
         setCurrentUsername(gen.username);
+        // Fetch full user data
+        const userData = await api.getUser(gen.userId);
+        setCurrentUser(userData);
       } catch (error) {
         console.error('Error generating user:', error);
       }
     };
     generateUser();
   }, []);
+
+  const handleProfileUpdate = (updatedUser) => {
+    setCurrentUser(updatedUser);
+    setCurrentUsername(updatedUser.username);
+  };
 
   // Click Outside
   useEffect(() => {
@@ -648,8 +659,16 @@ function ChatPage({ user }) {
           </div>
           <span className="font-bold text-lg tracking-tight text-white">blahbluh</span>
         </div>
-        <div className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">
-           {currentUsername || 'guest'}
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">
+             {currentUsername || 'guest'}
+          </div>
+          <button
+            onClick={() => setShowProfile(true)}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded-full hover:bg-zinc-800"
+          >
+            Edit
+          </button>
         </div>
       </nav>
 
@@ -712,6 +731,15 @@ function ChatPage({ user }) {
       <div className="py-6 text-center text-zinc-600 text-xs font-medium">
         &copy; 2025 blahbluh. Crafted for anonymity.
       </div>
+      
+      {/* Profile Modal */}
+      {showProfile && currentUser && (
+        <ProfileModal
+          user={currentUser}
+          onClose={() => setShowProfile(false)}
+          onUpdate={handleProfileUpdate}
+        />
+      )}
     </div>
   );
 }
