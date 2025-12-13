@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
 import ProfileModal from './components/ProfileModal';
-import SignupForm from './components/SignupForm';
 import ReviewPopup from './ReviewPopup';
 
 // --- SVGs ---
@@ -37,7 +36,15 @@ function AnimatedDots() {
   return <span>{dots}</span>;
 }
 
-function ChatPage({ user }) {
+function ChatPage({ user, currentUserId: propUserId, currentUsername: propUsername }) {
+  // Set initial state from props
+  useEffect(() => {
+    if (propUserId && propUsername) {
+      setCurrentUserId(propUserId);
+      setCurrentUsername(propUsername);
+      setCurrentUser(user);
+    }
+  }, [propUserId, propUsername, user]);
   // --- STATE ---
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
@@ -48,8 +55,6 @@ function ChatPage({ user }) {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [showSignup, setShowSignup] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -134,22 +139,7 @@ function ChatPage({ user }) {
     }
   }, [messages, chatId]);
 
-  const handleSignupComplete = async (signupData) => {
-    setIsLoading(true);
-    try {
-      const gen = await api.generateUserId();
-      setCurrentUserId(gen.userId);
-      setCurrentUsername(gen.username);
-      
-      // Update user with signup data
-      const updatedUser = await api.updateUser(gen.userId, signupData);
-      setCurrentUser(updatedUser);
-      setShowSignup(false);
-    } catch (error) {
-      console.error('Error creating user:', error);
-    }
-    setIsLoading(false);
-  };
+
 
   const handleProfileUpdate = (updatedUser) => {
     setCurrentUser(updatedUser);
@@ -446,10 +436,7 @@ function ChatPage({ user }) {
   };
 
 
-  // --- RENDER: SIGNUP FORM ---
-  if (showSignup && !currentUser) {
-    return <SignupForm onComplete={handleSignupComplete} loading={isLoading} />;
-  }
+
 
   // --- RENDER: CHAT UI ---
   if (chatId && chatPartner) {

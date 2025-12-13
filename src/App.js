@@ -1,96 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import HomePage from './HomePage';
+import { useState } from 'react';
 import ChatPage from './ChatPage';
-import ProfilePage from './ProfilePage';
-import InboxPage from './InboxPage';
+import SignupForm from './components/SignupForm';
 import { api } from './api';
 
 function App() {
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'chat', 'profile', 'inbox'
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [currentUsername, setCurrentUsername] = useState(null);
-  const [chatData, setChatData] = useState(null);
-  const [notification, setNotification] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const generateUser = async () => {
-      try {
-        const gen = await api.generateUserId();
-        setCurrentUserId(gen.userId);
-        setCurrentUsername(gen.username);
-      } catch (error) {
-        console.error('Error generating user:', error);
-      }
-    };
-    generateUser();
-  }, []);
-
-  const handleChatStart = (chatId, partner, socket) => {
-    setChatData({ chatId, partner, socket });
-    setCurrentView('chat');
-  };
-
-  const handleChatEnd = (reason = null) => {
-    setChatData(null);
-    setCurrentView('home');
-    if (reason === 'partner-disconnected') {
-      setNotification('partner-disconnected');
+  const handleSignupComplete = async (signupData) => {
+    setLoading(true);
+    try {
+      const gen = await api.generateUserId();
+      const user = await api.updateUser(gen.userId, signupData);
+      setCurrentUser(user);
+    } catch (e) {
+      console.error(e);
     }
+    setLoading(false);
   };
 
-  const handleProfileOpen = () => {
-    setCurrentView('profile');
-  };
-
-  const handleInboxOpen = () => {
-    setCurrentView('inbox');
-  };
-
-  const handleBackToHome = () => {
-    setCurrentView('home');
-  };
-
-  if (currentView === 'chat' && chatData) {
+  // 🔥 GLOBAL SIGNUP GATE
+  if (!currentUser) {
     return (
-      <ChatPage
-        chatId={chatData.chatId}
-        chatPartner={chatData.partner}
-        socket={chatData.socket}
-        currentUserId={currentUserId}
-        currentUsername={currentUsername}
-        onChatEnd={handleChatEnd}
+      <SignupForm
+        onComplete={handleSignupComplete}
+        loading={loading}
       />
     );
   }
 
-  if (currentView === 'profile') {
-    return (
-      <ProfilePage
-        currentUsername={currentUsername}
-        currentUserId={currentUserId}
-        onBack={handleBackToHome}
-      />
-    );
-  }
-
-  if (currentView === 'inbox') {
-    return (
-      <InboxPage
-        currentUserId={currentUserId}
-        onBack={handleBackToHome}
-      />
-    );
-  }
-
+  // ✅ App content only AFTER signup
   return (
-    <HomePage
-      onChatStart={handleChatStart}
-      onProfileOpen={handleProfileOpen}
-      onInboxOpen={handleInboxOpen}
-      currentUsername={currentUsername}
-      currentUserId={currentUserId}
-      notification={notification}
-      onNotificationChange={setNotification}
+    <ChatPage 
+      user={currentUser}
+      currentUserId={currentUser.id}
+      currentUsername={currentUser.username}
     />
   );
 }
