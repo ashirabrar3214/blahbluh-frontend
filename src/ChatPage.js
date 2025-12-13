@@ -447,7 +447,7 @@ function ChatPage({ user }) {
 
 
   // --- RENDER: SIGNUP FORM ---
-  if (showSignup) {
+  if (showSignup && !currentUser) {
     return <SignupForm onComplete={handleSignupComplete} loading={isLoading} />;
   }
 

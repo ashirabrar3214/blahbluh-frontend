@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 function SignupForm({ onComplete, loading = false }) {
+  console.log('SignupForm component rendering');
   const [formData, setFormData] = useState({
     gender: '',
     country: ''
