@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
 import ProfileModal from './components/ProfileModal';
+import SignupForm from './components/SignupForm';
 import ReviewPopup from './ReviewPopup';
 
 // --- SVGs ---
@@ -47,6 +48,7 @@ function ChatPage({ user }) {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showSignup, setShowSignup] = useState(true);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -131,22 +133,20 @@ function ChatPage({ user }) {
     }
   }, [messages, chatId]);
 
-  // Generate User
-  useEffect(() => {
-    const generateUser = async () => {
-      try {
-        const gen = await api.generateUserId();
-        setCurrentUserId(gen.userId);
-        setCurrentUsername(gen.username);
-        // Fetch full user data
-        const userData = await api.getUser(gen.userId);
-        setCurrentUser(userData);
-      } catch (error) {
-        console.error('Error generating user:', error);
-      }
-    };
-    generateUser();
-  }, []);
+  const handleSignupComplete = async (signupData) => {
+    try {
+      const gen = await api.generateUserId();
+      setCurrentUserId(gen.userId);
+      setCurrentUsername(gen.username);
+      
+      // Update user with signup data
+      const updatedUser = await api.updateUser(gen.userId, signupData);
+      setCurrentUser(updatedUser);
+      setShowSignup(false);
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
+  };
 
   const handleProfileUpdate = (updatedUser) => {
     setCurrentUser(updatedUser);
@@ -442,6 +442,11 @@ function ChatPage({ user }) {
     }
   };
 
+
+  // --- RENDER: SIGNUP FORM ---
+  if (showSignup) {
+    return <SignupForm onComplete={handleSignupComplete} />;
+  }
 
   // --- RENDER: CHAT UI ---
   if (chatId && chatPartner) {
