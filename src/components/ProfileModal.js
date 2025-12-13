@@ -3,9 +3,7 @@ import { api } from '../api';
 
 function ProfileModal({ user, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
-    username: user?.username || '',
-    gender: user?.gender || '',
-    country: user?.country || ''
+    username: user?.username || ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -45,33 +43,20 @@ function ProfileModal({ user, onClose, onUpdate }) {
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Gender
-            </label>
-            <select
-              value={formData.gender}
-              onChange={(e) => setFormData({...formData, gender: e.target.value})}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Country
-            </label>
-            <input
-              type="text"
-              value={formData.country}
-              onChange={(e) => setFormData({...formData, country: e.target.value})}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. United States"
-            />
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Gender</label>
+              <div className="px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-300">
+                {user?.gender || 'Not specified'}
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Country</label>
+              <div className="px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-300">
+                {user?.country || 'Not specified'}
+              </div>
+            </div>
           </div>
           
           <div className="flex gap-3 pt-4">
