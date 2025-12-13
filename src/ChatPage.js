@@ -732,7 +732,6 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
         <ProfileModal
           user={currentUser}
           onClose={() => setShowProfile(false)}
-          onUpdate={handleProfileUpdate}
         />
       )}
     </div>
