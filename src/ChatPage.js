@@ -141,10 +141,7 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
 
 
 
-  const handleProfileUpdate = (updatedUser) => {
-    setCurrentUser(updatedUser);
-    setCurrentUsername(updatedUser.username);
-  };
+
 
   // Click Outside
   useEffect(() => {
