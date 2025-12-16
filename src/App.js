@@ -18,6 +18,33 @@ function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const globalSocketRef = useRef(null);
 
+  // Load initial unread count when user is set
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const loadInitialUnreadCount = async () => {
+      try {
+        const friends = await api.getFriends(currentUser.id);
+        let totalUnread = 0;
+        for (const friend of friends) {
+          const friendId = friend.userId || friend.id;
+          try {
+            const count = await api.getUnreadCount(currentUser.id, friendId);
+            totalUnread += count;
+          } catch (error) {
+            console.error('Error getting unread count:', error);
+          }
+        }
+        console.log('📊 App: Initial total unread count:', totalUnread);
+        setUnreadCount(totalUnread);
+      } catch (error) {
+        console.error('Error loading initial unread count:', error);
+      }
+    };
+    
+    loadInitialUnreadCount();
+  }, [currentUser]);
+
   useEffect(() => {
     if (!currentUser) return;
 
