@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import ChatPage from './ChatPage';
 import HomePage from './HomePage';
+import FriendsInboxPage from './FriendsInboxPage';
 import InboxPage from './InboxPage';
 import SignupForm from './components/SignupForm';
 import { api } from './api';
@@ -12,66 +13,43 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('signup');
   const [inboxKey, setInboxKey] = useState(0);
-  
-  // Data props for ChatPage
-  const [activeChatData, setActiveChatData] = useState(null);
-  const [selectedFriend, setSelectedFriend] = useState(null);
-
   const globalSocketRef = useRef(null);
 
   useEffect(() => {
     if (!currentUser) return;
 
-    // 1. Initialize Global Socket
+    // Setup global socket connection
     globalSocketRef.current = io('https://blahbluh-production.up.railway.app', {
       transports: ['websocket'],
       reconnection: true,
-      query: { userId: currentUser.id }
     });
-
-    // 2. Background Join Helper
-    const joinAllFriendRooms = async () => {
-      try {
-        const friends = await api.getFriends(currentUser.id);
-        if (globalSocketRef.current?.connected) {
-           friends.forEach(friend => {
-              const friendId = friend.userId || friend.id;
-              if (friendId) {
-                  const chatId = makeFriendChatId(currentUser.id, friendId);
-                  globalSocketRef.current.emit('join-chat', { chatId });
-              }
-           });
-           console.log(`✅ Background joined ${friends.length} friend rooms`);
-        }
-      } catch (e) { console.error('BG Join Error:', e); }
-    };
 
     globalSocketRef.current.on('connect', () => {
       console.log('🌐 Global socket connected');
       globalSocketRef.current.emit('register-user', { userId: currentUser.id });
-      joinAllFriendRooms();
     });
 
-    // Listen for Random Chat Pairing
+    // Listen for chat pairing
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('🤝 Chat paired globally:', data);
-      setActiveChatData(data);
-      setSelectedFriend(null); // Clear friend if random chat starts
       setCurrentPage('chat');
     });
 
-    // Notifications & Friend Requests
+    // Listen for friend request acceptance globally
     globalSocketRef.current.on('friend-request-accepted', () => {
-      setInboxKey(prev => prev + 1);
-      joinAllFriendRooms();
-    });
-
-    globalSocketRef.current.on('new-message', () => {
+      console.log('🎉 Friend request accepted (global), refreshing inbox');
       setInboxKey(prev => prev + 1);
     });
 
+    // Listen for new messages globally
+    globalSocketRef.current.on('new-message', (messageData) => {
+      console.log('📨 New message received globally:', messageData);
+    });
+
+    // Listen for partner disconnection
     globalSocketRef.current.on('partner-disconnected', () => {
       console.log('👋 Partner disconnected globally');
+      setCurrentPage('home');
     });
 
     return () => globalSocketRef.current?.disconnect();
@@ -84,18 +62,26 @@ function App() {
       const user = await api.updateUser(gen.userId, signupData);
       setCurrentUser(user);
       setCurrentPage('home');
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
     setLoading(false);
   };
 
+  // 🔥 GLOBAL SIGNUP GATE
   if (!currentUser) {
-    return <SignupForm onComplete={handleSignupComplete} loading={loading} />;
+    return (
+      <SignupForm
+        onComplete={handleSignupComplete}
+        loading={loading}
+      />
+    );
   }
 
+  // ✅ App content only AFTER signup
   if (currentPage === 'home') {
     return (
       <HomePage
-        socket={globalSocketRef.current} // <--- PASS SOCKET
         currentUserId={currentUser.id}
         currentUsername={currentUser.username}
         onChatStart={() => setCurrentPage('chat')}
@@ -115,33 +101,19 @@ function App() {
         currentUserId={currentUser.id}
         onBack={() => setCurrentPage('home')}
         onChatOpen={(friend) => {
-          // CAPTURE FRIEND DATA
-          const friendId = friend.userId || friend.id;
-          const chatId = makeFriendChatId(currentUser.id, friendId);
-          setSelectedFriend({ ...friend, userId: friendId, chatId });
-          setActiveChatData(null);
+          // Navigate to friend chat using deterministic ID
           setCurrentPage('friend-chat');
         }}
       />
     );
   }
 
-  // Unified Chat Page
   return (
     <ChatPage 
       user={currentUser}
       currentUserId={currentUser.id}
       currentUsername={currentUser.username}
-      
-      socket={globalSocketRef.current} // <--- PASS SOCKET
-      initialChatData={activeChatData} // <--- PASS RANDOM DATA
-      targetFriend={selectedFriend}    // <--- PASS FRIEND DATA
-      
-      onGoHome={() => {
-        setActiveChatData(null);
-        setSelectedFriend(null);
-        setCurrentPage('home');
-      }}
+      onGoHome={() => setCurrentPage('home')}
       onInboxOpen={() => {
         setInboxKey(prev => prev + 1);
         setCurrentPage('inbox');
