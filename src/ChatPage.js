@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
-import { makeFriendChatId } from './utils/chatUtils';
 import ProfileModal from './components/ProfileModal';
 import ReviewPopup from './ReviewPopup';
 
