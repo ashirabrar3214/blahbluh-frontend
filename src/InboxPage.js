@@ -25,7 +25,7 @@ function InboxPage({ currentUserId, onBack, onChatOpen }) {
         const friendsData = await api.getFriends(currentUserId);
         setFriends(friendsData);
       } catch (error) {
-        console.error('Error loading friends:', error);
+        console.error('Error in loading friends:', error);
         setFriends([]);
       }
     };
