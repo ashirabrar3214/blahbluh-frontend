@@ -57,20 +57,15 @@ function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
 
     console.log('🔌 InboxPage: Setting up socket listener for friend-message-received');
 
-    const handleFriendMessage = async (messageData) => {
+    const handleFriendMessage = (messageData) => {
       console.log('📨 InboxPage: Friend message received:', messageData);
       const senderId = messageData.userId || messageData.senderId;
       if (senderId && senderId !== currentUserId) {
-        try {
-          const count = await api.getUnreadCount(currentUserId, senderId);
-          console.log(`📊 InboxPage: Updated unread count for sender ${senderId}:`, count);
-          setUnreadCounts(prev => ({
-            ...prev,
-            [senderId]: count
-          }));
-        } catch (error) {
-          console.error('Error updating unread count:', error);
-        }
+        console.log(`📊 InboxPage: Incrementing unread count for sender ${senderId}`);
+        setUnreadCounts(prev => ({
+          ...prev,
+          [senderId]: (prev[senderId] || 0) + 1
+        }));
       }
     };
 
