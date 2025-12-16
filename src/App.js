@@ -11,6 +11,11 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('signup');
   const [inboxKey, setInboxKey] = useState(0);
+  const [selectedFriend, setSelectedFriend] = useState(null);
+  const [chatData, setChatData] = useState(null);
+  const [globalNotifications, setGlobalNotifications] = useState([]);
+  const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const globalSocketRef = useRef(null);
 
   useEffect(() => {
@@ -25,23 +30,51 @@ function App() {
     globalSocketRef.current.on('connect', () => {
       console.log('🌐 Global socket connected');
       globalSocketRef.current.emit('register-user', { userId: currentUser.id });
+      // Fetch unread messages on connect
+      globalSocketRef.current.emit('fetch-unread-messages', { userId: currentUser.id });
     });
 
     // Listen for chat pairing
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('🤝 Chat paired globally:', data);
+      setChatData(data);
+      setSelectedFriend(null);
       setCurrentPage('chat');
     });
 
+    // Background presence for friend chats
+    const setupFriendPresence = async () => {
+      try {
+        const friends = await api.getFriends(currentUser.id);
+        friends.forEach(friend => {
+          const chatId = `friend_${[currentUser.id, friend.userId].sort().join('_')}`;
+          globalSocketRef.current.emit('join-chat', { chatId });
+        });
+      } catch (error) {
+        console.error('Error setting up friend presence:', error);
+      }
+    };
+    setupFriendPresence();
+
     // Listen for friend request acceptance globally
-    globalSocketRef.current.on('friend-request-accepted', () => {
-      console.log('🎉 Friend request accepted (global), refreshing inbox');
+    globalSocketRef.current.on('friend-request-accepted', (data) => {
+      console.log('SOCKET DEBUG: Friend request accepted event received in App.js');
+      const notification = {
+        id: Date.now(),
+        type: 'friend-accepted',
+        message: data?.message || 'Your friend request was accepted!',
+        timestamp: new Date().toISOString()
+      };
+      setGlobalNotifications(prev => [notification, ...prev]);
       setInboxKey(prev => prev + 1);
     });
 
-    // Listen for new messages globally
-    globalSocketRef.current.on('new-message', (messageData) => {
-      console.log('📨 New message received globally:', messageData);
+    // Listen for friend messages to increment unread count
+    globalSocketRef.current.on('friend-message-received', (messageData) => {
+      console.log('SOCKET DEBUG: Friend message received - incrementing unread count');
+      if (currentPage !== 'friend-chat' && currentPage !== 'chat') {
+        setUnreadCount(prev => prev + 1);
+      }
     });
 
     // Listen for partner disconnection
@@ -51,7 +84,7 @@ function App() {
     });
 
     return () => globalSocketRef.current?.disconnect();
-  }, [currentUser]);
+  }, [currentUser, currentPage]);
 
   const handleSignupComplete = async (signupData) => {
     setLoading(true);
@@ -80,11 +113,18 @@ function App() {
   if (currentPage === 'home') {
     return (
       <HomePage
+        socket={globalSocketRef.current}
         currentUserId={currentUser.id}
         currentUsername={currentUser.username}
+        globalNotifications={globalNotifications}
+        globalFriendRequests={globalFriendRequests}
+        setGlobalNotifications={setGlobalNotifications}
+        setGlobalFriendRequests={setGlobalFriendRequests}
+        unreadCount={unreadCount}
         onChatStart={() => setCurrentPage('chat')}
         onProfileOpen={() => {}}
         onInboxOpen={() => {
+          setUnreadCount(0);
           setInboxKey(prev => prev + 1);
           setCurrentPage('inbox');
         }}
@@ -96,11 +136,13 @@ function App() {
     return (
       <InboxPage
         key={inboxKey}
+        socket={globalSocketRef.current}
         currentUserId={currentUser.id}
         onBack={() => setCurrentPage('home')}
         onChatOpen={(friend) => {
-          // Navigate to friend chat using deterministic ID
-          setCurrentPage('friend-chat');
+          setSelectedFriend(friend);
+          setChatData(null);
+          setCurrentPage('chat');
         }}
       />
     );
@@ -108,11 +150,24 @@ function App() {
 
   return (
     <ChatPage 
+      socket={globalSocketRef.current}
       user={currentUser}
       currentUserId={currentUser.id}
       currentUsername={currentUser.username}
-      onGoHome={() => setCurrentPage('home')}
+      initialChatData={chatData}
+      targetFriend={selectedFriend}
+      globalNotifications={globalNotifications}
+      globalFriendRequests={globalFriendRequests}
+      setGlobalNotifications={setGlobalNotifications}
+      setGlobalFriendRequests={setGlobalFriendRequests}
+      unreadCount={unreadCount}
+      onGoHome={() => {
+        setSelectedFriend(null);
+        setChatData(null);
+        setCurrentPage('home');
+      }}
       onInboxOpen={() => {
+        setUnreadCount(0);
         setInboxKey(prev => prev + 1);
         setCurrentPage('inbox');
       }}
