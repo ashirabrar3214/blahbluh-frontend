@@ -63,7 +63,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
-  }, [currentUserId]);
+  }, [currentUserId, setFriendRequests]);
 
   const handleAcceptFriend = async (requestId) => {
     console.log('👍 HomePage accepting friend request:', requestId);

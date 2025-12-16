@@ -90,7 +90,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
-  }, [currentUserId]);
+  }, [currentUserId, setFriendRequests]);
 
   const joinQueue = useCallback(async () => {
     try {
