@@ -660,16 +660,25 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             {chatId?.startsWith('friend_') ? (
               // Friend chat header - simple: block and home only
               <>
-                <button onClick={onGoHome} className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
-                  blahbluh
+                <button onClick={onGoHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
+                    B
+                  </div>
+                  <span className="text-xs font-medium">blahbluh</span>
                 </button>
                 <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
               </>
             ) : (
-              // Random chat header - full: inbox, add friend, next
+              // Random chat header - full: logo, inbox, add friend, next
               <>
+                <button onClick={onGoHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 mr-2">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
+                    B
+                  </div>
+                  <span className="text-xs font-medium">blahbluh</span>
+                </button>
                 <button onClick={onInboxOpen} className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 relative">
                   Inbox
                   {unreadCount > 0 && (
