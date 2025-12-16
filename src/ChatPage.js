@@ -90,6 +90,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
   const joinQueue = useCallback(async () => {

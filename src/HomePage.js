@@ -63,6 +63,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
   const handleAcceptFriend = async (requestId) => {
