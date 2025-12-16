@@ -13,6 +13,9 @@ const NextIcon = () => (
 const UserPlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
 );
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg>
+);
 const BlockIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
 );
@@ -65,6 +68,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [actionToast, setActionToast] = useState(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
+  const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
 
   // --- REFS ---
   const currentUserIdRef = useRef(null);
@@ -92,6 +96,19 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
+
+  const checkFriendshipStatus = useCallback(async () => {
+    if (!currentUserId || !chatPartner) return;
+    try {
+      const friends = await api.getFriends(currentUserId);
+      const partnerId = chatPartner.id || chatPartner.userId;
+      const isFriend = friends.some(friend => (friend.id || friend.userId) === partnerId);
+      setIsAlreadyFriend(isFriend);
+    } catch (error) {
+      console.error('Error checking friendship status:', error);
+      setIsAlreadyFriend(false);
+    }
+  }, [currentUserId, chatPartner]);
 
   const joinQueue = useCallback(async () => {
     try {
@@ -135,6 +152,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       loadFriendRequests();
     }
   }, [currentUserId, loadFriendRequests]);
+
+  // Check friendship status when chat partner changes
+  useEffect(() => {
+    if (currentUserId && chatPartner) {
+      checkFriendshipStatus();
+    }
+  }, [currentUserId, chatPartner, checkFriendshipStatus]);
 
   // Poll for friend requests
   useEffect(() => {
@@ -652,9 +676,15 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-sm"></span>
                   )}
                 </button>
-                <button onClick={handleAddFriend} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
-                  <UserPlusIcon />
-                </button>
+                {isAlreadyFriend ? (
+                  <div className="w-9 h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
+                    <CheckIcon />
+                  </div>
+                ) : (
+                  <button onClick={handleAddFriend} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
+                    <UserPlusIcon />
+                  </button>
+                )}
                 <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
