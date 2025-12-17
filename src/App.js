@@ -11,44 +11,35 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('signup');
   const [inboxKey, setInboxKey] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [chatData, setChatData] = useState(null);
-  const [globalNotifications, setGlobalNotifications] = useState([]);
-  const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+
   const globalSocketRef = useRef(null);
+  const currentPageRef = useRef(currentPage);
 
-  // Load initial unread count when user is set
   useEffect(() => {
-    if (!currentUser) return;
-    
-    const loadInitialUnreadCount = async () => {
-      try {
-        const friends = await api.getFriends(currentUser.id);
-        let totalUnread = 0;
-        for (const friend of friends) {
-          const friendId = friend.userId || friend.id;
-          try {
-            const count = await api.getUnreadCount(currentUser.id, friendId);
-            totalUnread += count;
-          } catch (error) {
-            console.error('Error getting unread count:', error);
-          }
-        }
-        console.log('📊 App: Initial total unread count:', totalUnread);
-        setUnreadCount(totalUnread);
-      } catch (error) {
-        console.error('Error loading initial unread count:', error);
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
+  const loadUnreadCount = async (userId) => {
+    try {
+      const friends = await api.getFriends(userId);
+      let total = 0;
+      for (const friend of friends) {
+        const fid = friend.userId || friend.id;
+        const count = await api.getUnreadCount(userId, fid);
+        total += count;
       }
-    };
-    
-    loadInitialUnreadCount();
-  }, [currentUser]);
+      setUnreadCount(total);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
+  };
 
   useEffect(() => {
     if (!currentUser) return;
 
-    // Setup global socket connection
     globalSocketRef.current = io('https://blahbluh-production.up.railway.app', {
       transports: ['websocket'],
       reconnection: true,
@@ -57,57 +48,51 @@ function App() {
     globalSocketRef.current.on('connect', () => {
       console.log('🌐 Global socket connected');
       globalSocketRef.current.emit('register-user', { userId: currentUser.id });
-      // Fetch unread messages on connect
-      globalSocketRef.current.emit('fetch-unread-messages', { userId: currentUser.id });
+      
+      loadUnreadCount(currentUser.id);
+      
+      api.getFriends(currentUser.id).then(friends => {
+        friends.forEach(friend => {
+          const fid = friend.userId || friend.id;
+          const chatId = `friend_${[currentUser.id, fid].sort().join('_')}`;
+          globalSocketRef.current.emit('join-chat', { chatId });
+        });
+      });
     });
 
-    // Listen for chat pairing
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('🤝 Chat paired globally:', data);
       setChatData(data);
-      setSelectedFriend(null);
       setCurrentPage('chat');
     });
 
-    // Background presence for friend chats
-    const setupFriendPresence = async () => {
+    globalSocketRef.current.on('friend-request-accepted', async () => {
+      setInboxKey(prev => prev + 1);
       try {
         const friends = await api.getFriends(currentUser.id);
         friends.forEach(friend => {
-          const chatId = `friend_${[currentUser.id, friend.userId].sort().join('_')}`;
+          const fid = friend.userId || friend.id;
+          const chatId = `friend_${[currentUser.id, fid].sort().join('_')}`;
           globalSocketRef.current.emit('join-chat', { chatId });
         });
       } catch (error) {
-        console.error('Error setting up friend presence:', error);
+        console.error('Error re-joining friend rooms:', error);
       }
-    };
-    setupFriendPresence();
-
-    // Listen for friend request acceptance globally
-    globalSocketRef.current.on('friend-request-accepted', (data) => {
-      console.log('SOCKET DEBUG: Friend request accepted event received in App.js');
-      const notification = {
-        id: Date.now(),
-        type: 'friend-accepted',
-        message: data?.message || 'Your friend request was accepted!',
-        timestamp: new Date().toISOString()
-      };
-      setGlobalNotifications(prev => [notification, ...prev]);
-      setInboxKey(prev => prev + 1);
     });
 
-    // Listen for friend messages to increment unread count
     globalSocketRef.current.on('friend-message-received', (messageData) => {
-      console.log('SOCKET DEBUG: Friend message received - incrementing unread count');
-      if (currentPage !== 'friend-chat' && currentPage !== 'chat') {
+      console.log('📨 New friend message:', messageData);
+      if (currentPageRef.current !== 'inbox' && currentPageRef.current !== 'friend-chat') {
         setUnreadCount(prev => prev + 1);
       }
     });
 
-    // REMOVED: partner-disconnected listener to avoid conflict with ChatPage auto-queue logic
+    globalSocketRef.current.on('partner-disconnected', () => {
+      setCurrentPage('home');
+    });
 
     return () => globalSocketRef.current?.disconnect();
-  }, [currentUser, currentPage]);
+  }, [currentUser]);
 
   const handleSignupComplete = async (signupData) => {
     setLoading(true);
@@ -122,27 +107,15 @@ function App() {
     setLoading(false);
   };
 
-  // 🔥 GLOBAL SIGNUP GATE
   if (!currentUser) {
-    return (
-      <SignupForm
-        onComplete={handleSignupComplete}
-        loading={loading}
-      />
-    );
+    return <SignupForm onComplete={handleSignupComplete} loading={loading} />;
   }
 
-  // ✅ App content only AFTER signup
   if (currentPage === 'home') {
     return (
       <HomePage
-        socket={globalSocketRef.current}
         currentUserId={currentUser.id}
         currentUsername={currentUser.username}
-        globalNotifications={globalNotifications}
-        globalFriendRequests={globalFriendRequests}
-        setGlobalNotifications={setGlobalNotifications}
-        setGlobalFriendRequests={setGlobalFriendRequests}
         unreadCount={unreadCount}
         onChatStart={() => setCurrentPage('chat')}
         onProfileOpen={() => {}}
@@ -159,12 +132,13 @@ function App() {
     return (
       <InboxPage
         key={inboxKey}
-        socket={globalSocketRef.current}
         currentUserId={currentUser.id}
-        onBack={() => setCurrentPage('home')}
+        onBack={() => {
+            loadUnreadCount(currentUser.id);
+            setCurrentPage('home');
+        }}
         onChatOpen={(friend) => {
           setSelectedFriend(friend);
-          setChatData(null);
           setCurrentPage('chat');
         }}
       />
@@ -179,10 +153,6 @@ function App() {
       currentUsername={currentUser.username}
       initialChatData={chatData}
       targetFriend={selectedFriend}
-      globalNotifications={globalNotifications}
-      globalFriendRequests={globalFriendRequests}
-      setGlobalNotifications={setGlobalNotifications}
-      setGlobalFriendRequests={setGlobalFriendRequests}
       unreadCount={unreadCount}
       onGoHome={() => {
         setSelectedFriend(null);

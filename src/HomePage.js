@@ -33,27 +33,11 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount }) {
+function HomePage({ onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, unreadCount }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
-  const [notification, setNotification] = useState(externalNotification || null);
-  // Use global state instead of local state
-  const friendRequests = globalFriendRequests;
-  const notifications = globalNotifications;
-  const setFriendRequests = setGlobalFriendRequests;
-  const setNotifications = setGlobalNotifications;
+  const [friendRequests, setFriendRequests] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-
-  // Debug logging for notification counts
-  useEffect(() => {
-    console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
-  }, [friendRequests.length, notifications.length]);
-
-  useEffect(() => {
-    if (externalNotification) {
-      setNotification(externalNotification);
-    }
-  }, [externalNotification]);
 
   const loadFriendRequests = useCallback(async () => {
     if (!currentUserId) return;
@@ -63,18 +47,14 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
   const handleAcceptFriend = async (requestId) => {
-    console.log('👍 HomePage accepting friend request:', requestId);
-    console.log('Current user accepting on HomePage:', currentUserId);
     try {
-      const result = await api.acceptFriendRequest(requestId, currentUserId);
-      console.log('✅ HomePage accept friend API response:', result);
+      await api.acceptFriendRequest(requestId, currentUserId);
       loadFriendRequests();
     } catch (error) {
-      console.error('❌ HomePage error accepting friend request:', error);
+      console.error('Error accepting friend request:', error);
     }
   };
 
@@ -86,31 +66,14 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     }
   }, [currentUserId, loadFriendRequests]);
 
-  useEffect(() => {
-    if (socket && currentUserId) {
-      const handleFriendRequest = () => loadFriendRequests();
-      // Removed - now handled by App.js
-
-      socket.on('friend-request-received', handleFriendRequest);
-
-      return () => {
-        socket.off('friend-request-received', handleFriendRequest);
-      };
-    }
-  }, [socket, currentUserId, loadFriendRequests]);
-
   const joinQueue = async () => {
     try {
       if (!currentUserId) return;
-      console.log('🚀 Joining queue for user:', currentUserId);
-      const result = await api.joinQueue(currentUserId);
-      console.log('✅ Queue join result:', result);
       setInQueue(true);
-      setQueuePosition(result.queuePosition ?? 0);
-      setNotification(null);
-      if (onNotificationChange) onNotificationChange(null);
+      await api.joinQueue(currentUserId);
+      setQueuePosition(0);
     } catch (error) {
-      console.error('❌ Error joining queue:', error);
+      console.error('Error joining queue:', error);
     }
   };
 
@@ -143,62 +106,34 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
-              {(friendRequests.length > 0 || notifications.length > 0) && (
+              {friendRequests.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
-                  {friendRequests.length + notifications.length}
+                  {friendRequests.length}
                 </span>
               )}
             </button>
-            {showNotifications && (friendRequests.length > 0 || notifications.length > 0) && (
+            {showNotifications && friendRequests.length > 0 && (
               <div className="absolute top-10 right-0 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-600 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                {friendRequests.length > 0 && (
-                  <>
-                    <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                      Friend Requests
-                    </h3>
-                    <div className="space-y-3 mb-4">
-                      {friendRequests.map(request => (
-                        <div key={request.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-blue-500">
-                          <div>
-                            <p className="text-white text-sm font-medium">{request.from_user.username} sent you a friend request</p>
-                            <p className="text-gray-400 text-xs">Click accept to add them as a friend</p>
-                          </div>
-                          <button
-                            onClick={() => handleAcceptFriend(request.id)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors shadow-lg"
-                          >
-                            Accept
-                          </button>
-                        </div>
-                      ))}
+                <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  Friend Requests
+                </h3>
+                <div className="space-y-3 mb-4">
+                  {friendRequests.map(request => (
+                    <div key={request.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-blue-500">
+                      <div>
+                        <p className="text-white text-sm font-medium">{request.from_user.username} sent you a friend request</p>
+                        <p className="text-gray-400 text-xs">Click accept to add them as a friend</p>
+                      </div>
+                      <button
+                        onClick={() => handleAcceptFriend(request.id)}
+                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors shadow-lg"
+                      >
+                        Accept
+                      </button>
                     </div>
-                  </>
-                )}
-                {notifications.length > 0 && (
-                  <>
-                    <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                      Notifications
-                    </h3>
-                    <div className="space-y-3">
-                      {notifications.map(notification => (
-                        <div key={notification.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-green-500">
-                          <div>
-                            <p className="text-white text-sm font-medium">🎉 {notification.message}</p>
-                            <p className="text-gray-400 text-xs">{new Date(notification.timestamp).toLocaleTimeString()}</p>
-                          </div>
-                          <button
-                            onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
-                            className="px-2 py-1 text-gray-400 hover:text-white text-xs transition-colors"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -229,10 +164,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
         <div className="max-w-lg w-full text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
-            <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
-            <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-              {socket?.connected ? 'System Online' : 'Connecting...'}
-            </span>
+            <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></span>
+            <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">System Online</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6">
@@ -263,21 +196,13 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              {notification === 'partner-disconnected' && (
-                <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
-                  Partner disconnected. ready to go again?
-                </div>
-              )}
-              
-              <button 
-                onClick={joinQueue} 
-                className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
-              >
-                Start Chatting
-                <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-              </button>
-            </div>
+            <button 
+              onClick={joinQueue} 
+              className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+            >
+              Start Chatting
+              <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
+            </button>
           )}
         </div>
       </div>
