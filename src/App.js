@@ -104,11 +104,7 @@ function App() {
       }
     });
 
-    // Listen for partner disconnection
-    globalSocketRef.current.on('partner-disconnected', () => {
-      console.log('👋 Partner disconnected globally');
-      setCurrentPage('home');
-    });
+    // REMOVED: partner-disconnected listener to avoid conflict with ChatPage auto-queue logic
 
     return () => globalSocketRef.current?.disconnect();
   }, [currentUser, currentPage]);

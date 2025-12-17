@@ -283,16 +283,24 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     };
 
     const handlePartnerDisconnected = () => {
-      if (chatPartner) {
-        setPartnerToReview(chatPartner);
-        setShowReviewPopup(true);
-      }
-      setNotification('partner-disconnected');
+      console.log('📢 FRONTEND: Received partner-disconnected event!');
+      console.log('📢 Current chatId:', chatId);
+      console.log('📢 Current partner:', chatPartner);
+      
+      // 1. Clear current chat state
       setChatId(null);
       setChatPartner(null);
       setMessages([]);
-      setInQueue(false);
-      setQueuePosition(0);
+      setReplyingTo(null);
+      setShowActions(null);
+      
+      // 2. Show a brief toast notification instead of blocking popup
+      setActionToast("Partner left. Searching for new match...");
+
+      // 3. AUTOMATICALLY Join Queue
+      console.log("Partner disconnected, auto-rejoining queue...");
+      joinQueue(); 
+      // Note: joinQueue sets setInQueue(true) internally
     };
 
     const handleQueueHeartbeatResponse = (data) => {
@@ -804,7 +812,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="iMessage..."
+                  placeholder="Type something fun..."
                   className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 text-[16px]"
                   autoComplete="off"
                 />
