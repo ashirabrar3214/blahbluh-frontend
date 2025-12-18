@@ -67,16 +67,30 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   }, [currentUserId]);
 
   const handleAcceptFriend = async (requestId) => {
-    console.log('👍 HomePage accepting friend request:', requestId);
-    console.log('Current user accepting on HomePage:', currentUserId);
-    try {
-      const result = await api.acceptFriendRequest(requestId, currentUserId);
-      console.log('✅ HomePage accept friend API response:', result);
-      loadFriendRequests();
+  console.log('👍 HomePage accepting friend request:', requestId);
+  console.log('Current user accepting on HomePage:', currentUserId);
+
+  try {
+    const result = await api.acceptFriendRequest(requestId, currentUserId);
+    console.log('✅ HomePage accept friend API response:', result);
+
+    // refresh requests UI
+    await loadFriendRequests();
+
+    // ✅ CRITICAL: acceptor must join friend chat rooms immediately
+    const friends = await api.getFriends(currentUserId);
+      friends.forEach((friend) => {
+        const friendId = friend.userId || friend.id; // handle both shapes
+        if (!friendId) return;
+
+        const chatId = `friend_${[currentUserId, friendId].sort().join('_')}`;
+        socket?.emit('join-chat', { chatId });
+      });
     } catch (error) {
       console.error('❌ HomePage error accepting friend request:', error);
     }
   };
+
 
   useEffect(() => {
     if (currentUserId) {

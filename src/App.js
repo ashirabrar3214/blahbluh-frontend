@@ -17,8 +17,12 @@ function App() {
   const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const globalSocketRef = useRef(null);
+  const currentPageRef = useRef(currentPage);
 
-  // Load initial unread count when user is set
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+    // Load initial unread count when user is set
   useEffect(() => {
     if (!currentUser) return;
     
@@ -74,13 +78,17 @@ function App() {
       try {
         const friends = await api.getFriends(currentUser.id);
         friends.forEach(friend => {
-          const chatId = `friend_${[currentUser.id, friend.userId].sort().join('_')}`;
+          const friendId = friend.userId || friend.id;
+          if (!friendId) return;
+
+          const chatId = `friend_${[currentUser.id, friendId].sort().join('_')}`;
           globalSocketRef.current.emit('join-chat', { chatId });
         });
       } catch (error) {
         console.error('Error setting up friend presence:', error);
       }
     };
+
     setupFriendPresence();
 
     // Listen for friend request acceptance globally
@@ -94,16 +102,28 @@ function App() {
       };
       setGlobalNotifications(prev => [notification, ...prev]);
       setInboxKey(prev => prev + 1);
+      setupFriendPresence();
     });
 
     // Listen for friend messages to increment unread count
-    globalSocketRef.current.on('friend-message-received', (messageData) => {
-      console.log('SOCKET DEBUG: Friend message received - incrementing unread count');
-      if (currentPage !== 'friend-chat' && currentPage !== 'chat') {
-        setUnreadCount(prev => prev + 1);
-      }
-    });
+    // globalSocketRef.current.on('friend-message-received', (messageData) => {
+    //   console.log('SOCKET DEBUG: Friend message received - incrementing unread count');
+    //   if (currentPage !== 'friend-chat' && currentPage !== 'chat') {
+    //     setUnreadCount(prev => prev + 1);
+    //   }
+    // });
+    globalSocketRef.current.on('new-message', (messageData) => {
+    if (!messageData?.chatId?.startsWith('friend_')) return;
+    // ✅ do NOT count messages you sent yourself
+    if (messageData?.userId === currentUser.id) return;
+    const page = currentPageRef.current;
+    // ✅ do not increment while user is reading chat or inbox
+    if (page !== 'chat' && page !== 'inbox') {
+      setUnreadCount(prev => prev + 1);
+    }
+    console.log('APP new-message', messageData);
 
+  });
     // Listen for partner disconnection
     globalSocketRef.current.on('partner-disconnected', () => {
       console.log('👋 Partner disconnected globally');
@@ -111,7 +131,7 @@ function App() {
     });
 
     return () => globalSocketRef.current?.disconnect();
-  }, [currentUser, currentPage]);
+  }, [currentUser]);
 
   const handleSignupComplete = async (signupData) => {
     setLoading(true);
