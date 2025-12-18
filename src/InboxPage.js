@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './api';
+import { makeFriendChatId } from './utils/chatUtils';
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -14,75 +15,37 @@ const MessageIcon = () => (
   </svg>
 );
 
-function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
+function InboxPage({ currentUserId, onBack, onChatOpen }) {
   const [friends, setFriends] = useState([]);
-  const [unreadCounts, setUnreadCounts] = useState({});
 
   useEffect(() => {
     const loadFriends = async () => {
       if (!currentUserId) return;
       try {
         const friendsData = await api.getFriends(currentUserId);
-        console.log('👥 InboxPage: Loaded friends data:', friendsData);
         setFriends(friendsData);
-        // Load unread counts for each friend
-        const counts = {};
-        for (const friend of friendsData) {
-          const friendId = friend.userId || friend.id;
-          try {
-            const count = await api.getUnreadCount(currentUserId, friendId);
-            console.log(`📊 InboxPage: Unread count for ${friend.username} (${friendId}):`, count);
-            counts[friendId] = count;
-          } catch (error) {
-            console.error(`❌ InboxPage: Error getting unread count for ${friend.username}:`, error);
-            counts[friendId] = 0;
-          }
-        }
-        console.log('📊 InboxPage: Final unread counts:', counts);
-        setUnreadCounts(counts);
       } catch (error) {
-        console.error('Error in loading friends:', error);
+        console.error('Error loading friends:', error);
         setFriends([]);
       }
     };
     loadFriends();
   }, [currentUserId]);
 
-  // Listen for new messages to update unread counts
-  useEffect(() => {
-    if (!socket) {
-      console.log('⚠️ InboxPage: No socket available');
-      return;
-    }
-
-    console.log('🔌 InboxPage: Setting up socket listener for friend-message-received');
-
-    const handleFriendMessage = (messageData) => {
-      console.log('📨 InboxPage: Friend message received:', messageData);
-      const senderId = messageData.userId || messageData.senderId;
-      if (senderId && senderId !== currentUserId) {
-        console.log(`📊 InboxPage: Incrementing unread count for sender ${senderId}`);
-        setUnreadCounts(prev => ({
-          ...prev,
-          [senderId]: (prev[senderId] || 0) + 1
-        }));
-      }
-    };
-
-    socket.on('friend-message-received', handleFriendMessage);
-    console.log('✅ InboxPage: Socket listener attached');
-    
-    return () => {
-      console.log('🔌 InboxPage: Removing socket listener');
-      socket.off('friend-message-received', handleFriendMessage);
-    };
-  }, [socket, currentUserId]);
-
   const getInitials = (name) => {
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
-
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return 'now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+    return `${Math.floor(diff / 86400000)}d`;
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans">
@@ -93,7 +56,7 @@ function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
           className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
         >
           <BackIcon />
-          <span className="text-sm font-medium">blahbluh</span>
+          <span className="text-sm font-medium">Back</span>
         </button>
         
         <h1 className="text-lg font-bold text-white">Inbox</h1>
@@ -115,14 +78,12 @@ function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
           </div>
         ) : (
           <div className="px-4 py-2">
-            {friends.map((friend, index) => (
+            {friends.map((friend) => (
               <div
-                key={friend.userId || friend.id || index}
+                key={friend.userId}
                 onClick={() => {
-                  const friendId = friend.userId || friend.id;
-                  const chatId = `friend_${[currentUserId, friendId].sort().join('_')}`;
-                  console.log('🔍 InboxPage: Opening chat with friend:', { friend, friendId, chatId });
-                  onChatOpen && onChatOpen({ ...friend, userId: friendId, chatId });
+                  const chatId = makeFriendChatId(currentUserId, friend.userId);
+                  onChatOpen && onChatOpen({ ...friend, chatId });
                 }}
                 className="flex items-center gap-3 p-4 hover:bg-zinc-900/50 rounded-2xl cursor-pointer transition-colors border-b border-zinc-800/50 last:border-b-0"
               >
@@ -139,17 +100,11 @@ function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
                     <h3 className="font-semibold text-white truncate">
                       {friend.username}
                     </h3>
-                    {unreadCounts[friend.userId || friend.id] > 0 && (
-                      <span className="w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
-                        {unreadCounts[friend.userId || friend.id] > 9 ? '9+' : unreadCounts[friend.userId || friend.id]}
-                      </span>
-                    )}
+                    <span className="text-xs text-zinc-500 flex-shrink-0">
+                    </span>
                   </div>
                   <p className="text-sm text-zinc-400 truncate">
-                    {unreadCounts[friend.userId || friend.id] > 0 
-                      ? `${unreadCounts[friend.userId || friend.id]} unread message${unreadCounts[friend.userId || friend.id] > 1 ? 's' : ''}` 
-                      : 'Start a conversation'
-                    }
+                    Start a conversation
                   </p>
                 </div>
 
