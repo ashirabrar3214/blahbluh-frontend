@@ -36,16 +36,7 @@ function InboxPage({ currentUserId, onBack, onChatOpen }) {
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    
-    if (diff < 60000) return 'now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
-    return `${Math.floor(diff / 86400000)}d`;
-  };
+  // ...existing code...
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans">

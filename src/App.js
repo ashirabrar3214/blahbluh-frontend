@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import ChatPage from './ChatPage';
 import HomePage from './HomePage';
-import FriendsInboxPage from './FriendsInboxPage';
+// ...existing code...
 import InboxPage from './InboxPage';
 import SignupForm from './components/SignupForm';
 import { api } from './api';
-import { makeFriendChatId } from './utils/chatUtils';
+// ...existing code...
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
