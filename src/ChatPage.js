@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import io from 'socket.io-client';
 import { api } from './api';
-// ...existing code...
 import ProfileModal from './components/ProfileModal';
 import ReviewPopup from './ReviewPopup';
 
@@ -14,6 +12,9 @@ const NextIcon = () => (
 );
 const UserPlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+);
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg>
 );
 const BlockIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
@@ -37,7 +38,7 @@ function AnimatedDots() {
   return <span>{dots}</span>;
 }
 
-function ChatPage({ user, currentUserId: propUserId, currentUsername: propUsername, onGoHome, onInboxOpen }) {
+function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount }) {
   // --- STATE ---
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
@@ -52,17 +53,25 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
   const [showActions, setShowActions] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  // Use global state instead of local state
+  const friendRequests = globalFriendRequests;
+  const notifications = globalNotifications;
+  const setFriendRequests = setGlobalFriendRequests;
+  const setNotifications = setGlobalNotifications;
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Debug logging for notification counts
+  useEffect(() => {
+    console.log('NOTIFICATION DEBUG: ChatPage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
+  }, [friendRequests.length, notifications.length]);
   const [showWarning, setShowWarning] = useState(false);
   const [actionToast, setActionToast] = useState(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
+  const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
 
   // --- REFS ---
   const currentUserIdRef = useRef(null);
-  const socketRef = useRef(null);
   const inQueueRef = useRef(false); 
   const queueWatchdogRef = useRef(null);
   
@@ -85,13 +94,28 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
+
+  const checkFriendshipStatus = useCallback(async () => {
+    if (!currentUserId || !chatPartner) return;
+    try {
+      const friends = await api.getFriends(currentUserId);
+      const partnerId = chatPartner.id || chatPartner.userId;
+      const isFriend = friends.some(friend => (friend.id || friend.userId) === partnerId);
+      setIsAlreadyFriend(isFriend);
+    } catch (error) {
+      console.error('Error checking friendship status:', error);
+      setIsAlreadyFriend(false);
+    }
+  }, [currentUserId, chatPartner]);
 
   const joinQueue = useCallback(async () => {
     try {
-      if (!socketRef.current?.connected) {
-        console.log('🔌 Socket disconnected, attempting reconnect before queueing...');
-        socketRef.current.connect();
+      if (!socket?.connected) {
+        console.log('🔌 Socket disconnected, cannot join queue');
+        setActionToast("Connection lost");
+        return;
       }
       
       const userId = currentUserId;
@@ -109,7 +133,7 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
       setInQueue(false);
       setActionToast("Could not join queue");
     }
-  }, [currentUserId]);
+  }, [currentUserId, socket]);
 
   // --- EFFECT HOOKS ---
 
@@ -128,6 +152,13 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
       loadFriendRequests();
     }
   }, [currentUserId, loadFriendRequests]);
+
+  // Check friendship status when chat partner changes
+  useEffect(() => {
+    if (currentUserId && chatPartner) {
+      checkFriendshipStatus();
+    }
+  }, [currentUserId, chatPartner, checkFriendshipStatus]);
 
   // Poll for friend requests
   useEffect(() => {
@@ -148,24 +179,34 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
   useEffect(() => {
     inQueueRef.current = inQueue;
     
-    // --- QUEUE WATCHDOG ---
-    if (inQueue && queuePosition === 0) {
-      if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
+    // --- QUEUE HEARTBEAT ---
+    if (inQueue && socket?.connected) {
+      const heartbeat = setInterval(() => {
+        socket.emit('queue-heartbeat', { userId: currentUserId });
+      }, 3000);
       
-      queueWatchdogRef.current = setTimeout(() => {
-        console.log("🐶 Watchdog: Stuck at #0 for 10s. Force refreshing connection...");
-        if (socketRef.current?.connected) {
-          joinQueue(); // Re-emit join event
+      const watchdog = setTimeout(() => {
+        console.log("🐶 Watchdog: Stuck at #0 for 10s. Re-joining queue...");
+        if (socket?.connected) {
+          joinQueue();
         }
-      }, 10000); 
+      }, 10000);
+      
+      queueWatchdogRef.current = { heartbeat, watchdog };
     } else {
-      if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
+      if (queueWatchdogRef.current) {
+        clearInterval(queueWatchdogRef.current.heartbeat);
+        clearTimeout(queueWatchdogRef.current.watchdog);
+      }
     }
 
     return () => {
-      if (queueWatchdogRef.current) clearTimeout(queueWatchdogRef.current);
+      if (queueWatchdogRef.current) {
+        clearInterval(queueWatchdogRef.current.heartbeat);
+        clearTimeout(queueWatchdogRef.current.watchdog);
+      }
     };
-  }, [inQueue, queuePosition, joinQueue]);
+  }, [inQueue, queuePosition, joinQueue, socket, currentUserId]);
 
   // Handle ESC Key
   useEffect(() => {
@@ -211,78 +252,23 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showActions]);
 
-  // --- SOCKET CONNECTION ---
+  // --- SOCKET LISTENERS ---
   useEffect(() => {
-    socketRef.current = io('https://blahbluh-production.up.railway.app', {
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      forceNew: true
-    });
+    if (!socket || !currentUserId) return;
 
-    socketRef.current.on('connect', () => {
-      console.log('✅ Socket connected:', socketRef.current.id);
-      const myId = currentUserIdRef.current;
-      
-      if (myId) {
-        socketRef.current.emit('register-user', { userId: myId });
-        
-        if (inQueueRef.current) {
-          console.log('🔄 Socket reconnected. Re-joining queue to update Socket ID...');
-          api.joinQueue(myId).catch(console.error);
-        }
+    const handleNewMessage = (msg) => {
+      // For friend chats, show all messages. For random chats, prevent echo
+      if (chatId?.startsWith('friend_') || msg.userId !== currentUserId) {
+        setMessages(prev => {
+          // Prevent duplicates by checking if message already exists
+          const exists = prev.some(existingMsg => existingMsg.id === msg.id);
+          if (exists) return prev;
+          return [...prev, { ...msg, reactions: msg.reactions || {} }];
+        });
       }
-    });
+    };
 
-    socketRef.current.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
-    });
-
-    socketRef.current.on('chat-paired', (data) => {
-      console.log('🤝 Chat Paired!');
-      console.log('🔍 Chat pairing data:', data);
-      const myId = currentUserIdRef.current;
-      console.log('🔍 My ID:', myId);
-      // Debug: log all users to see the structure
-      console.log('🔍 All users in chat:', data.users);
-      const partner = data.users.find(u => u.id !== myId);
-      
-      // If no partner found with 'id', try with 'userId'
-      if (!partner) {
-        const partnerWithUserId = data.users.find(u => u.userId !== myId);
-        console.log('🔍 Trying with userId, found:', partnerWithUserId);
-        if (partnerWithUserId) {
-          setChatId(data.chatId);
-          setChatPartner(partnerWithUserId);
-          setInQueue(false);
-          setQueuePosition(0);
-          setMessages([]);
-          setNotification(null);
-          socketRef.current.emit('join-chat', { chatId: data.chatId });
-          return;
-        }
-      }
-      console.log('🔍 Found partner:', partner);
-      
-      if (partner) {
-        setChatId(data.chatId);
-        setChatPartner(partner);
-        setInQueue(false);
-        setQueuePosition(0);
-        setMessages([]);
-        setNotification(null);
-        socketRef.current.emit('join-chat', { chatId: data.chatId });
-      } else {
-        console.error('❌ No valid partner found in chat pairing data');
-      }
-    });
-
-    socketRef.current.on('new-message', (msg) => {
-      setMessages(prev => [...prev, { ...msg, reactions: msg.reactions || {} }]);
-    });
-
-    socketRef.current.on('message-reaction', ({ messageId, emoji, userId }) => {
+    const handleMessageReaction = ({ messageId, emoji, userId }) => {
       setMessages(prev => prev.map(msg => {
         if (msg.id === messageId) {
           const reactions = { ...msg.reactions };
@@ -294,9 +280,9 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
         }
         return msg;
       }));
-    });
+    };
 
-    socketRef.current.on('partner-disconnected', () => {
+    const handlePartnerDisconnected = () => {
       if (chatPartner) {
         setPartnerToReview(chatPartner);
         setShowReviewPopup(true);
@@ -307,45 +293,106 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
       setMessages([]);
       setInQueue(false);
       setQueuePosition(0);
-    });
+    };
 
-    socketRef.current.on('friend-request-received', () => {
-      loadFriendRequests();
-    });
+    const handleQueueHeartbeatResponse = (data) => {
+      if (!data.inQueue && inQueue) {
+        console.log('💔 Server says not in queue, re-joining...');
+        joinQueue();
+      }
+    };
 
-    socketRef.current.on('friend-request-accepted', async (data) => {
-      console.log('✅ Friend request accepted event received:', data);
-      // Add notification
-      const notification = {
-        id: Date.now(),
-        type: 'friend-accepted',
-        message: data.message || 'Your friend request was accepted!',
-        timestamp: new Date().toISOString(),
-        read: false
-      };
-      setNotifications(prev => [notification, ...prev]);
-      loadFriendRequests();
-    });
+    const handleFriendRequestReceived = () => loadFriendRequests();
+    // Removed - now handled by App.js
 
-    // Debug: Log all socket events
-    socketRef.current.onAny((eventName, ...args) => {
-      if (eventName.includes('friend')) {
-        console.log('🔊 Socket event received:', eventName, args);
+    socket.on('new-message', handleNewMessage);
+    socket.on('message-reaction', handleMessageReaction);
+    socket.on('partner-disconnected', handlePartnerDisconnected);
+    socket.on('friend-request-received', handleFriendRequestReceived);
+    socket.on('queue-heartbeat-response', handleQueueHeartbeatResponse);
+    
+    // Listen for friend messages even when not in chat
+    socket.on('friend-message-received', (messageData) => {
+      // Only add if it's for the current chat
+      if (messageData.chatId === chatId) {
+        setMessages(prev => {
+          const exists = prev.some(msg => msg.id === messageData.id);
+          if (exists) return prev;
+          return [...prev, { ...messageData, reactions: messageData.reactions || {} }];
+        });
       }
     });
 
     return () => {
-      socketRef.current?.disconnect();
+      socket.off('new-message', handleNewMessage);
+      socket.off('message-reaction', handleMessageReaction);
+      socket.off('partner-disconnected', handlePartnerDisconnected);
+      socket.off('friend-request-received', handleFriendRequestReceived);
+      socket.off('queue-heartbeat-response', handleQueueHeartbeatResponse);
+      socket.off('friend-message-received');
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [socket, currentUserId, chatPartner, loadFriendRequests, inQueue, joinQueue, chatId]);
 
-  // Sync user registration when ID is ready
+  // Initialize chat based on props
   useEffect(() => {
-    if (currentUserId && socketRef.current?.connected) {
-      socketRef.current.emit('register-user', { userId: currentUserId });
+    console.log('🔄 ChatPage initialization:', { initialChatData, targetFriend, currentUserId, currentUsername });
+    
+    if (initialChatData) {
+      // Random chat from queue
+      const myId = currentUserId;
+      const partner = initialChatData.users.find(u => (u.id || u.userId) !== myId);
+      if (partner) {
+        console.log('🎲 Setting up random chat:', partner);
+        setChatId(initialChatData.chatId);
+        setChatPartner(partner);
+        setInQueue(false);
+        setQueuePosition(0);
+        setMessages([]);
+        setNotification(null);
+        socket?.emit('join-chat', { chatId: initialChatData.chatId });
+      }
+    } else if (targetFriend && currentUserId && currentUsername) {
+      // Friend chat from inbox - only proceed if we have user info
+      console.log('👥 Setting up friend chat:', targetFriend);
+      setChatId(targetFriend.chatId);
+      setChatPartner(targetFriend);
+      setInQueue(false);
+      setQueuePosition(0);
+      setNotification(null);
+      socket?.emit('join-chat', { chatId: targetFriend.chatId });
+      
+      // Load message history for friend chats
+      const loadMessages = async () => {
+        try {
+          console.log('📚 Loading message history for:', targetFriend.chatId);
+          const history = await api.getFriendChatMessages(targetFriend.chatId);
+          console.log('📚 Loaded messages:', history);
+          
+          const formattedMessages = history.map(msg => ({
+            id: msg.id,
+            chatId: msg.chat_id,
+            message: msg.message,
+            userId: msg.sender_id,
+            username: msg.sender_id === currentUserId ? currentUsername : targetFriend.username,
+            timestamp: msg.created_at,
+            reactions: {}
+          }));
+          
+          console.log('📚 Formatted messages:', formattedMessages);
+          setMessages(formattedMessages);
+        } catch (error) {
+          console.error('❌ Error loading message history:', error);
+          setMessages([]);
+        }
+      };
+      loadMessages();
+      
+      // Mark messages as read for friend chats
+      if (targetFriend.userId) {
+        api.markMessagesAsRead(currentUserId, targetFriend.userId).catch(console.error);
+      }
     }
-  }, [currentUserId]);
+  }, [initialChatData, targetFriend, currentUserId, currentUsername, socket]);
 
 
 
@@ -365,27 +412,35 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
     if (!newMessage.trim()) return;
     if (!chatId || !currentUserId) return;
     
-    if (!socketRef.current?.connected) {
-        setActionToast('Reconnecting...');
-        socketRef.current.connect();
+    if (!socket?.connected) {
+        setActionToast('Connection lost');
         return;
     }
 
     const messageData = {
+      id: Date.now(),
       chatId,
       message: newMessage.trim(),
       userId: currentUserId,
       username: currentUsername,
-      replyTo: replyingTo
+      timestamp: new Date().toISOString(),
+      replyTo: replyingTo,
+      reactions: {}
     };
 
-    socketRef.current.emit('send-message', messageData);
+    // For random chats, add locally for immediate feedback
+    // For friend chats, let the socket handler add it to prevent duplicates
+    if (!chatId?.startsWith('friend_')) {
+      setMessages(prev => [...prev, messageData]);
+    }
+    
+    socket.emit('send-message', messageData);
     setNewMessage('');
     setReplyingTo(null);
   };
 
   const handleReaction = (messageId, emoji) => {
-    if (!chatId || !currentUserId || !socketRef.current) return;
+    if (!chatId || !currentUserId || !socket) return;
     
     setMessages(prev => prev.map(msg => {
       if (msg.id === messageId) {
@@ -401,7 +456,7 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
       return msg;
     }));
     
-    socketRef.current.emit('add-reaction', { chatId, messageId, emoji, userId: currentUserId });
+    socket.emit('add-reaction', { chatId, messageId, emoji, userId: currentUserId });
     setShowActions(null);
   };
 
@@ -470,15 +525,17 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
   };
 
   const finishLeavingChat = () => {
-    if (chatId && socketRef.current && currentUserId) {
-      socketRef.current.emit('leave-chat', { chatId, userId: currentUserId });
+    if (chatId && socket && currentUserId) {
+      // Use atomic skip-partner event for better UX
+      socket.emit('skip-partner', { chatId, userId: currentUserId });
       setChatId(null);
       setChatPartner(null);
       setMessages([]);
       setReplyingTo(null);
       setShowActions(null);
       setPartnerToReview(null);
-      joinQueue();
+      setInQueue(true);
+      setQueuePosition(0);
     }
   };
 
@@ -580,7 +637,7 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
   if (chatId && chatPartner) {
     return (
       <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
-        {/* Apple-style Glass Header */}
+        {/* Header - Different for friend vs random chat */}
         <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between shadow-sm transition-all">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner">
@@ -600,22 +657,52 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={onGoHome} className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
-              Home
-            </button>
-            <button onClick={onInboxOpen} className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
-              Inbox
-            </button>
-            <button onClick={handleAddFriend} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
-              <UserPlusIcon />
-            </button>
-            <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
-              <BlockIcon />
-            </button>
-            <button onClick={handleNextUser} className="hidden md:flex ml-2 pl-4 pr-5 py-2 rounded-full bg-white text-black font-bold text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5">
-              <span>Next</span>
-              <NextIcon />
-            </button>
+            {chatId?.startsWith('friend_') ? (
+              // Friend chat header - simple: block and home only
+              <>
+                <button onClick={onGoHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
+                    B
+                  </div>
+                  <span className="text-xs font-medium">blahbluh</span>
+                </button>
+                <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
+                  <BlockIcon />
+                </button>
+              </>
+            ) : (
+              // Random chat header - full: logo, inbox, add friend, next
+              <>
+                <button onClick={onGoHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 mr-2">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
+                    B
+                  </div>
+                  <span className="text-xs font-medium">blahbluh</span>
+                </button>
+                <button onClick={onInboxOpen} className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 relative">
+                  Inbox
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-sm"></span>
+                  )}
+                </button>
+                {isAlreadyFriend ? (
+                  <div className="w-9 h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
+                    <CheckIcon />
+                  </div>
+                ) : (
+                  <button onClick={handleAddFriend} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
+                    <UserPlusIcon />
+                  </button>
+                )}
+                <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
+                  <BlockIcon />
+                </button>
+                <button onClick={handleNextUser} className="hidden md:flex ml-2 pl-4 pr-5 py-2 rounded-full bg-white text-black font-bold text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5">
+                  <span>Next</span>
+                  <NextIcon />
+                </button>
+              </>
+            )}
           </div>
         </header>
 
@@ -717,7 +804,7 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="iMessage..."
+                  placeholder="Type something fun..."
                   className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 text-[16px]"
                   autoComplete="off"
                 />
@@ -893,9 +980,9 @@ function ChatPage({ user, currentUserId: propUserId, currentUsername: propUserna
 
         <div className="max-w-lg w-full text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
-            <span className={`w-2 h-2 rounded-full ${socketRef.current?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
             <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-              {socketRef.current?.connected ? 'System Online' : 'Connecting...'}
+              {socket?.connected ? 'System Online' : 'Connecting...'}
             </span>
           </div>
 

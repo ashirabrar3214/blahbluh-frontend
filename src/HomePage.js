@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from './api';
 
 function AnimatedDots() {
@@ -33,14 +33,21 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, notification: externalNotification, onNotificationChange }) {
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
   const [notification, setNotification] = useState(externalNotification || null);
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  // Use global state instead of local state
+  const friendRequests = globalFriendRequests;
+  const notifications = globalNotifications;
+  const setFriendRequests = setGlobalFriendRequests;
+  const setNotifications = setGlobalNotifications;
   const [showNotifications, setShowNotifications] = useState(false);
-  const socketRef = useRef(null);
+
+  // Debug logging for notification counts
+  useEffect(() => {
+    console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
+  }, [friendRequests.length, notifications.length]);
 
   useEffect(() => {
     if (externalNotification) {
@@ -56,6 +63,7 @@ function HomePage({ onChatStart, onProfileOpen, onInboxOpen, currentUsername, cu
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
   const handleAcceptFriend = async (requestId) => {
@@ -79,33 +87,17 @@ function HomePage({ onChatStart, onProfileOpen, onInboxOpen, currentUsername, cu
   }, [currentUserId, loadFriendRequests]);
 
   useEffect(() => {
-    // HomePage now relies on global socket from App.js
-    // Just handle friend request polling here
-    if (socketRef.current) {
-      socketRef.current.on('friend-request-received', () => {
-        loadFriendRequests();
-      });
+    if (socket && currentUserId) {
+      const handleFriendRequest = () => loadFriendRequests();
+      // Removed - now handled by App.js
 
-      socketRef.current.on('friend-request-accepted', async (data) => {
-        console.log('✅ Friend request accepted on HomePage:', data);
-        const notification = {
-          id: Date.now(),
-          type: 'friend-accepted',
-          message: data.message || 'Your friend request was accepted!',
-          timestamp: new Date().toISOString(),
-          read: false
-        };
-        setNotifications(prev => [notification, ...prev]);
-        try {
-          const friends = await api.getFriends(currentUserId);
-          localStorage.setItem(`friends_${currentUserId}`, JSON.stringify(friends));
-        } catch (error) {
-          console.error('Error refreshing friends:', error);
-        }
-        loadFriendRequests();
-      });
+      socket.on('friend-request-received', handleFriendRequest);
+
+      return () => {
+        socket.off('friend-request-received', handleFriendRequest);
+      };
     }
-  }, [currentUserId, loadFriendRequests]);
+  }, [socket, currentUserId, loadFriendRequests]);
 
   const joinQueue = async () => {
     try {
@@ -212,9 +204,14 @@ function HomePage({ onChatStart, onProfileOpen, onInboxOpen, currentUsername, cu
           </div>
           <button
             onClick={onInboxOpen}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors relative"
           >
             <InboxIcon />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                {unreadCount}
+              </span>
+            )}
           </button>
           <button
             onClick={onProfileOpen}
@@ -232,9 +229,9 @@ function HomePage({ onChatStart, onProfileOpen, onInboxOpen, currentUsername, cu
 
         <div className="max-w-lg w-full text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
-            <span className={`w-2 h-2 rounded-full ${socketRef.current?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
             <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-              {socketRef.current?.connected ? 'System Online' : 'Connecting...'}
+              {socket?.connected ? 'System Online' : 'Connecting...'}
             </span>
           </div>
 

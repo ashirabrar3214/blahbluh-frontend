@@ -133,16 +133,33 @@ export const api = {
     return await response.json();
   },
 
-  async getFriendChatMessages(chatId) {
-    const response = await fetch(`${API_BASE_URL}/api/friend-chat-messages/${chatId}`);
-    return await response.json();
-  },
-
   async sendFriendMessage(chatId, userId, message) {
     const response = await fetch(`${API_BASE_URL}/api/friend-message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chatId, userId, message })
+    });
+    return await response.json();
+  },
+
+  async getFriendChatMessages(chatId) {
+    const response = await fetch(`${API_BASE_URL}/api/friend-chat-messages/${chatId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  },
+
+  async getUnreadCount(userId, friendId) {
+    const response = await fetch(`${API_BASE_URL}/api/unread-count/${userId}/${friendId}`);
+    return await response.json();
+  },
+
+  async markMessagesAsRead(userId, friendId) {
+    const response = await fetch(`${API_BASE_URL}/api/mark-read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, friendId })
     });
     return await response.json();
   }
