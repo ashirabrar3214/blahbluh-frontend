@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://blahbluh-production.up.railway.app';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+
 export const api = {
   async generateUserId() {
     console.log('🆔 Generating random user ID...');
@@ -41,39 +42,39 @@ export const api = {
 
 
   async joinQueue(userId) {
-    console.log('🔄 API: Joining queue with userId:', userId);
+    console.log('API: Joining queue with userId:', userId);
     const response = await fetch(`${API_BASE_URL}/api/join-queue`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
     const data = await response.json();
-    console.log('📝 API: Join queue response:', data);
+    console.log('API: Join queue response:', data);
     return data;
   },
 
   async leaveQueue(userId) {
-    console.log('🚪 API: Leaving queue for userId:', userId);
+    console.log('API: Leaving queue for userId:', userId);
     const response = await fetch(`${API_BASE_URL}/api/leave-queue`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
     const data = await response.json();
-    console.log('✅ API: Leave queue response:', data);
+    console.log('API: Leave queue response:', data);
     return data;
   },
 
   async getQueueStatus(userId) {
-    console.log('📊 API: Getting queue status for userId:', userId);
+    console.log('API: Getting queue status for userId:', userId);
     const response = await fetch(`${API_BASE_URL}/api/queue-status/${userId}`);
     const data = await response.json();
-    console.log('📊 API: Queue status response:', data);
+    console.log('API: Queue status response:', data);
     return data;
   },
 
   async sendFriendRequest(fromUserId, toUserId) {
-    console.log('🔵 API: Sending friend request');
+    console.log('API: Sending friend request');
     console.log('From User ID:', fromUserId);
     console.log('To User ID:', toUserId);
     

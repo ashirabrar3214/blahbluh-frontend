@@ -13,6 +13,7 @@ function App() {
   const [inboxKey, setInboxKey] = useState(0);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [chatData, setChatData] = useState(null);
+  const [pageNotification, setPageNotification] = useState(null);
   const [globalNotifications, setGlobalNotifications] = useState([]);
   const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -39,7 +40,7 @@ function App() {
             console.error('Error getting unread count:', error);
           }
         }
-        console.log('📊 App: Initial total unread count:', totalUnread);
+        console.log(' App: Initial total unread count:', totalUnread);
         setUnreadCount(totalUnread);
       } catch (error) {
         console.error('Error loading initial unread count:', error);
@@ -53,13 +54,16 @@ function App() {
     if (!currentUser) return;
 
     // Setup global socket connection
-    globalSocketRef.current = io('https://blahbluh-production.up.railway.app', {
+    globalSocketRef.current = io(
+    process.env.REACT_APP_API_URL || 'http://localhost:3000',
+    {
       transports: ['websocket'],
       reconnection: true,
-    });
+    }
+  );
 
     globalSocketRef.current.on('connect', () => {
-      console.log('🌐 Global socket connected');
+      console.log('Global socket connected');
       globalSocketRef.current.emit('register-user', { userId: currentUser.id });
       // Fetch unread messages on connect
       globalSocketRef.current.emit('fetch-unread-messages', { userId: currentUser.id });
@@ -67,7 +71,7 @@ function App() {
 
     // Listen for chat pairing
     globalSocketRef.current.on('chat-paired', (data) => {
-      console.log('🤝 Chat paired globally:', data);
+      console.log('Chat paired globally:', data);
       setChatData(data);
       setSelectedFriend(null);
       setCurrentPage('chat');
@@ -126,7 +130,9 @@ function App() {
   });
     // Listen for partner disconnection
     globalSocketRef.current.on('partner-disconnected', () => {
-      console.log('👋 Partner disconnected globally');
+      console.log('Partner disconnected globally');
+      // Set a notification for the HomePage banner
+      setPageNotification('partner-disconnected');
       setCurrentPage('home');
     });
 
@@ -168,6 +174,8 @@ function App() {
         setGlobalNotifications={setGlobalNotifications}
         setGlobalFriendRequests={setGlobalFriendRequests}
         unreadCount={unreadCount}
+        notification={pageNotification}
+        onNotificationChange={setPageNotification}
         onChatStart={() => setCurrentPage('chat')}
         onProfileOpen={() => {}}
         onInboxOpen={() => {
@@ -211,6 +219,7 @@ function App() {
       onGoHome={() => {
         setSelectedFriend(null);
         setChatData(null);
+        setPageNotification(null);
         setCurrentPage('home');
       }}
       onInboxOpen={() => {

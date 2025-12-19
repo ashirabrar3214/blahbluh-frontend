@@ -121,11 +121,12 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       const userId = currentUserId;
       if (!userId) return;
 
-      console.log('🚀 Joining Queue...');
+      console.log('Joining Queue...');
+      setNotification(null);
       setInQueue(true); 
       
       const result = await api.joinQueue(userId);
-      console.log('✅ Joined Queue:', result);
+      console.log('Joined Queue:', result);
       setQueuePosition(result.queuePosition ?? 0);
       
     } catch (error) {
@@ -186,7 +187,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       }, 3000);
       
       const watchdog = setTimeout(() => {
-        console.log("🐶 Watchdog: Stuck at #0 for 10s. Re-joining queue...");
+        console.log("Watchdog: Stuck at #0 for 10s. Re-joining queue...");
         if (socket?.connected) {
           joinQueue();
         }
@@ -282,24 +283,41 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       }));
     };
 
-    const handlePartnerDisconnected = () => {
-      if (chatPartner) {
-        setPartnerToReview(chatPartner);
-        setShowReviewPopup(true);
-      }
-      setNotification('partner-disconnected');
-      setChatId(null);
-      setChatPartner(null);
-      setMessages([]);
-      setInQueue(false);
-      setQueuePosition(0);
+    const handlePartnerDisconnected = (payload = {}) => {
+      const { chatId: disconnectedChatId } = payload;
+
+      if (!chatId || (disconnectedChatId && chatId !== disconnectedChatId)) return;
+
+      // 1. Show system message immediately
+      setMessages(prev => [
+        ...prev,
+        {
+          id: 'sys-' + Date.now(),
+          userId: 'system',
+          message: 'Partner disconnected',
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      setTimeout(() => {
+        setChatId(null);
+        setChatPartner(null);
+        setMessages([]);
+        setInQueue(false);
+        setQueuePosition(0);
+
+        if (chatPartner) {
+          setPartnerToReview(chatPartner);
+          setShowReviewPopup(true);
+        }
+      }, 2000);
     };
 
     const handleQueueHeartbeatResponse = (data) => {
-      if (!data.inQueue && inQueue) {
-        console.log('💔 Server says not in queue, re-joining...');
-        joinQueue();
-      }
+          if (!data.inQueue && inQueueRef.current) {
+            console.log('Server says not in queue, re-joining...');
+            joinQueue();
+          }
     };
 
     const handleFriendRequestReceived = () => loadFriendRequests();
@@ -332,41 +350,53 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('friend-message-received');
     };
   }, [socket, currentUserId, chatPartner, loadFriendRequests, inQueue, joinQueue, chatId]);
+  // Notify server when user leaves chat via navigation (Home button)
+  useEffect(() => {
+      return () => {
+        // ChatPage unmounting (user navigated away)
+        if (chatId && socket?.connected && currentUserId) {
+          socket.emit('leave-chat', {
+            chatId,
+            userId: currentUserId
+          });
+        }
+      };
+    }, [chatId, socket, currentUserId]);
 
   // Initialize chat based on props
   useEffect(() => {
-    console.log('🔄 ChatPage initialization:', { initialChatData, targetFriend, currentUserId, currentUsername });
+    console.log('ChatPage initialization:', { initialChatData, targetFriend, currentUserId, currentUsername });
     
     if (initialChatData) {
       // Random chat from queue
       const myId = currentUserId;
       const partner = initialChatData.users.find(u => (u.id || u.userId) !== myId);
       if (partner) {
-        console.log('🎲 Setting up random chat:', partner);
+        console.log('Setting up random chat:', partner);
         setChatId(initialChatData.chatId);
         setChatPartner(partner);
         setInQueue(false);
         setQueuePosition(0);
         setMessages([]);
-        setNotification(null);
+        //setNotification(null);
         socket?.emit('join-chat', { chatId: initialChatData.chatId });
       }
     } else if (targetFriend && currentUserId && currentUsername) {
       // Friend chat from inbox - only proceed if we have user info
-      console.log('👥 Setting up friend chat:', targetFriend);
+      console.log('Setting up friend chat:', targetFriend);
       setChatId(targetFriend.chatId);
       setChatPartner(targetFriend);
       setInQueue(false);
       setQueuePosition(0);
-      setNotification(null);
+      //setNotification(null);
       socket?.emit('join-chat', { chatId: targetFriend.chatId });
       
       // Load message history for friend chats
       const loadMessages = async () => {
         try {
-          console.log('📚 Loading message history for:', targetFriend.chatId);
+          console.log('Loading message history for:', targetFriend.chatId);
           const history = await api.getFriendChatMessages(targetFriend.chatId);
-          console.log('📚 Loaded messages:', history);
+          console.log('Loaded messages:', history);
           
           const formattedMessages = history.map(msg => ({
             id: msg.id,
@@ -378,10 +408,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             reactions: {}
           }));
           
-          console.log('📚 Formatted messages:', formattedMessages);
+          console.log('Formatted messages:', formattedMessages);
           setMessages(formattedMessages);
         } catch (error) {
-          console.error('❌ Error loading message history:', error);
+          console.error('Error loading message history:', error);
           setMessages([]);
         }
       };
@@ -551,60 +581,60 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   };
 
   const handleAddFriend = async () => {
-    console.log('🚀 Starting friend request process...');
+    console.log('Starting friend request process...');
     
     if (!chatPartner || !currentUserId) {
-      console.error('❌ Missing chatPartner or currentUserId');
+      console.error('Missing chatPartner or currentUserId');
       console.log('chatPartner:', chatPartner);
       console.log('currentUserId:', currentUserId);
       return;
     }
     
-    console.log('🔍 Full chatPartner object:', JSON.stringify(chatPartner, null, 2));
-    console.log('🔍 Current user ID:', currentUserId);
+    console.log('Full chatPartner object:', JSON.stringify(chatPartner, null, 2));
+    console.log('Current user ID:', currentUserId);
     
     // The chatPartner should have the partner's id or userId, not our own
     const partnerId = chatPartner.id || chatPartner.userId;
-    console.log('🔍 Extracted partner ID:', partnerId);
+    console.log('Extracted partner ID:', partnerId);
     
     // Make sure we're not sending a friend request to ourselves
     if (partnerId === currentUserId) {
-      console.error('❌ Cannot send friend request to yourself!');
+      console.error('Cannot send friend request to yourself!');
       console.log('Partner ID matches current user ID - this is wrong!');
       setActionToast('Cannot add yourself as friend');
       return;
     }
     
     if (!partnerId) {
-      console.error('❌ Partner ID not found in chatPartner object');
+      console.error('Partner ID not found in chatPartner object');
       setActionToast('Unable to send friend request');
       return;
     }
     
-    console.log('✅ Validation passed, sending friend request...');
+    console.log('Validation passed, sending friend request...');
     console.log('From:', currentUserId);
     console.log('To:', partnerId);
     
     try {
       const result = await api.sendFriendRequest(currentUserId, partnerId);
-      console.log('✅ Friend request API response:', result);
+      console.log('Friend request API response:', result);
       setActionToast('Friend request sent');
     } catch (error) {
-      console.error('❌ Error sending friend request:', error);
+      console.error('Error sending friend request:', error);
       setActionToast('Friend requests temporarily unavailable');
     }
   };
 
   const handleAcceptFriend = async (requestId) => {
-    console.log('👍 Accepting friend request:', requestId);
+    console.log('Accepting friend request:', requestId);
     console.log('Current user accepting:', currentUserId);
     try {
       const result = await api.acceptFriendRequest(requestId, currentUserId);
-      console.log('✅ Accept friend API response:', result);
+      console.log('Accept friend API response:', result);
       setActionToast('Friend request accepted');
       loadFriendRequests();
     } catch (error) {
-      console.error('❌ Error accepting friend request:', error);
+      console.error('Error accepting friend request:', error);
     }
   };
 
@@ -724,6 +754,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             onTouchEnd={handleSwipeEnd}
           >
             {messages.map((msg, index) => {
+              if (msg.userId === 'system') {
+                return (
+                  <div key={msg.id || index} className="flex w-full justify-center my-4 opacity-75">
+                     <span className="px-3 py-1 bg-zinc-800 rounded-full text-xs text-zinc-400 border border-white/5">
+                        {msg.message}
+                     </span>
+                  </div>
+                );
+              }
+
               const isOwn = msg.userId === currentUserId;
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
               const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
@@ -997,6 +1037,12 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             Instant anonymous connections. No login required. Just pure conversation.
           </p>
 
+          {notification === 'partner-disconnected' && (
+                <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
+                  Partner disconnected. ready to go again?
+                </div>
+              )}
+
           {inQueue ? (
             <div className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-8 rounded-[32px] shadow-2xl">
               <div className="flex flex-col items-center gap-4">
@@ -1011,13 +1057,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              {notification === 'partner-disconnected' && (
-                <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
-                  Partner disconnected. ready to go again?
-                </div>
-              )}
-              
+            <div className="flex flex-col gap-4">    
               <button 
                 onClick={joinQueue} 
                 className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"

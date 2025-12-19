@@ -43,6 +43,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const setFriendRequests = setGlobalFriendRequests;
   const setNotifications = setGlobalNotifications;
   const [showNotifications, setShowNotifications] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState(null);
+  const bellNotifications = notifications.filter(n => n.id !== 'partner-disconnected');
+
 
   // Debug logging for notification counts
   useEffect(() => {
@@ -54,6 +57,53 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       setNotification(externalNotification);
     }
   }, [externalNotification]);
+
+//   useEffect(() => {
+//   if (bannerMessage) return;
+
+//   const partnerDisconnectNotif = notifications.find(
+//     n => n.id === 'partner-disconnected'
+//   );
+
+//   if (!partnerDisconnectNotif) return;
+
+//   // show banner
+//   setBannerMessage(partnerDisconnectNotif.message);
+//   setInQueue(true);
+
+//   const t = setTimeout(() => {
+//     setBannerMessage(null);
+
+//     // 🔥 remove notification ONLY after banner is gone
+//     setGlobalNotifications(prev =>
+//       prev.filter(n => n.id !== 'partner-disconnected')
+//     );
+//   }, 3000);
+
+//   return () => clearTimeout(t);
+// }, [notifications, bannerMessage, setGlobalNotifications]);
+
+  useEffect(() => {
+    if (notification !== 'partner-disconnected') return;
+
+    // show banner
+    setBannerMessage('Partner disconnected. ready to go again?');
+
+    // user is already queued after disconnect
+    setInQueue(true);
+
+    const t = setTimeout(() => {
+      setBannerMessage(null);
+
+      // clear the transient notification
+      setNotification(null);
+      onNotificationChange?.(null);
+    }, 3000);
+
+    return () => clearTimeout(t);
+  }, [notification, onNotificationChange]);
+
+
 
   const loadFriendRequests = useCallback(async () => {
     if (!currentUserId) return;
@@ -157,13 +207,13 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
-              {(friendRequests.length > 0 || notifications.length > 0) && (
+              {(friendRequests.length > 0 || bellNotifications.length > 0) && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
-                  {friendRequests.length + notifications.length}
+                  {friendRequests.length + bellNotifications.length}
                 </span>
               )}
             </button>
-            {showNotifications && (friendRequests.length > 0 || notifications.length > 0) && (
+            {showNotifications && (friendRequests.length > 0 || bellNotifications.length > 0) && (
               <div className="absolute top-10 right-0 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-600 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
                 {friendRequests.length > 0 && (
                   <>
@@ -189,14 +239,14 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
                     </div>
                   </>
                 )}
-                {notifications.length > 0 && (
+                {bellNotifications.length > 0 && (
                   <>
                     <h3 className="text-white font-bold mb-3 flex items-center gap-2">
                       <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                       Notifications
                     </h3>
                     <div className="space-y-3">
-                      {notifications.map(notification => (
+                      {bellNotifications.map(notification => (
                         <div key={notification.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-green-500">
                           <div>
                             <p className="text-white text-sm font-medium">🎉 {notification.message}</p>
@@ -259,6 +309,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
             Instant anonymous connections. No login required. Just pure conversation.
           </p>
+          {bannerMessage && (
+            <div className="px-4 py-3 mb-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm animate-in fade-in">
+              {bannerMessage}
+            </div>
+          )}
+
 
           {inQueue ? (
             <div className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-8 rounded-[32px] shadow-2xl">
@@ -278,11 +334,11 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {notification === 'partner-disconnected' && (
+              {/* {notification === 'partner-disconnected' && (
                 <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
                   Partner disconnected. ready to go again?
                 </div>
-              )}
+              )} */}
               
               <button 
                 onClick={joinQueue} 
