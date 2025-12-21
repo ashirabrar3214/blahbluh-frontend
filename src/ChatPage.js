@@ -68,6 +68,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [actionToast, setActionToast] = useState(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
+  const [reviewReady, setReviewReady] = useState(false);
+  const [existingRating, setExistingRating] = useState(null);
   const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
 
   // --- REFS ---
@@ -238,10 +240,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   }, [messages, chatId]);
 
-
-
-
-
   // Click Outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -299,19 +297,41 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         },
       ]);
 
-      setTimeout(() => {
+      setTimeout(async () => {
+        const partner = chatPartner;
+        const normalizedPartner = partner
+          ? { ...partner, userId: partner.userId || partner.id }
+          : null;
+
+
         setChatId(null);
         setChatPartner(null);
         setMessages([]);
         setInQueue(false);
         setQueuePosition(0);
 
-        if (chatPartner) {
-          setPartnerToReview(chatPartner);
+        if (partner) {
+          setReviewReady(false);
+          setPartnerToReview(normalizedPartner);
+
+
+          let rating = 0;
+          try {
+            const partnerId = partner.userId || partner.id;
+            const res = await api.getReview(currentUserId, partnerId);
+            rating = res?.rating ?? 0;
+
+          } catch {
+            rating = 0;
+          }
+
+          setExistingRating(rating);
+          setReviewReady(true);
           setShowReviewPopup(true);
         }
+
       }, 2000);
-    };
+    }
 
     const handleQueueHeartbeatResponse = (data) => {
           if (!data.inQueue && inQueueRef.current) {
@@ -544,13 +564,26 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     swipeStartY.current = null;
   };
 
-  const confirmLeaveChat = () => {
+  const confirmLeaveChat = async () => {
     setShowWarning(false);
-    if (chatPartner) {
-      setPartnerToReview(chatPartner);
-      setShowReviewPopup(true);
-    } else {
+
+    const partner = chatPartner;
+    if (!partner) {
       finishLeavingChat();
+      return;
+    }
+
+    const partnerId = partner.userId || partner.id;
+
+    setPartnerToReview({ ...partner, userId: partnerId });
+    setExistingRating(0);       // default
+    setShowReviewPopup(true);   // show immediately
+
+    try {
+      const res = await api.getReview(currentUserId, partnerId);
+      setExistingRating(res?.rating ?? 0);
+    } catch {
+      setExistingRating(0);
     }
   };
 
@@ -642,26 +675,19 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setShowWarning(true);
   };
 
-  const handleReviewSubmit = (reviewData) => {
-    switch (reviewData.action) {
-      case 'friend': setActionToast('Friend request sent'); break;
-      case 'block': setActionToast('User blocked'); break;
-      case 'report': setActionToast('User reported'); break;
-      default: break;
+  const handleReviewSubmit = async (reviewData) => {
+    if (reviewData.rating > 0 && partnerToReview?.userId) {
+      await api.submitReview(
+        currentUserId,
+        partnerToReview.userId,
+        reviewData.rating
+      );
     }
-    
+
     setShowReviewPopup(false);
     setPartnerToReview(null);
-    
-    if (notification === 'partner-disconnected') {
-      joinQueue();
-    } else {
-      finishLeavingChat();
-    }
+    finishLeavingChat();
   };
-
-
-
 
   // --- RENDER: CHAT UI ---
   if (chatId && chatPartner) {
@@ -898,19 +924,21 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {/* Review Popup */}
         {showReviewPopup && partnerToReview && (
           <ReviewPopup
+            key={`${partnerToReview.userId || partnerToReview.id}-${existingRating ?? 0}`}
             partner={partnerToReview}
+            initialRating={existingRating ?? 0}
             onClose={() => {
               setShowReviewPopup(false);
               setPartnerToReview(null);
-              if (notification === 'partner-disconnected') {
-                joinQueue();
-              } else {
-                finishLeavingChat();
-              }
+              setExistingRating(null);
+              setReviewReady(false);
+              finishLeavingChat();
             }}
             onSubmit={handleReviewSubmit}
           />
         )}
+
+
       </div>
     );
   }

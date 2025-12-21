@@ -1,104 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const StarIcon = ({ filled, onClick }) => (
-  <svg 
-    width="24" 
-    height="24" 
-    viewBox="0 0 24 24" 
-    fill={filled ? "currentColor" : "none"} 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
+/* ---------- Icons ---------- */
+
+const StarIcon = ({ filled, onClick, onMouseEnter, onMouseLeave }) => (
+  <svg
+    width="26"
+    height="26"
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
     strokeLinejoin="round"
-    className={`cursor-pointer transition-all duration-200 ${filled ? 'text-yellow-400' : 'text-zinc-600 hover:text-yellow-400'}`}
+    className={`cursor-pointer transition-all duration-200 ${
+      filled
+        ? 'text-yellow-400'
+        : 'text-zinc-400 hover:text-yellow-400'
+    }`}
     onClick={onClick}
+    onMouseEnter={onMouseEnter}
+    onMouseLeave={onMouseLeave}
   >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
 
 const UserPlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-    <circle cx="8.5" cy="7" r="4"></circle>
-    <line x1="20" y1="8" x2="20" y2="14"></line>
-    <line x1="23" y1="11" x2="17" y2="11"></line>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="8.5" cy="7" r="4" />
+    <line x1="20" y1="8" x2="20" y2="14" />
+    <line x1="23" y1="11" x2="17" y2="11" />
   </svg>
 );
 
 const BlockIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"></circle>
-    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
   </svg>
 );
 
 const FlagIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-    <line x1="4" y1="22" x2="4" y2="15"></line>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    <line x1="4" y1="22" x2="4" y2="15" />
   </svg>
 );
 
-function ReviewPopup({ partner, currentUserId, onClose, onSubmit }) {
-  const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
+/* ---------- Component ---------- */
 
-  const handleSubmit = (action) => {
-    // Save review if rating is provided
-    if (rating > 0) {
-      const existingReviews = JSON.parse(localStorage.getItem(`reviews_${partner.userId}`) || '[]');
-      const newReview = {
-        rating,
-        fromUser: 'Anonymous',
-        timestamp: Date.now()
-      };
-      existingReviews.push(newReview);
-      localStorage.setItem(`reviews_${partner.userId}`, JSON.stringify(existingReviews));
-    }
-    
-    if (action === 'friend') {
-      // Save friend to localStorage
-      if (currentUserId) {
-        const existingFriends = JSON.parse(localStorage.getItem(`friends_${currentUserId}`) || '[]');
-        const newFriend = {
-          userId: partner.userId,
-          username: partner.username,
-          addedAt: Date.now(),
-          lastMessage: null,
-          unreadCount: 0
-        };
-        
-        // Check if friend already exists
-        const friendExists = existingFriends.some(f => f.userId === partner.userId);
-        if (!friendExists) {
-          existingFriends.push(newFriend);
-          localStorage.setItem(`friends_${currentUserId}`, JSON.stringify(existingFriends));
-        }
-      }
-    }
-    
+function ReviewPopup({ partner, initialRating = 0, onClose, onSubmit }) {
+  const [rating, setRating] = useState(initialRating);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  useEffect(() => {
+    setRating(initialRating || 0);
+  }, [initialRating]);
+
+
+  const submitRatingOnly = () => {
+    if (rating <= 0) return;
+    onSubmit({ rating, action: 'rate' });
+    onClose();
+  };
+
+  const submitWithAction = (action) => {
     onSubmit({ rating, action });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="w-full max-w-sm bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl animate-in zoom-in duration-300">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl bg-white text-black shadow-xl px-6 py-7">
+
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <span className="text-xl font-bold text-white">
-              {partner?.username?.[0]?.toUpperCase() || '?'}
-            </span>
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-zinc-200 flex items-center justify-center text-lg font-semibold text-zinc-700">
+            {partner?.username?.[0]?.toUpperCase() || '?'}
           </div>
-          <h3 className="text-lg font-bold text-white mb-1">Rate your chat</h3>
-          <p className="text-zinc-400 text-sm">How was your conversation with {partner?.username || 'this person'}?</p>
+          <h3 className="text-lg font-semibold">Rate your chat</h3>
+          <p className="text-sm text-zinc-500 mt-1">
+            How was your conversation with {partner?.username || 'this person'}?
+          </p>
         </div>
 
-        {/* Star Rating */}
-        <div className="flex justify-center gap-1 mb-6">
+        {/* Stars */}
+        <div className="flex justify-center gap-2 mb-6">
           {[1, 2, 3, 4, 5].map((star) => (
             <StarIcon
               key={star}
@@ -110,28 +97,47 @@ function ReviewPopup({ partner, currentUserId, onClose, onSubmit }) {
           ))}
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-3 mb-4">
+        {initialRating > 0 && (
+          <p className="text-xs text-zinc-400 text-center mt-2">
+            You previously rated this {initialRating}★
+          </p>
+        )}
+
+        {/* Submit rating */}
+        <button
+          disabled={rating === 0}
+          onClick={submitRatingOnly}
+          className={`w-full py-3 rounded-xl text-sm font-semibold transition ${
+            rating === 0
+              ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+              : 'bg-black text-white hover:bg-zinc-800'
+          }`}
+        >
+          Submit Rating
+        </button>
+
+        {/* Actions */}
+        <div className="mt-5 space-y-3">
           <button
-            onClick={() => handleSubmit('friend')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+            onClick={() => submitWithAction('friend')}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-sm font-medium"
           >
             <UserPlusIcon />
             Add Friend
           </button>
-          
+
           <div className="flex gap-3">
             <button
-              onClick={() => handleSubmit('block')}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-zinc-800 text-zinc-300 font-medium text-sm hover:bg-red-900/30 hover:text-red-400 transition-colors"
+              onClick={() => submitWithAction('block')}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-100 hover:bg-red-100 text-sm"
             >
               <BlockIcon />
               Block
             </button>
-            
+
             <button
-              onClick={() => handleSubmit('report')}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-zinc-800 text-zinc-300 font-medium text-sm hover:bg-orange-900/30 hover:text-orange-400 transition-colors"
+              onClick={() => submitWithAction('report')}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-100 hover:bg-orange-100 text-sm"
             >
               <FlagIcon />
               Report
@@ -139,12 +145,12 @@ function ReviewPopup({ partner, currentUserId, onClose, onSubmit }) {
           </div>
         </div>
 
-        {/* Skip Button */}
+        {/* Skip */}
         <button
-          onClick={() => handleSubmit('skip')}
-          className="w-full py-3 rounded-2xl bg-transparent text-zinc-500 font-medium text-sm hover:text-zinc-300 transition-colors"
+          onClick={() => submitWithAction('skip')}
+          className="mt-4 w-full text-sm text-zinc-400 hover:text-zinc-600"
         >
-          Skip Review
+          Skip
         </button>
       </div>
     </div>

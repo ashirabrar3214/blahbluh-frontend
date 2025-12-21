@@ -39,8 +39,6 @@ export const api = {
     return await response.json();
   },
 
-
-
   async joinQueue(userId) {
     console.log('API: Joining queue with userId:', userId);
     const response = await fetch(`${API_BASE_URL}/api/join-queue`, {
@@ -127,6 +125,27 @@ export const api = {
       body: JSON.stringify({ userId, blockedUserId })
     });
     return await response.json();
+  },
+  
+  async submitReview(reviewerId, reviewedUserId, rating) {
+    const res = await fetch(`${API_BASE_URL}/api/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewerId, reviewedUserId, rating })
+    });
+    return res.json();
+  },
+
+  async getReview(reviewerId, reviewedUserId) {
+    const res = await fetch(
+      `${API_BASE_URL}/api/review/${reviewerId}/${reviewedUserId}`
+    );
+    return res.json();
+  },
+
+  async getUserRating(userId) {
+    const res = await fetch(`${API_BASE_URL}/api/user-rating/${userId}`);
+    return res.json();
   },
 
   async getFriendChats(userId) {
