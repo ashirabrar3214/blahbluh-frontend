@@ -1,22 +1,16 @@
-import React, { useState, useEffect } from 'react';
-
-/* ---------- Icons ---------- */
+import React, { useEffect, useState } from 'react';
 
 const StarIcon = ({ filled, onClick, onMouseEnter, onMouseLeave }) => (
   <svg
-    width="26"
-    height="26"
+    width="24"
+    height="24"
     viewBox="0 0 24 24"
-    fill={filled ? 'currentColor' : 'none'}
-    stroke="currentColor"
-    strokeWidth="1.8"
+    fill={filled ? '#fbbf24' : 'none'}
+    stroke="#fbbf24"
+    strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={`cursor-pointer transition-all duration-200 ${
-      filled
-        ? 'text-yellow-400'
-        : 'text-zinc-400 hover:text-yellow-400'
-    }`}
+    style={{ cursor: 'pointer' }}
     onClick={onClick}
     onMouseEnter={onMouseEnter}
     onMouseLeave={onMouseLeave}
@@ -25,136 +19,107 @@ const StarIcon = ({ filled, onClick, onMouseEnter, onMouseLeave }) => (
   </svg>
 );
 
-const UserPlusIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="8.5" cy="7" r="4" />
-    <line x1="20" y1="8" x2="20" y2="14" />
-    <line x1="23" y1="11" x2="17" y2="11" />
-  </svg>
-);
-
-const BlockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-  </svg>
-);
-
-const FlagIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-    <line x1="4" y1="22" x2="4" y2="15" />
-  </svg>
-);
-
-/* ---------- Component ---------- */
-
-function ReviewPopup({ partner, initialRating = 0, onClose, onSubmit }) {
+export default function ReviewPopup({
+  partner,
+  initialRating = 0,
+  onSubmit,      // must be async-safe
+  onClose        // just closes UI
+}) {
   const [rating, setRating] = useState(initialRating);
-  const [hoveredRating, setHoveredRating] = useState(0);
+  const [hovered, setHovered] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     setRating(initialRating || 0);
   }, [initialRating]);
 
-
-  const submitRatingOnly = () => {
-    if (rating <= 0) return;
-    onSubmit({ rating, action: 'rate' });
-    onClose();
-  };
-
-  const submitWithAction = (action) => {
-    onSubmit({ rating, action });
-    onClose();
+  const run = async (payload) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      // IMPORTANT: wait for parent to finish (save review, etc)
+      await Promise.resolve(onSubmit?.(payload));
+      onClose?.();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-3xl bg-white text-black shadow-xl px-6 py-7">
-
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-zinc-200 flex items-center justify-center text-lg font-semibold text-zinc-700">
-            {partner?.username?.[0]?.toUpperCase() || '?'}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="w-[92%] max-w-md rounded-2xl bg-zinc-900 border border-white/10 p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-white">Rate {partner?.username || 'Stranger'}</h2>
+            <p className="text-xs text-zinc-400 mt-1">
+              Rate your chat partner to help us improve the community.
+            </p>
           </div>
-          <h3 className="text-lg font-semibold">Rate your chat</h3>
-          <p className="text-sm text-zinc-500 mt-1">
-            How was your conversation with {partner?.username || 'this person'}?
-          </p>
+
+          <button
+            onClick={() => onClose?.()}
+            className="text-zinc-400 hover:text-white"
+            disabled={submitting}
+            title="Close"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Stars */}
-        <div className="flex justify-center gap-2 mb-6">
+        <div className="mt-5 flex items-center justify-center gap-2">
           {[1, 2, 3, 4, 5].map((star) => (
             <StarIcon
               key={star}
-              filled={star <= (hoveredRating || rating)}
+              filled={hovered ? star <= hovered : star <= rating}
               onClick={() => setRating(star)}
-              onMouseEnter={() => setHoveredRating(star)}
-              onMouseLeave={() => setHoveredRating(0)}
+              onMouseEnter={() => setHovered(star)}
+              onMouseLeave={() => setHovered(0)}
             />
           ))}
         </div>
 
-        {initialRating > 0 && (
-          <p className="text-xs text-zinc-400 text-center mt-2">
-            You previously rated this {initialRating}★
-          </p>
-        )}
-
-        {/* Submit rating */}
-        <button
-          disabled={rating === 0}
-          onClick={submitRatingOnly}
-          className={`w-full py-3 rounded-xl text-sm font-semibold transition ${
-            rating === 0
-              ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-              : 'bg-black text-white hover:bg-zinc-800'
-          }`}
-        >
-          Submit Rating
-        </button>
-
-        {/* Actions */}
-        <div className="mt-5 space-y-3">
+        <div className="mt-5 flex flex-col gap-2">
           <button
-            onClick={() => submitWithAction('friend')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-sm font-medium"
+            disabled={submitting || rating <= 0}
+            onClick={() => run({ rating, action: 'rate' })}
+            className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-300 px-4 py-2 text-sm font-semibold"
           >
-            <UserPlusIcon />
-            Add Friend
+            {submitting ? 'Submitting…' : 'Submit Rating'}
           </button>
 
-          <div className="flex gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={() => submitWithAction('block')}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-100 hover:bg-red-100 text-sm"
+              disabled={submitting}
+              onClick={() => run({ rating, action: 'friend' })}
+              className="rounded-xl bg-zinc-800 hover:bg-zinc-700 px-3 py-2 text-xs font-semibold"
             >
-              <BlockIcon />
+              Add Friend
+            </button>
+            <button
+              disabled={submitting}
+              onClick={() => run({ rating, action: 'block' })}
+              className="rounded-xl bg-zinc-800 hover:bg-zinc-700 px-3 py-2 text-xs font-semibold"
+            >
               Block
             </button>
-
             <button
-              onClick={() => submitWithAction('report')}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-100 hover:bg-orange-100 text-sm"
+              disabled={submitting}
+              onClick={() => run({ rating, action: 'report' })}
+              className="rounded-xl bg-zinc-800 hover:bg-zinc-700 px-3 py-2 text-xs font-semibold"
             >
-              <FlagIcon />
               Report
             </button>
           </div>
-        </div>
 
-        {/* Skip */}
-        <button
-          onClick={() => submitWithAction('skip')}
-          className="mt-4 w-full text-sm text-zinc-400 hover:text-zinc-600"
-        >
-          Skip
-        </button>
+          <button
+            disabled={submitting}
+            onClick={() => run({ rating: 0, action: 'skip' })}
+            className="w-full rounded-xl bg-zinc-800 hover:bg-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200"
+          >
+            Skip (no rating)
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-
-export default ReviewPopup;

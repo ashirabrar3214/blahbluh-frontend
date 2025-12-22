@@ -74,9 +74,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   // --- REFS ---
   const currentUserIdRef = useRef(null);
-  const inQueueRef = useRef(false); 
+  const inQueueRef = useRef(false);
   const queueWatchdogRef = useRef(null);
   
+  const skipFlowRef = useRef(false);       // true while YOU initiated skip/review
+  const leavingChatIdRef = useRef(null);   // chatId we intend to leave
+  const leaveOnceRef = useRef(false);      // prevents double skip-partner emits
+
   const longPressTimer = useRef(null);
   const hoverTimer = useRef(null);
   const messagesEndRef = useRef(null);
@@ -84,6 +88,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const messagesContainerRef = useRef(null);
   const swipeStartX = useRef(null);
   const swipeStartY = useRef(null);
+  const hardExitRef = useRef(false);
+
   
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -282,62 +288,62 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     };
 
     const handlePartnerDisconnected = (payload = {}) => {
-      const { chatId: disconnectedChatId } = payload;
+      const {
+        chatId: disconnectedChatId,
+        reason = 'unknown',
+        shouldRequeue = true,
+        byUserId
+      } = payload;
 
-      if (!chatId || (disconnectedChatId && chatId !== disconnectedChatId)) return;
+      // Only act if we are currently in THIS chat
+      if (!chatId) return;
+      if (disconnectedChatId && chatId !== disconnectedChatId) return;
 
-      // 1. Show system message immediately
-      setMessages(prev => [
-        ...prev,
-        {
-          id: 'sys-' + Date.now(),
-          userId: 'system',
-          message: 'Partner disconnected',
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      // If this disconnect is from our own skip flow, ignore it (defensive)
+      if (skipFlowRef.current && leavingChatIdRef.current === chatId) {
+        return;
+      }
 
-      setTimeout(async () => {
-        const partner = chatPartner;
-        const normalizedPartner = partner
-          ? { ...partner, userId: partner.userId || partner.id }
-          : null;
+      // Friend chats shouldn't throw you into random queue
+      if (chatId.startsWith('friend_')) {
+        setActionToast('Friend disconnected');
+        return;
+      }
 
+      // Clear chat UI
+      setNotification('partner-disconnected');
+      setChatId(null);
+      setChatPartner(null);
+      setMessages([]);
+      setReplyingTo(null);
+      setShowActions(null);
 
-        setChatId(null);
-        setChatPartner(null);
-        setMessages([]);
+      if (hardExitRef.current) return;
+
+      // ✅ Only auto-queue if server says we should
+      if (shouldRequeue) {
+        setInQueue(true);
+        setQueuePosition(0);
+        joinQueue();
+      } else {
         setInQueue(false);
         setQueuePosition(0);
-
-        if (partner) {
-          setReviewReady(false);
-          setPartnerToReview(normalizedPartner);
+      }
+    };
 
 
-          let rating = 0;
-          try {
-            const partnerId = partner.userId || partner.id;
-            const res = await api.getReview(currentUserId, partnerId);
-            rating = res?.rating ?? 0;
-
-          } catch {
-            rating = 0;
-          }
-
-          setExistingRating(rating);
-          setReviewReady(true);
-          setShowReviewPopup(true);
-        }
-
-      }, 2000);
-    }
 
     const handleQueueHeartbeatResponse = (data) => {
           if (!data.inQueue && inQueueRef.current) {
             console.log('Server says not in queue, re-joining...');
             joinQueue();
           }
+    };
+
+    // NEW: handle queue-joined so queue position updates
+    const handleQueueJoined = (data = {}) => {
+      setInQueue(true);
+      setQueuePosition(data.queuePosition ?? 0);
     };
 
     const handleFriendRequestReceived = () => loadFriendRequests();
@@ -348,6 +354,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     socket.on('partner-disconnected', handlePartnerDisconnected);
     socket.on('friend-request-received', handleFriendRequestReceived);
     socket.on('queue-heartbeat-response', handleQueueHeartbeatResponse);
+    socket.on('queue-joined', handleQueueJoined);
     
     // Listen for friend messages even when not in chat
     socket.on('friend-message-received', (messageData) => {
@@ -367,13 +374,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('partner-disconnected', handlePartnerDisconnected);
       socket.off('friend-request-received', handleFriendRequestReceived);
       socket.off('queue-heartbeat-response', handleQueueHeartbeatResponse);
+      socket.off('queue-joined', handleQueueJoined);
       socket.off('friend-message-received');
     };
   }, [socket, currentUserId, chatPartner, loadFriendRequests, inQueue, joinQueue, chatId]);
   // Notify server when user leaves chat via navigation (Home button)
   useEffect(() => {
       return () => {
-        // ChatPage unmounting (user navigated away)
+        if (hardExitRef.current) return;
         if (chatId && socket?.connected && currentUserId) {
           socket.emit('leave-chat', {
             chatId,
@@ -456,6 +464,46 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     } catch (error) {
       console.error('Error leaving queue:', error);
     }
+  };
+  
+  const handleExitToHome = () => {
+    // mark so unmount cleanup doesn't double-emit
+    hardExitRef.current = true;
+
+    // 1) End the active chat on the server.
+    // IMPORTANT: requeuePartner=false so the server doesn't shove the other person
+    // (or you, via race conditions) back into the queue.
+    try {
+      if (chatId && socket?.connected && currentUserId) {
+        socket.emit('leave-chat', {
+          chatId,
+          userId: currentUserId,
+          reason: 'exit',
+          requeuePartner: false
+        });
+      }
+    } catch (e) {
+      console.error('Exit: leave-chat emit failed', e);
+    }
+
+    // 2) Ensure YOU are not in queue anymore (fire-and-forget).
+    // This avoids a timing window where you can get paired again while we await.
+    if (currentUserId) {
+      api.leaveQueue(currentUserId).catch((e) => {
+        console.error('Exit: leaveQueue API failed', e);
+      });
+    }
+        // local UI cleanup so we don't show fake queue state
+    setInQueue(false);
+    setQueuePosition(0);
+    setNotification(null);
+    setChatId(null);
+    setChatPartner(null);
+    setMessages([]);
+    setReplyingTo(null);
+    setShowActions(null);
+    // 3) Navigate home immediately
+    onGoHome?.();
   };
 
   const handleSendMessage = async () => {
@@ -564,20 +612,62 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     swipeStartY.current = null;
   };
 
+  const finishLeavingChat = (chatIdOverride) => {
+    const cid = chatIdOverride || chatId;
+    if (!cid || !socket || !currentUserId) return;
+
+    // Prevent double skip emits for the same chatId
+    if (leaveOnceRef.current && leavingChatIdRef.current === cid) return;
+    leaveOnceRef.current = true;
+    leavingChatIdRef.current = cid;
+
+    socket.emit('skip-partner', {
+      chatId: cid,
+      userId: currentUserId,
+      reason: hardExitRef.current ? 'exit' : 'skip'
+    });
+
+    setChatId(null);
+    setChatPartner(null);
+    setMessages([]);
+    setReplyingTo(null);
+    setShowActions(null);
+    setPartnerToReview(null);
+
+    setInQueue(true);
+    setQueuePosition(0);
+
+    // Update UI with real position
+    joinQueue();
+
+    // Reset guard shortly after
+    setTimeout(() => {
+      leaveOnceRef.current = false;
+      leavingChatIdRef.current = null;
+      skipFlowRef.current = false;
+    }, 500);
+  };
+
+
   const confirmLeaveChat = async () => {
     setShowWarning(false);
 
     const partner = chatPartner;
-    if (!partner) {
-      finishLeavingChat();
+    if (!partner || !chatId) {
+      finishLeavingChat(chatId);
       return;
     }
+
+    // mark that THIS disconnect is expected (we initiated it)
+    skipFlowRef.current = true;
+    leavingChatIdRef.current = chatId;
+    leaveOnceRef.current = false;
 
     const partnerId = partner.userId || partner.id;
 
     setPartnerToReview({ ...partner, userId: partnerId });
-    setExistingRating(0);       // default
-    setShowReviewPopup(true);   // show immediately
+    setExistingRating(0);
+    setShowReviewPopup(true);
 
     try {
       const res = await api.getReview(currentUserId, partnerId);
@@ -587,106 +677,77 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   };
 
-  const finishLeavingChat = () => {
-    if (chatId && socket && currentUserId) {
-      // Use atomic skip-partner event for better UX
-      socket.emit('skip-partner', { chatId, userId: currentUserId });
-      setChatId(null);
-      setChatPartner(null);
-      setMessages([]);
-      setReplyingTo(null);
-      setShowActions(null);
+  const handleReviewSubmit = async (reviewData) => {
+    const cid = chatId; // capture NOW
+    const rating = Number(reviewData?.rating || 0);
+    const partnerId = partnerToReview?.userId || partnerToReview?.id;
+
+    try {
+      // 1️⃣ Save rating first
+      if (rating > 0 && partnerId && currentUserId) {
+        await api.submitReview(currentUserId, partnerId, rating);
+      }
+    } catch (e) {
+      console.error('Review submit failed:', e);
+    } finally {
+      // 2️⃣ Close popup UI
+      setShowReviewPopup(false);
       setPartnerToReview(null);
-      setInQueue(true);
-      setQueuePosition(0);
+      setExistingRating(null);
+      setReviewReady(false);
+
+      // 3️⃣ NOW actually skip the user (THIS WAS MISSING)
+      finishLeavingChat(cid);
+    }
+  };
+
+
+  
+
+  // ===============================
+  // ACTION HANDLERS (REQUIRED)
+  // ===============================
+
+  const handleNextUser = () => {
+    setShowActions(null);
+    setShowWarning(true);
+  };
+
+  const handleAddFriend = async () => {
+    if (!chatPartner || !currentUserId) return;
+
+    const partnerId = chatPartner.userId || chatPartner.id;
+    if (!partnerId) return;
+
+    try {
+      await api.sendFriendRequest(currentUserId, partnerId);
+    } catch (err) {
+      console.error('handleAddFriend failed:', err);
     }
   };
 
   const handleBlockUser = async () => {
     if (!chatPartner || !currentUserId) return;
-    try {
-      await api.blockUser(currentUserId, chatPartner.userId);
-      setActionToast('User blocked');
-    } catch (error) {
-      console.error('Error blocking user:', error);
-      setActionToast('Failed to block user');
-    }
-  };
 
-  const handleAddFriend = async () => {
-    console.log('Starting friend request process...');
-    
-    if (!chatPartner || !currentUserId) {
-      console.error('Missing chatPartner or currentUserId');
-      console.log('chatPartner:', chatPartner);
-      console.log('currentUserId:', currentUserId);
-      return;
-    }
-    
-    console.log('Full chatPartner object:', JSON.stringify(chatPartner, null, 2));
-    console.log('Current user ID:', currentUserId);
-    
-    // The chatPartner should have the partner's id or userId, not our own
-    const partnerId = chatPartner.id || chatPartner.userId;
-    console.log('Extracted partner ID:', partnerId);
-    
-    // Make sure we're not sending a friend request to ourselves
-    if (partnerId === currentUserId) {
-      console.error('Cannot send friend request to yourself!');
-      console.log('Partner ID matches current user ID - this is wrong!');
-      setActionToast('Cannot add yourself as friend');
-      return;
-    }
-    
-    if (!partnerId) {
-      console.error('Partner ID not found in chatPartner object');
-      setActionToast('Unable to send friend request');
-      return;
-    }
-    
-    console.log('Validation passed, sending friend request...');
-    console.log('From:', currentUserId);
-    console.log('To:', partnerId);
-    
+    const partnerId = chatPartner.userId || chatPartner.id;
+    if (!partnerId) return;
+
     try {
-      const result = await api.sendFriendRequest(currentUserId, partnerId);
-      console.log('Friend request API response:', result);
-      setActionToast('Friend request sent');
-    } catch (error) {
-      console.error('Error sending friend request:', error);
-      setActionToast('Friend requests temporarily unavailable');
+      await api.blockUser(currentUserId, partnerId);
+      confirmLeaveChat(); // block implies leave
+    } catch (err) {
+      console.error('handleBlockUser failed:', err);
     }
   };
 
   const handleAcceptFriend = async (requestId) => {
-    console.log('Accepting friend request:', requestId);
-    console.log('Current user accepting:', currentUserId);
+    if (!requestId || !currentUserId) return;
+
     try {
-      const result = await api.acceptFriendRequest(requestId, currentUserId);
-      console.log('Accept friend API response:', result);
-      setActionToast('Friend request accepted');
-      loadFriendRequests();
-    } catch (error) {
-      console.error('Error accepting friend request:', error);
+      await api.acceptFriendRequest(requestId, currentUserId);
+    } catch (err) {
+      console.error('handleAcceptFriend failed:', err);
     }
-  };
-
-  const handleNextUser = () => {
-    setShowWarning(true);
-  };
-
-  const handleReviewSubmit = async (reviewData) => {
-    if (reviewData.rating > 0 && partnerToReview?.userId) {
-      await api.submitReview(
-        currentUserId,
-        partnerToReview.userId,
-        reviewData.rating
-      );
-    }
-
-    setShowReviewPopup(false);
-    setPartnerToReview(null);
-    finishLeavingChat();
   };
 
   // --- RENDER: CHAT UI ---
@@ -716,7 +777,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             {chatId?.startsWith('friend_') ? (
               // Friend chat header - simple: block and home only
               <>
-                <button onClick={onGoHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
+                <button onClick={() => {hardExitRef.current = true;handleExitToHome();}}className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
                   <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
                     B
                   </div>
@@ -729,7 +790,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             ) : (
               // Random chat header - full: logo, inbox, add friend, next
               <>
-                <button onClick={onGoHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 mr-2">
+                <button onClick={handleExitToHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 mr-2">
                   <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
                     B
                   </div>
@@ -927,14 +988,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             key={`${partnerToReview.userId || partnerToReview.id}-${existingRating ?? 0}`}
             partner={partnerToReview}
             initialRating={existingRating ?? 0}
-            onClose={() => {
-              setShowReviewPopup(false);
-              setPartnerToReview(null);
-              setExistingRating(null);
-              setReviewReady(false);
-              finishLeavingChat();
-            }}
             onSubmit={handleReviewSubmit}
+            onClose={() => {
+            // ONLY close the popup, do NOT skip
+            setShowReviewPopup(false);
+            setPartnerToReview(null);
+            setExistingRating(null);
+            setReviewReady(false);
+          }}
           />
         )}
 

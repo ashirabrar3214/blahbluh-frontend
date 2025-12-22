@@ -19,6 +19,8 @@ function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const globalSocketRef = useRef(null);
   const currentPageRef = useRef(currentPage);
+  const chatExitRef = useRef(false);
+
 
   useEffect(() => {
     currentPageRef.current = currentPage;
@@ -72,6 +74,14 @@ function App() {
     // Listen for chat pairing
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired globally:', data);
+
+      if (chatExitRef.current) {
+        console.log('Ignoring chat-paired due to explicit exit');
+        return;
+      }
+
+      chatExitRef.current = false;
+
       setChatData(data);
       setSelectedFriend(null);
       setCurrentPage('chat');
@@ -128,13 +138,16 @@ function App() {
     console.log('APP new-message', messageData);
 
   });
-    // Listen for partner disconnection
+  
     globalSocketRef.current.on('partner-disconnected', () => {
       console.log('Partner disconnected globally');
-      // Set a notification for the HomePage banner
-      setPageNotification('partner-disconnected');
-      setCurrentPage('home');
+      // Only use this as a banner trigger when user is already on Home.
+      if (currentPageRef.current === 'home') {
+        setPageNotification('partner-disconnected');
+      }
+      // DO NOT force navigation; ChatPage handles the flow.
     });
+
 
     return () => globalSocketRef.current?.disconnect();
   }, [currentUser]);
@@ -176,7 +189,12 @@ function App() {
         unreadCount={unreadCount}
         notification={pageNotification}
         onNotificationChange={setPageNotification}
-        onChatStart={() => setCurrentPage('chat')}
+
+        onChatStart={() => {
+          chatExitRef.current = false;
+          setCurrentPage('chat');
+        }}
+
         onProfileOpen={() => {}}
         onInboxOpen={() => {
           setUnreadCount(0);
@@ -217,6 +235,7 @@ function App() {
       setGlobalFriendRequests={setGlobalFriendRequests}
       unreadCount={unreadCount}
       onGoHome={() => {
+        chatExitRef.current = true;
         setSelectedFriend(null);
         setChatData(null);
         setPageNotification(null);
