@@ -46,9 +46,15 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [chatPartner, setChatPartner] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [currentUsername, setCurrentUsername] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(propUserId ?? null);
+  const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
+  const [currentUser, setCurrentUser] = useState(user ?? null);
+
+  useEffect(() => {
+    setCurrentUserId(propUserId ?? null);
+    setCurrentUsername(propUsername ?? null);
+    setCurrentUser(user ?? null);
+  }, [propUserId, propUsername, user]);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -68,7 +74,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [actionToast, setActionToast] = useState(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
-  const [reviewReady, setReviewReady] = useState(false);
   const [existingRating, setExistingRating] = useState(null);
   const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
 
@@ -80,6 +85,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const skipFlowRef = useRef(false);       // true while YOU initiated skip/review
   const leavingChatIdRef = useRef(null);   // chatId we intend to leave
   const leaveOnceRef = useRef(false);      // prevents double skip-partner emits
+
+  const joinedChatIdRef = useRef(null);    // Prevents join-chat spam
+  const partnerDisconnectedRef = useRef(false); // Prevents leave-chat emit on disconnect
 
   const longPressTimer = useRef(null);
   const hoverTimer = useRef(null);
@@ -120,6 +128,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   const joinQueue = useCallback(async () => {
     try {
+      // ✅ Never rejoin queue if user explicitly exited to Home
+      if (hardExitRef.current) {
+        console.log('joinQueue blocked: hardExitRef is true');
+        return;
+      }
       if (!socket?.connected) {
         console.log('🔌 Socket disconnected, cannot join queue');
         setActionToast("Connection lost");
@@ -187,25 +200,42 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   useEffect(() => {
     inQueueRef.current = inQueue;
-    
+
+    // ✅ If we hard-exited, kill everything queue-related immediately
+    if (hardExitRef.current) {
+      if (queueWatchdogRef.current) {
+        clearInterval(queueWatchdogRef.current.heartbeat);
+        clearTimeout(queueWatchdogRef.current.watchdog);
+        queueWatchdogRef.current = null;
+      }
+      return;
+    }
+
     // --- QUEUE HEARTBEAT ---
     if (inQueue && socket?.connected) {
       const heartbeat = setInterval(() => {
+        // ✅ don’t emit heartbeats after hard exit
+        if (hardExitRef.current) return;
         socket.emit('queue-heartbeat', { userId: currentUserId });
       }, 3000);
-      
+
+      // ✅ Only watchdog if truly stuck at #0
       const watchdog = setTimeout(() => {
-        console.log("Watchdog: Stuck at #0 for 10s. Re-joining queue...");
-        if (socket?.connected) {
-          joinQueue();
+        if (hardExitRef.current) return;
+        if (!inQueueRef.current) return;
+
+        if ((queuePosition ?? 0) === 0) {
+          console.log("Watchdog: Stuck at #0 for 10s. Re-joining queue...");
+          if (socket?.connected) joinQueue();
         }
       }, 10000);
-      
+
       queueWatchdogRef.current = { heartbeat, watchdog };
     } else {
       if (queueWatchdogRef.current) {
         clearInterval(queueWatchdogRef.current.heartbeat);
         clearTimeout(queueWatchdogRef.current.watchdog);
+        queueWatchdogRef.current = null;
       }
     }
 
@@ -213,6 +243,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       if (queueWatchdogRef.current) {
         clearInterval(queueWatchdogRef.current.heartbeat);
         clearTimeout(queueWatchdogRef.current.watchdog);
+        queueWatchdogRef.current = null;
       }
     };
   }, [inQueue, queuePosition, joinQueue, socket, currentUserId]);
@@ -289,10 +320,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
     const handlePartnerDisconnected = (payload = {}) => {
       const {
-        chatId: disconnectedChatId,
-        reason = 'unknown',
-        shouldRequeue = true,
-        byUserId
+        chatId: disconnectedChatId, 
+        // eslint-disable-next-line no-unused-vars
+        shouldRequeue = true
       } = payload;
 
       // Only act if we are currently in THIS chat
@@ -310,30 +340,17 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         return;
       }
 
-      // Clear chat UI
-      setNotification('partner-disconnected');
-      setChatId(null);
-      setChatPartner(null);
-      setMessages([]);
-      setReplyingTo(null);
-      setShowActions(null);
-
-      if (hardExitRef.current) return;
-
-      // ✅ Only auto-queue if server says we should
-      if (shouldRequeue) {
-        setInQueue(true);
-        setQueuePosition(0);
-        joinQueue();
-      } else {
-        setInQueue(false);
-        setQueuePosition(0);
-      }
+      // Random chat: DON'T flip ChatPage into queue UI.
+      // App.js will force navigation to the real HomePage.
+      partnerDisconnectedRef.current = true;
+      setActionToast('Partner disconnected');
+      return;
     };
 
 
 
     const handleQueueHeartbeatResponse = (data) => {
+          if (hardExitRef.current) return;
           if (!data.inQueue && inQueueRef.current) {
             console.log('Server says not in queue, re-joining...');
             joinQueue();
@@ -380,8 +397,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   }, [socket, currentUserId, chatPartner, loadFriendRequests, inQueue, joinQueue, chatId]);
   // Notify server when user leaves chat via navigation (Home button)
   useEffect(() => {
+      // Reset flag when entering a new chat
+      if (chatId) {
+        partnerDisconnectedRef.current = false;
+      }
       return () => {
         if (hardExitRef.current) return;
+        if (partnerDisconnectedRef.current) return; // ✅ Don't emit if partner already disconnected
         if (chatId && socket?.connected && currentUserId) {
           socket.emit('leave-chat', {
             chatId,
@@ -397,6 +419,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     
     if (initialChatData) {
       // Random chat from queue
+      if (!currentUserId) return; // <-- hard guard, prevents wrong partner selection
+
       const myId = currentUserId;
       const partner = initialChatData.users.find(u => (u.id || u.userId) !== myId);
       if (partner) {
@@ -407,7 +431,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setQueuePosition(0);
         setMessages([]);
         //setNotification(null);
-        socket?.emit('join-chat', { chatId: initialChatData.chatId });
+        // ✅ Prevent join-chat spam
+        if (initialChatData.chatId !== joinedChatIdRef.current) {
+          joinedChatIdRef.current = initialChatData.chatId;
+          socket?.emit('join-chat', { chatId: initialChatData.chatId });
+        }
       }
     } else if (targetFriend && currentUserId && currentUsername) {
       // Friend chat from inbox - only proceed if we have user info
@@ -417,7 +445,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setInQueue(false);
       setQueuePosition(0);
       //setNotification(null);
-      socket?.emit('join-chat', { chatId: targetFriend.chatId });
+      // ✅ Prevent join-chat spam
+      if (targetFriend.chatId !== joinedChatIdRef.current) {
+        joinedChatIdRef.current = targetFriend.chatId;
+        socket?.emit('join-chat', { chatId: targetFriend.chatId });
+      }
       
       // Load message history for friend chats
       const loadMessages = async () => {
@@ -466,43 +498,37 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   };
   
-  const handleExitToHome = () => {
-    // mark so unmount cleanup doesn't double-emit
+  const handleExitToHome = async (requeuePartner = false) => {
+    // Mark this as a controlled, hard exit. This prevents the unmount
+    // effect from firing a duplicate `leave-chat` event.
     hardExitRef.current = true;
+    joinedChatIdRef.current = null;
+    inQueueRef.current = false;
 
-    // 1) End the active chat on the server.
-    // IMPORTANT: requeuePartner=false so the server doesn't shove the other person
-    // (or you, via race conditions) back into the queue.
-    try {
-      if (chatId && socket?.connected && currentUserId) {
-        socket.emit('leave-chat', {
-          chatId,
-          userId: currentUserId,
-          reason: 'exit',
-          requeuePartner: false
-        });
+    // Immediately stop any queue-related background activity (heartbeats, etc.).
+    if (queueWatchdogRef.current) {
+      clearInterval(queueWatchdogRef.current.heartbeat);
+      clearTimeout(queueWatchdogRef.current.watchdog);
+      queueWatchdogRef.current = null;
+    }
+
+    // Tell the server to end the active chat.
+    if (socket?.id) {
+      try {
+        await api.exitChat(socket.id, currentUserId, chatId, requeuePartner);
+      } catch (error) {
+        console.error("Error exiting chat:", error);
       }
-    } catch (e) {
-      console.error('Exit: leave-chat emit failed', e);
     }
 
-    // 2) Ensure YOU are not in queue anymore (fire-and-forget).
-    // This avoids a timing window where you can get paired again while we await.
-    if (currentUserId) {
-      api.leaveQueue(currentUserId).catch((e) => {
-        console.error('Exit: leaveQueue API failed', e);
-      });
-    }
-        // local UI cleanup so we don't show fake queue state
-    setInQueue(false);
-    setQueuePosition(0);
-    setNotification(null);
-    setChatId(null);
-    setChatPartner(null);
-    setMessages([]);
-    setReplyingTo(null);
-    setShowActions(null);
-    // 3) Navigate home immediately
+    // Also tell the server to remove us from the queue, just in case.
+    // Removed to prevent "User not found in queue" logs on backend
+    // if (currentUserId) {
+    //   api.leaveQueue(currentUserId).catch(console.error);
+    // }
+
+    // Navigate home. The parent component will unmount this ChatPage,
+    // destroying its state. This is cleaner than manual state cleanup.
     onGoHome?.();
   };
 
@@ -627,6 +653,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       reason: hardExitRef.current ? 'exit' : 'skip'
     });
 
+    joinedChatIdRef.current = null;
     setChatId(null);
     setChatPartner(null);
     setMessages([]);
@@ -694,7 +721,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setShowReviewPopup(false);
       setPartnerToReview(null);
       setExistingRating(null);
-      setReviewReady(false);
 
       // 3️⃣ NOW actually skip the user (THIS WAS MISSING)
       finishLeavingChat(cid);
@@ -755,53 +781,41 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     return (
       <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
         {/* Header - Different for friend vs random chat */}
-        <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between shadow-sm transition-all">
-          <div className="flex items-center gap-3">
+        <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
+          {/* Left: Exit Button */}
+          <div className="justify-self-start">
+            <button onClick={() => handleExitToHome(!chatId?.startsWith('friend_'))} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
+                B
+              </div>
+              <span className="text-xs font-medium">Exit Chat</span>
+            </button>
+          </div>
+
+          {/* Center: Profile Info */}
+          <div className="justify-self-center flex flex-col items-center">
              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner">
                 <span className="text-sm font-bold text-white tracking-wide">
                   {chatPartner?.username?.[0]?.toUpperCase() || '?'}
                 </span>
              </div>
-             <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-100 leading-tight">
-                  {chatPartner?.username || 'Stranger'}
-                </span>
-                <span className="text-[10px] font-medium text-green-500 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  Online
-                </span>
-             </div>
+             <span className="text-sm font-semibold text-gray-100 leading-tight mt-1">
+                {chatPartner?.username || 'Stranger'}
+             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right: Action Buttons */}
+          <div className="justify-self-end flex items-center gap-2">
             {chatId?.startsWith('friend_') ? (
-              // Friend chat header - simple: block and home only
+              // Friend chat header - simple: block only
               <>
-                <button onClick={() => {hardExitRef.current = true;handleExitToHome();}}className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
-                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
-                    B
-                  </div>
-                  <span className="text-xs font-medium">blahbluh</span>
-                </button>
                 <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
               </>
             ) : (
-              // Random chat header - full: logo, inbox, add friend, next
+              // Random chat header - full: add friend, next
               <>
-                <button onClick={handleExitToHome} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 mr-2">
-                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
-                    B
-                  </div>
-                  <span className="text-xs font-medium">blahbluh</span>
-                </button>
-                <button onClick={onInboxOpen} className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 relative">
-                  Inbox
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-sm"></span>
-                  )}
-                </button>
                 {isAlreadyFriend ? (
                   <div className="w-9 h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
                     <CheckIcon />
@@ -824,19 +838,22 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         </header>
 
         {/* Content */}
-        <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto overflow-hidden">
-          {/* Mobile Hint */}
-          <div className="md:hidden absolute top-20 left-0 right-0 z-10 flex justify-center pointer-events-none opacity-60">
-             <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
+        <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto overflow-hidden pt-12">
+          {/* Hints */}
+          <div className="absolute top-20 left-0 right-0 z-10 flex justify-center pointer-events-none opacity-60">
+             <div className="md:hidden flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
                 <SwipeUpIcon />
                 <span>Swipe up to skip</span>
+             </div>
+             <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
+                <span>Press Esc to skip</span>
              </div>
           </div>
 
           {/* Messages */}
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-4 pt-24 pb-4 space-y-3"
+            className="flex-1 overflow-y-auto px-4 pt-12 pb-4 space-y-3"
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}
           >
@@ -994,7 +1011,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             setShowReviewPopup(false);
             setPartnerToReview(null);
             setExistingRating(null);
-            setReviewReady(false);
           }}
           />
         )}
@@ -1012,7 +1028,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
             B
           </div>
-          <span className="font-bold text-lg tracking-tight text-white">blahbluh</span>
+          <span className="font-bold text-lg tracking-tight text-white">Exit Chat</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">

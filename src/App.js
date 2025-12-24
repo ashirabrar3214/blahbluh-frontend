@@ -30,12 +30,16 @@ function App() {
     if (!currentUser) return;
     
     const loadInitialUnreadCount = async () => {
+      console.log('App: Loading initial unread count for user:', currentUser.id);
       try {
+        console.log('App: Calling api.getFriends for unread count calculation.');
         const friends = await api.getFriends(currentUser.id);
+        console.log('App: Got friends for unread count:', friends);
         let totalUnread = 0;
         for (const friend of friends) {
           const friendId = friend.userId || friend.id;
           try {
+            console.log(`App: Calling api.getUnreadCount for friend: ${friendId}`);
             const count = await api.getUnreadCount(currentUser.id, friendId);
             totalUnread += count;
           } catch (error) {
@@ -55,6 +59,7 @@ function App() {
   useEffect(() => {
     if (!currentUser) return;
 
+    console.log('App: Setting up global socket connection for user:', currentUser.id);
     // Setup global socket connection
     globalSocketRef.current = io(
     process.env.REACT_APP_API_URL || 'http://localhost:3000',
@@ -66,8 +71,10 @@ function App() {
 
     globalSocketRef.current.on('connect', () => {
       console.log('Global socket connected');
+      console.log('App: Emitting "register-user" for user:', currentUser.id);
       globalSocketRef.current.emit('register-user', { userId: currentUser.id });
       // Fetch unread messages on connect
+      console.log('App: Emitting "fetch-unread-messages" for user:', currentUser.id);
       globalSocketRef.current.emit('fetch-unread-messages', { userId: currentUser.id });
     });
 
@@ -75,12 +82,13 @@ function App() {
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired globally:', data);
 
+      // If we just explicitly exited, ignore ONE match event only,
+      // then immediately re-enable matching.
       if (chatExitRef.current) {
-        console.log('Ignoring chat-paired due to explicit exit');
+        console.log('Ignoring chat-paired due to explicit exit (one-shot)');
+        chatExitRef.current = false;
         return;
       }
-
-      chatExitRef.current = false;
 
       setChatData(data);
       setSelectedFriend(null);
@@ -89,13 +97,17 @@ function App() {
 
     // Background presence for friend chats
     const setupFriendPresence = async () => {
+      console.log('App: Setting up friend presence for user:', currentUser.id);
       try {
+        console.log('App: Calling api.getFriends for friend presence setup.');
         const friends = await api.getFriends(currentUser.id);
+        console.log('App: Got friends for presence:', friends);
         friends.forEach(friend => {
           const friendId = friend.userId || friend.id;
           if (!friendId) return;
 
           const chatId = `friend_${[currentUser.id, friendId].sort().join('_')}`;
+          console.log(`App: Emitting 'join-chat' for friend chat: ${chatId}`);
           globalSocketRef.current.emit('join-chat', { chatId });
         });
       } catch (error) {
@@ -114,8 +126,10 @@ function App() {
         message: data?.message || 'Your friend request was accepted!',
         timestamp: new Date().toISOString()
       };
+      console.log('App: Adding global notification for friend request acceptance:', notification);
       setGlobalNotifications(prev => [notification, ...prev]);
       setInboxKey(prev => prev + 1);
+      console.log('App: Re-running setupFriendPresence after friend request acceptance.');
       setupFriendPresence();
     });
 
@@ -131,8 +145,10 @@ function App() {
     // ✅ do NOT count messages you sent yourself
     if (messageData?.userId === currentUser.id) return;
     const page = currentPageRef.current;
+    console.log(`App: Received 'new-message' on page: ${page}. Message:`, messageData);
     // ✅ do not increment while user is reading chat or inbox
     if (page !== 'chat' && page !== 'inbox') {
+      console.log('App: Incrementing unread count.');
       setUnreadCount(prev => prev + 1);
     }
     console.log('APP new-message', messageData);
@@ -141,22 +157,37 @@ function App() {
   
     globalSocketRef.current.on('partner-disconnected', () => {
       console.log('Partner disconnected globally');
-      // Only use this as a banner trigger when user is already on Home.
-      if (currentPageRef.current === 'home') {
-        setPageNotification('partner-disconnected');
+
+      // Always trigger the banner on the real HomePage
+      setPageNotification('partner-disconnected');
+
+      // If we are in chat, force navigation back to the real home UI
+      if (currentPageRef.current === 'chat') {
+        setSelectedFriend(null);
+        setChatData(null);
+        setCurrentPage('home');
       }
-      // DO NOT force navigation; ChatPage handles the flow.
+
+      // If we're already on home, HomePage will show the banner automatically.
     });
 
 
-    return () => globalSocketRef.current?.disconnect();
+    return () => {
+      console.log('App: Disconnecting global socket for user:', currentUser.id);
+      globalSocketRef.current?.disconnect();
+    };
   }, [currentUser]);
 
   const handleSignupComplete = async (signupData) => {
+    console.log('App: handleSignupComplete called with data:', signupData);
     setLoading(true);
     try {
+      console.log('App: Calling api.generateUserId...');
       const gen = await api.generateUserId();
+      console.log('App: Generated user ID:', gen.userId);
+      console.log('App: Calling api.updateUser...');
       const user = await api.updateUser(gen.userId, signupData);
+      console.log('App: Signup complete, created user:', user);
       setCurrentUser(user);
       setCurrentPage('home');
     } catch (e) {
@@ -189,14 +220,15 @@ function App() {
         unreadCount={unreadCount}
         notification={pageNotification}
         onNotificationChange={setPageNotification}
-
         onChatStart={() => {
+          // HomePage calls this right before joining queue
+          // so future matches are not ignored.
           chatExitRef.current = false;
-          setCurrentPage('chat');
         }}
 
         onProfileOpen={() => {}}
         onInboxOpen={() => {
+          console.log('App: Inbox opened. Resetting unread count and navigating to inbox page.');
           setUnreadCount(0);
           setInboxKey(prev => prev + 1);
           setCurrentPage('inbox');
@@ -213,6 +245,7 @@ function App() {
         currentUserId={currentUser.id}
         onBack={() => setCurrentPage('home')}
         onChatOpen={(friend) => {
+          console.log('App: Opening friend chat from inbox with friend:', friend);
           setSelectedFriend(friend);
           setChatData(null);
           setCurrentPage('chat');
@@ -235,6 +268,7 @@ function App() {
       setGlobalFriendRequests={setGlobalFriendRequests}
       unreadCount={unreadCount}
       onGoHome={() => {
+        console.log('App: Navigating to home page from chat.');
         chatExitRef.current = true;
         setSelectedFriend(null);
         setChatData(null);

@@ -107,8 +107,10 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
   const loadFriendRequests = useCallback(async () => {
     if (!currentUserId) return;
+    console.log('HomePage: Loading friend requests for user:', currentUserId);
     try {
       const requests = await api.getFriendRequests(currentUserId);
+      console.log('HomePage: Loaded friend requests:', requests);
       setFriendRequests(requests);
     } catch (error) {
       console.error('Error loading friend requests:', error);
@@ -121,14 +123,18 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   console.log('Current user accepting on HomePage:', currentUserId);
 
   try {
+    console.log('HomePage: Calling api.acceptFriendRequest...');
     const result = await api.acceptFriendRequest(requestId, currentUserId);
     console.log('✅ HomePage accept friend API response:', result);
 
     // refresh requests UI
+    console.log('HomePage: Reloading friend requests after accepting...');
     await loadFriendRequests();
 
     // ✅ CRITICAL: acceptor must join friend chat rooms immediately
+    console.log('HomePage: Calling api.getFriends to join chat rooms...');
     const friends = await api.getFriends(currentUserId);
+    console.log('HomePage: Got friends:', friends);
       friends.forEach((friend) => {
         const friendId = friend.userId || friend.id; // handle both shapes
         if (!friendId) return;
@@ -144,28 +150,44 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
   useEffect(() => {
     if (currentUserId) {
+      console.log('HomePage: Setting up interval to load friend requests.');
       loadFriendRequests();
       const interval = setInterval(() => loadFriendRequests(), 5000);
-      return () => clearInterval(interval);
+      return () => {
+        console.log('HomePage: Clearing interval for loading friend requests.');
+        clearInterval(interval);
+      };
     }
   }, [currentUserId, loadFriendRequests]);
 
   useEffect(() => {
     if (socket && currentUserId) {
-      const handleFriendRequest = () => loadFriendRequests();
+      const handleFriendRequest = () => {
+        console.log("HomePage: 'friend-request-received' socket event received. Reloading friend requests.");
+        loadFriendRequests();
+      };
       // Removed - now handled by App.js
 
       socket.on('friend-request-received', handleFriendRequest);
 
       return () => {
+        console.log("HomePage: Cleaning up 'friend-request-received' socket listener.");
         socket.off('friend-request-received', handleFriendRequest);
       };
     }
   }, [socket, currentUserId, loadFriendRequests]);
 
   const joinQueue = async () => {
+    if (!currentUserId) {
+      console.log('HomePage: joinQueue attempted without currentUserId.');
+      return;
+    }
+
+    // IMPORTANT: if user previously hit Home/Exit from chat,
+    // App.js may still be ignoring chat-paired. Clear that now.
+    onChatStart?.();
+
     try {
-      if (!currentUserId) return;
       console.log('🚀 Joining queue for user:', currentUserId);
       const result = await api.joinQueue(currentUserId);
       console.log('✅ Queue join result:', result);
@@ -180,7 +202,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
   const leaveQueue = async () => {
     try {
+      console.log('HomePage: Leaving queue for user:', currentUserId);
       await api.leaveQueue(currentUserId);
+      console.log('HomePage: Successfully left queue.');
       setInQueue(false);
       setQueuePosition(0);
     } catch (error) {

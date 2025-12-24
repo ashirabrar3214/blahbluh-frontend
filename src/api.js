@@ -10,33 +10,45 @@ export const api = {
   },
 
   async getUser(userId) {
+    console.log(`API: getUser called with userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/${userId}`);
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: getUser response for ${userId}:`, data);
+    return data;
   },
 
   async updateUser(userId, updates) {
+    console.log(`API: updateUser called for userId: ${userId} with updates:`, updates);
     const response = await fetch(`${API_BASE_URL}/api/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: updateUser response for ${userId}:`, data);
+    return data;
   },
 
   async reportUser(userId) {
+    console.log(`API: reportUser called for userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/${userId}/report`, {
       method: 'POST'
     });
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: reportUser response for ${userId}:`, data);
+    return data;
   },
 
   async addFriend(userId, friendId) {
+    console.log(`API: addFriend called for userId: ${userId} and friendId: ${friendId}`);
     const response = await fetch(`${API_BASE_URL}/api/${userId}/friends`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ friendId })
     });
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: addFriend response for ${userId}:`, data);
+    return data;
   },
 
   async joinQueue(userId) {
@@ -100,87 +112,148 @@ export const api = {
   },
 
   async getFriendRequests(userId) {
+    console.log(`API: getFriendRequests called for userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/friend-requests/${userId}`);
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: getFriendRequests response for ${userId}:`, data);
+    return data;
   },
 
   async acceptFriendRequest(requestId, userId) {
+    console.log(`API: acceptFriendRequest called for requestId: ${requestId} and userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/accept-friend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requestId, userId })
     });
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: acceptFriendRequest response for ${requestId}:`, data);
+    return data;
   },
 
   async getFriends(userId) {
+    console.log(`API: getFriends called for userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/friends/${userId}`);
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: getFriends response for ${userId}:`, data);
+    return data;
   },
 
   async blockUser(userId, blockedUserId) {
+    console.log(`API: blockUser called for userId: ${userId} to block ${blockedUserId}`);
     const response = await fetch(`${API_BASE_URL}/api/block`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, blockedUserId })
     });
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: blockUser response for ${userId}:`, data);
+    return data;
   },
   
   async submitReview(reviewerId, reviewedUserId, rating) {
+    console.log(`API: submitReview called from ${reviewerId} for ${reviewedUserId} with rating ${rating}`);
     const res = await fetch(`${API_BASE_URL}/api/review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reviewerId, reviewedUserId, rating })
     });
-    return res.json();
+    const data = await res.json();
+    console.log(`API: submitReview response:`, data);
+    return data;
   },
 
   async getReview(reviewerId, reviewedUserId) {
+    console.log(`API: getReview called from ${reviewerId} for ${reviewedUserId}`);
     const res = await fetch(
       `${API_BASE_URL}/api/review/${reviewerId}/${reviewedUserId}`
     );
-    return res.json();
+    const data = await res.json();
+    console.log(`API: getReview response:`, data);
+    return data;
   },
 
   async getUserRating(userId) {
+    console.log(`API: getUserRating called for userId: ${userId}`);
     const res = await fetch(`${API_BASE_URL}/api/user-rating/${userId}`);
-    return res.json();
+    const data = await res.json();
+    console.log(`API: getUserRating response for ${userId}:`, data);
+    return data;
   },
 
   async getFriendChats(userId) {
+    console.log(`API: getFriendChats called for userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/friend-chats/${userId}`);
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: getFriendChats response for ${userId}:`, data);
+    return data;
   },
 
   async sendFriendMessage(chatId, userId, message) {
+    console.log(`API: sendFriendMessage called for chatId: ${chatId} from userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/friend-message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chatId, userId, message })
     });
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: sendFriendMessage response for ${chatId}:`, data);
+    return data;
   },
 
   async getFriendChatMessages(chatId) {
+    console.log(`API: getFriendChatMessages called for chatId: ${chatId}`);
     const response = await fetch(`${API_BASE_URL}/api/friend-chat-messages/${chatId}`);
     if (!response.ok) {
+      console.error(`API: getFriendChatMessages error for chatId: ${chatId}, status: ${response.status}`);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: getFriendChatMessages response for ${chatId}:`, data);
+    return data;
   },
 
   async getUnreadCount(userId, friendId) {
+    console.log(`API: getUnreadCount called for userId: ${userId} and friendId: ${friendId}`);
     const response = await fetch(`${API_BASE_URL}/api/unread-count/${userId}/${friendId}`);
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: getUnreadCount response for ${userId}/${friendId}:`, data);
+    return data;
   },
 
   async markMessagesAsRead(userId, friendId) {
+    console.log(`API: markMessagesAsRead called for userId: ${userId} and friendId: ${friendId}`);
     const response = await fetch(`${API_BASE_URL}/api/mark-read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, friendId })
     });
-    return await response.json();
+    const data = await response.json();
+    console.log(`API: markMessagesAsRead response for ${userId}/${friendId}:`, data);
+    return data;
+  },
+
+  async exitChat(socketId, userId, chatId, requeuePartner = false) {
+    console.log(`API: exitChat called with socketId: ${socketId}, userId: ${userId}, chatId: ${chatId}, requeuePartner: ${requeuePartner}`);
+    const response = await fetch(`${API_BASE_URL}/api/exit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ socketId, userId, chatId, action: 'EXIT_CHAT', requeuePartner })
+    });
+    const data = await response.json();
+    console.log(`API: exitChat response:`, data);
+    return data;
+  },
+
+  async skipChat(socketId, userId, chatId) {
+    console.log(`API: skipChat called with socketId: ${socketId}, userId: ${userId}, chatId: ${chatId}`);
+    const response = await fetch(`${API_BASE_URL}/api/skip`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ socketId, userId, chatId, action: 'SKIP' })
+    });
+    const data = await response.json();
+    console.log(`API: skipChat response:`, data);
+    return data;
   }
 };
