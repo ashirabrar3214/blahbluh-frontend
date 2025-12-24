@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from './api';
+import TagInput from './TagInput';
+import './TagInput.css';
 
 function AnimatedDots() {
   const [dots, setDots] = useState('.');
@@ -45,6 +47,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const [showNotifications, setShowNotifications] = useState(false);
   const [bannerMessage, setBannerMessage] = useState(null);
   const bellNotifications = notifications.filter(n => n.id !== 'partner-disconnected');
+  const [tags, setTags] = useState([]);
 
 
   // Debug logging for notification counts
@@ -103,7 +106,17 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     return () => clearTimeout(t);
   }, [notification, onNotificationChange]);
 
-
+  useEffect(() => {
+    const loadInterests = async () => {
+      if (currentUserId) {
+        const storedTags = await api.getUserInterests(currentUserId);
+        if (Array.isArray(storedTags)) {
+          setTags(storedTags);
+        }
+      }
+    };
+    loadInterests();
+  }, [currentUserId]);
 
   const loadFriendRequests = useCallback(async () => {
     if (!currentUserId) return;
@@ -147,7 +160,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     }
   };
 
-
   useEffect(() => {
     if (currentUserId) {
       console.log('HomePage: Setting up interval to load friend requests.');
@@ -188,8 +200,14 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     onChatStart?.();
 
     try {
+      // Send interests to the backend for logging/analytics
+      if (tags.length > 0) {
+        api.sendUserInterests(currentUserId, tags).catch(console.error);
+      }
+
       console.log('🚀 Joining queue for user:', currentUserId);
-      const result = await api.joinQueue(currentUserId);
+      console.log('Tags:', tags);
+      const result = await api.joinQueue(currentUserId, tags);
       console.log('✅ Queue join result:', result);
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
@@ -324,15 +342,18 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6">
-            Chat with <br/>
+            Yap with <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-              anyone.
+              Randos.
             </span>
           </h1>
           
-          <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
+          {/* <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
             Instant anonymous connections. No login required. Just pure conversation.
-          </p>
+          </p> */}
+          <div className="mb-8 text-left">
+            <TagInput tags={tags} onTagsChange={setTags} />
+          </div>
           {bannerMessage && (
             <div className="px-4 py-3 mb-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm animate-in fade-in">
               {bannerMessage}
@@ -366,7 +387,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
               
               <button 
                 onClick={joinQueue} 
-                className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+                disabled={tags.length === 0}
+                className={`group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] ${tags.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
               >
                 Start Chatting
                 <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>

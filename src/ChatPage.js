@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from './api';
-import ProfileModal from './components/ProfileModal';
 import ReviewPopup from './ReviewPopup';
 
 // --- SVGs ---
@@ -26,45 +25,25 @@ const SwipeUpIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
 );
 
-// Animated dots component
-function AnimatedDots() {
-  const [dots, setDots] = useState('.');
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDots(prev => (prev === '...' ? '.' : prev + '.'));
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
-  return <span>{dots}</span>;
-}
-
 function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount }) {
   // --- STATE ---
-  const [inQueue, setInQueue] = useState(false);
-  const [queuePosition, setQueuePosition] = useState(0);
   const [chatId, setChatId] = useState(null);
   const [chatPartner, setChatPartner] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(propUserId ?? null);
   const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
-  const [currentUser, setCurrentUser] = useState(user ?? null);
 
   useEffect(() => {
     setCurrentUserId(propUserId ?? null);
     setCurrentUsername(propUsername ?? null);
-    setCurrentUser(user ?? null);
-  }, [propUserId, propUsername, user]);
+  }, [propUserId, propUsername]);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showActions, setShowActions] = useState(null);
-  const [showProfile, setShowProfile] = useState(false);
-  const [notification, setNotification] = useState(null);
   // Use global state instead of local state
   const friendRequests = globalFriendRequests;
   const notifications = globalNotifications;
   const setFriendRequests = setGlobalFriendRequests;
-  const setNotifications = setGlobalNotifications;
-  const [showNotifications, setShowNotifications] = useState(false);
 
   // Debug logging for notification counts
   useEffect(() => {
@@ -79,8 +58,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   // --- REFS ---
   const currentUserIdRef = useRef(null);
-  const inQueueRef = useRef(false);
-  const queueWatchdogRef = useRef(null);
   
   const skipFlowRef = useRef(false);       // true while YOU initiated skip/review
   const leavingChatIdRef = useRef(null);   // chatId we intend to leave
@@ -126,37 +103,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   }, [currentUserId, chatPartner]);
 
-  const joinQueue = useCallback(async () => {
-    try {
-      // ✅ Never rejoin queue if user explicitly exited to Home
-      if (hardExitRef.current) {
-        console.log('joinQueue blocked: hardExitRef is true');
-        return;
-      }
-      if (!socket?.connected) {
-        console.log('🔌 Socket disconnected, cannot join queue');
-        setActionToast("Connection lost");
-        return;
-      }
-      
-      const userId = currentUserId;
-      if (!userId) return;
-
-      console.log('Joining Queue...');
-      setNotification(null);
-      setInQueue(true); 
-      
-      const result = await api.joinQueue(userId);
-      console.log('Joined Queue:', result);
-      setQueuePosition(result.queuePosition ?? 0);
-      
-    } catch (error) {
-      console.error('Error joining queue:', error);
-      setInQueue(false);
-      setActionToast("Could not join queue");
-    }
-  }, [currentUserId, socket]);
-
   // --- EFFECT HOOKS ---
 
   // Set initial state from props
@@ -164,9 +110,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     if (propUserId && propUsername) {
       setCurrentUserId(propUserId);
       setCurrentUsername(propUsername);
-      setCurrentUser(user);
     }
-  }, [propUserId, propUsername, user]);
+  }, [propUserId, propUsername]);
 
   // Load friend requests when user ID is set
   useEffect(() => {
@@ -197,56 +142,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
-
-  useEffect(() => {
-    inQueueRef.current = inQueue;
-
-    // ✅ If we hard-exited, kill everything queue-related immediately
-    if (hardExitRef.current) {
-      if (queueWatchdogRef.current) {
-        clearInterval(queueWatchdogRef.current.heartbeat);
-        clearTimeout(queueWatchdogRef.current.watchdog);
-        queueWatchdogRef.current = null;
-      }
-      return;
-    }
-
-    // --- QUEUE HEARTBEAT ---
-    if (inQueue && socket?.connected) {
-      const heartbeat = setInterval(() => {
-        // ✅ don’t emit heartbeats after hard exit
-        if (hardExitRef.current) return;
-        socket.emit('queue-heartbeat', { userId: currentUserId });
-      }, 3000);
-
-      // ✅ Only watchdog if truly stuck at #0
-      const watchdog = setTimeout(() => {
-        if (hardExitRef.current) return;
-        if (!inQueueRef.current) return;
-
-        if ((queuePosition ?? 0) === 0) {
-          console.log("Watchdog: Stuck at #0 for 10s. Re-joining queue...");
-          if (socket?.connected) joinQueue();
-        }
-      }, 10000);
-
-      queueWatchdogRef.current = { heartbeat, watchdog };
-    } else {
-      if (queueWatchdogRef.current) {
-        clearInterval(queueWatchdogRef.current.heartbeat);
-        clearTimeout(queueWatchdogRef.current.watchdog);
-        queueWatchdogRef.current = null;
-      }
-    }
-
-    return () => {
-      if (queueWatchdogRef.current) {
-        clearInterval(queueWatchdogRef.current.heartbeat);
-        clearTimeout(queueWatchdogRef.current.watchdog);
-        queueWatchdogRef.current = null;
-      }
-    };
-  }, [inQueue, queuePosition, joinQueue, socket, currentUserId]);
 
   // Handle ESC Key
   useEffect(() => {
@@ -347,22 +242,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       return;
     };
 
-
-
-    const handleQueueHeartbeatResponse = (data) => {
-          if (hardExitRef.current) return;
-          if (!data.inQueue && inQueueRef.current) {
-            console.log('Server says not in queue, re-joining...');
-            joinQueue();
-          }
-    };
-
-    // NEW: handle queue-joined so queue position updates
-    const handleQueueJoined = (data = {}) => {
-      setInQueue(true);
-      setQueuePosition(data.queuePosition ?? 0);
-    };
-
     const handleFriendRequestReceived = () => loadFriendRequests();
     // Removed - now handled by App.js
 
@@ -370,8 +249,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     socket.on('message-reaction', handleMessageReaction);
     socket.on('partner-disconnected', handlePartnerDisconnected);
     socket.on('friend-request-received', handleFriendRequestReceived);
-    socket.on('queue-heartbeat-response', handleQueueHeartbeatResponse);
-    socket.on('queue-joined', handleQueueJoined);
     
     // Listen for friend messages even when not in chat
     socket.on('friend-message-received', (messageData) => {
@@ -390,11 +267,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('message-reaction', handleMessageReaction);
       socket.off('partner-disconnected', handlePartnerDisconnected);
       socket.off('friend-request-received', handleFriendRequestReceived);
-      socket.off('queue-heartbeat-response', handleQueueHeartbeatResponse);
-      socket.off('queue-joined', handleQueueJoined);
       socket.off('friend-message-received');
     };
-  }, [socket, currentUserId, chatPartner, loadFriendRequests, inQueue, joinQueue, chatId]);
+  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId]);
   // Notify server when user leaves chat via navigation (Home button)
   useEffect(() => {
       // Reset flag when entering a new chat
@@ -427,8 +302,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         console.log('Setting up random chat:', partner);
         setChatId(initialChatData.chatId);
         setChatPartner(partner);
-        setInQueue(false);
-        setQueuePosition(0);
         setMessages([]);
         //setNotification(null);
         // ✅ Prevent join-chat spam
@@ -442,8 +315,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       console.log('Setting up friend chat:', targetFriend);
       setChatId(targetFriend.chatId);
       setChatPartner(targetFriend);
-      setInQueue(false);
-      setQueuePosition(0);
       //setNotification(null);
       // ✅ Prevent join-chat spam
       if (targetFriend.chatId !== joinedChatIdRef.current) {
@@ -485,32 +356,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   }, [initialChatData, targetFriend, currentUserId, currentUsername, socket]);
 
 
-
-
-  const leaveQueue = async () => {
-    try {
-      await api.leaveQueue(currentUserId);
-      setInQueue(false);
-      setQueuePosition(0);
-      setNotification(null);
-    } catch (error) {
-      console.error('Error leaving queue:', error);
-    }
-  };
-  
   const handleExitToHome = async (requeuePartner = false) => {
     // Mark this as a controlled, hard exit. This prevents the unmount
     // effect from firing a duplicate `leave-chat` event.
     hardExitRef.current = true;
     joinedChatIdRef.current = null;
-    inQueueRef.current = false;
-
-    // Immediately stop any queue-related background activity (heartbeats, etc.).
-    if (queueWatchdogRef.current) {
-      clearInterval(queueWatchdogRef.current.heartbeat);
-      clearTimeout(queueWatchdogRef.current.watchdog);
-      queueWatchdogRef.current = null;
-    }
 
     // Tell the server to end the active chat.
     if (socket?.id) {
@@ -661,11 +511,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setShowActions(null);
     setPartnerToReview(null);
 
-    setInQueue(true);
-    setQueuePosition(0);
-
-    // Update UI with real position
-    joinQueue();
+    onGoHome?.();
 
     // Reset guard shortly after
     setTimeout(() => {
@@ -673,6 +519,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       leavingChatIdRef.current = null;
       skipFlowRef.current = false;
     }, 500);
+    
   };
 
 
@@ -763,16 +610,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       confirmLeaveChat(); // block implies leave
     } catch (err) {
       console.error('handleBlockUser failed:', err);
-    }
-  };
-
-  const handleAcceptFriend = async (requestId) => {
-    if (!requestId || !currentUserId) return;
-
-    try {
-      await api.acceptFriendRequest(requestId, currentUserId);
-    } catch (err) {
-      console.error('handleAcceptFriend failed:', err);
     }
   };
 
@@ -1021,173 +858,173 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   }
 
   // --- RENDER: LANDING / QUEUE UI ---
-  return (
-    <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
-      <nav className="fixed top-0 w-full z-10 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
-            B
-          </div>
-          <span className="font-bold text-lg tracking-tight text-white">Exit Chat</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">
-             {currentUsername || 'guest'}
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors relative"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              {(friendRequests.length > 0 || notifications.length > 0) && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
-                  {friendRequests.length + notifications.length}
-                </span>
-              )}
-            </button>
-            {showNotifications && (friendRequests.length > 0 || notifications.length > 0) && (
-              <div className="absolute top-10 right-0 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-600 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                {friendRequests.length > 0 && (
-                  <>
-                    <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                      Friend Requests
-                    </h3>
-                    <div className="space-y-3 mb-4">
-                      {friendRequests.map(request => (
-                        <div key={request.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-blue-500">
-                          <div>
-                            <p className="text-white text-sm font-medium">{request.from_user.username} sent you a friend request</p>
-                            <p className="text-gray-400 text-xs">Click accept to add them as a friend</p>
-                          </div>
-                          <button
-                            onClick={() => handleAcceptFriend(request.id)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors shadow-lg"
-                          >
-                            Accept
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {notifications.length > 0 && (
-                  <>
-                    <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                      Notifications
-                    </h3>
-                    <div className="space-y-3">
-                      {notifications.map(notification => (
-                        <div key={notification.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-green-500">
-                          <div>
-                            <p className="text-white text-sm font-medium">🎉 {notification.message}</p>
-                            <p className="text-gray-400 text-xs">{new Date(notification.timestamp).toLocaleTimeString()}</p>
-                          </div>
-                          <button
-                            onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
-                            className="px-2 py-1 text-gray-400 hover:text-white text-xs transition-colors"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => setShowProfile(true)}
-            className="text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded-full hover:bg-zinc-800"
-          >
-            Profile
-          </button>
-          <button
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-          </button>
-        </div>
-      </nav>
+  // return (
+  //   <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
+  //     <nav className="fixed top-0 w-full z-10 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
+  //       <div className="flex items-center gap-2.5">
+  //         <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
+  //           B
+  //         </div>
+  //         <span className="font-bold text-lg tracking-tight text-white">Exit Chat</span>
+  //       </div>
+  //       <div className="flex items-center gap-2">
+  //         <div className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">
+  //            {currentUsername || 'guest'}
+  //         </div>
+  //         <div className="relative">
+  //           <button
+  //             onClick={() => setShowNotifications(!showNotifications)}
+  //             className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors relative"
+  //           >
+  //             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  //               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+  //               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+  //             </svg>
+  //             {(friendRequests.length > 0 || notifications.length > 0) && (
+  //               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
+  //                 {friendRequests.length + notifications.length}
+  //               </span>
+  //             )}
+  //           </button>
+  //           {showNotifications && (friendRequests.length > 0 || notifications.length > 0) && (
+  //             <div className="absolute top-10 right-0 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-600 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
+  //               {friendRequests.length > 0 && (
+  //                 <>
+  //                   <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+  //                     <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+  //                     Friend Requests
+  //                   </h3>
+  //                   <div className="space-y-3 mb-4">
+  //                     {friendRequests.map(request => (
+  //                       <div key={request.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-blue-500">
+  //                         <div>
+  //                           <p className="text-white text-sm font-medium">{request.from_user.username} sent you a friend request</p>
+  //                           <p className="text-gray-400 text-xs">Click accept to add them as a friend</p>
+  //                         </div>
+  //                         <button
+  //                           onClick={() => handleAcceptFriend(request.id)}
+  //                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors shadow-lg"
+  //                         >
+  //                           Accept
+  //                         </button>
+  //                       </div>
+  //                     ))}
+  //                   </div>
+  //                 </>
+  //               )}
+  //               {notifications.length > 0 && (
+  //                 <>
+  //                   <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+  //                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+  //                     Notifications
+  //                   </h3>
+  //                   <div className="space-y-3">
+  //                     {notifications.map(notification => (
+  //                       <div key={notification.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-green-500">
+  //                         <div>
+  //                           <p className="text-white text-sm font-medium">🎉 {notification.message}</p>
+  //                           <p className="text-gray-400 text-xs">{new Date(notification.timestamp).toLocaleTimeString()}</p>
+  //                         </div>
+  //                         <button
+  //                           onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+  //                           className="px-2 py-1 text-gray-400 hover:text-white text-xs transition-colors"
+  //                         >
+  //                           ✕
+  //                         </button>
+  //                       </div>
+  //                     ))}
+  //                   </div>
+  //                 </>
+  //               )}
+  //             </div>
+  //           )}
+  //         </div>
+  //         <button
+  //           onClick={() => setShowProfile(true)}
+  //           className="text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded-full hover:bg-zinc-800"
+  //         >
+  //           Profile
+  //         </button>
+  //         <button
+  //           className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+  //         >
+  //           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  //             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+  //             <polyline points="22,6 12,13 2,6"></polyline>
+  //           </svg>
+  //         </button>
+  //       </div>
+  //     </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px] pointer-events-none"></div>
+  //     <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+  //       <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
+  //       <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px] pointer-events-none"></div>
 
-        <div className="max-w-lg w-full text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
-            <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
-            <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-              {socket?.connected ? 'System Online' : 'Connecting...'}
-            </span>
-          </div>
+  //       <div className="max-w-lg w-full text-center relative z-10">
+  //         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
+  //           <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
+  //           <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
+  //             {socket?.connected ? 'System Online' : 'Connecting...'}
+  //           </span>
+  //         </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6">
-            Chat with <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-              anyone.
-            </span>
-          </h1>
+  //         <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6">
+  //           Chat with <br/>
+  //           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+  //             anyone.
+  //           </span>
+  //         </h1>
           
-          <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
-            Instant anonymous connections. No login required. Just pure conversation.
-          </p>
+  //         <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
+  //           Instant anonymous connections. No login required. Just pure conversation.
+  //         </p>
 
-          {notification === 'partner-disconnected' && (
-                <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
-                  Partner disconnected. ready to go again?
-                </div>
-              )}
+  //         {notification === 'partner-disconnected' && (
+  //               <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
+  //                 Partner disconnected. ready to go again?
+  //               </div>
+  //             )}
 
-          {inQueue ? (
-            <div className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-8 rounded-[32px] shadow-2xl">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
-                <div className="text-center">
-                   <h3 className="text-xl font-bold text-white mb-1">Finding a match<AnimatedDots /></h3>
-                   <p className="text-zinc-500 text-sm">Position in queue: <span className="text-white font-mono">{queuePosition}</span></p>
-                </div>
-                <button onClick={leaveQueue} className="mt-4 px-6 py-3 rounded-full bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">    
-              <button 
-                onClick={joinQueue} 
-                className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
-              >
-                Start Chatting
-                <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+  //         {inQueue ? (
+  //           <div className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-8 rounded-[32px] shadow-2xl">
+  //             <div className="flex flex-col items-center gap-4">
+  //               <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
+  //               <div className="text-center">
+  //                  <h3 className="text-xl font-bold text-white mb-1">Finding a match<AnimatedDots /></h3>
+  //                  <p className="text-zinc-500 text-sm">Position in queue: <span className="text-white font-mono">{queuePosition}</span></p>
+  //               </div>
+  //               <button onClick={leaveQueue} className="mt-4 px-6 py-3 rounded-full bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 transition-colors">
+  //                 Cancel
+  //               </button>
+  //             </div>
+  //           </div>
+  //         ) : (
+  //           <div className="flex flex-col gap-4">    
+  //             <button 
+  //               onClick={joinQueue} 
+  //               className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+  //             >
+  //               Start Chatting
+  //               <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
+  //             </button>
+  //           </div>
+  //         )}
+  //       </div>
+  //     </div>
       
-      <div className="py-6 text-center text-zinc-600 text-xs font-medium">
-        &copy; 2025 blahbluh. Crafted for anonymity.
-      </div>
+  //     <div className="py-6 text-center text-zinc-600 text-xs font-medium">
+  //       &copy; 2025 blahbluh. Crafted for anonymity.
+  //     </div>
       
-      {/* Profile Modal */}
-      {showProfile && currentUser && (
-        <ProfileModal
-          user={currentUser}
-          onClose={() => setShowProfile(false)}
-        />
-      )}
-    </div>
-  );
+  //     {/* Profile Modal */}
+  //     {showProfile && currentUser && (
+  //       <ProfileModal
+  //         user={currentUser}
+  //         onClose={() => setShowProfile(false)}
+  //       />
+  //     )}
+  //   </div>
+  // );
 }
 
 export default ChatPage;

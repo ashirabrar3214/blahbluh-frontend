@@ -1,0 +1,99 @@
+.tag-form {
+  font-family: sans-serif;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+.tag-input-container {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 8px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  cursor: text;
+  background-color: rgba(24, 24, 27, 0.5);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s;
+}
+
+.tag-input-container:focus-within {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.tag-chip {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e4e4e7;
+  border-radius: 16px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.2;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tag-remove-button {
+  cursor: pointer;
+  font-weight: bold;
+  color: #a1a1aa;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.tag-remove-button:hover {
+  color: #fff;
+}
+
+.tag-input {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  padding: 4px;
+  min-width: 100px;
+  background: transparent;
+  color: white;
+}
+
+.tag-input::placeholder {
+  color: #71717a;
+}
+
+.submit-button {
+  margin-top: 16px;
+  padding: 12px 24px;
+  border: none;
+  background-color: white;
+  color: black;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  width: 100%;
+  transition: transform 0.2s, background-color 0.2s;
+  box-shadow: 0 0 20px -5px rgba(255, 255, 255, 0.2);
+}
+
+.submit-button:hover {
+  background-color: #e4e4e7;
+  transform: scale(1.02);
+}
+
+.submit-button:active {
+  transform: scale(0.98);
+}

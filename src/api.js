@@ -51,16 +51,50 @@ export const api = {
     return data;
   },
 
-  async joinQueue(userId) {
-    console.log('API: Joining queue with userId:', userId);
+  async joinQueue(userId, tags) {
+    console.log('API: Joining queue with userId:', userId, 'and tags:', tags);
     const response = await fetch(`${API_BASE_URL}/api/join-queue`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
+      body: JSON.stringify({ userId, tags })
     });
     const data = await response.json();
     console.log('API: Join queue response:', data);
     return data;
+  },
+
+  async sendUserInterests(userId, tags) {
+    console.log('API: Sending user interests:', tags, 'for user:', userId);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/update-interests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, tags })
+      });
+      if (!response.ok) {
+        console.error('API: Failed to send user interests, status:', response.status);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('API: Error sending user interests:', error);
+    }
+  },
+
+  async getUserInterests(userId) {
+    console.log(`API: getUserInterests called for userId: ${userId}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user-interests/${userId}`);
+      if (!response.ok) {
+        console.warn(`API: getUserInterests failed with status ${response.status}`);
+        return [];
+      }
+      const data = await response.json();
+      console.log(`API: getUserInterests response for ${userId}:`, data);
+      return data.interests || [];
+    } catch (error) {
+      console.error('API: Error getting user interests:', error);
+      return [];
+    }
   },
 
   async leaveQueue(userId) {
