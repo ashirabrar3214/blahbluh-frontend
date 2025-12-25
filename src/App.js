@@ -14,6 +14,7 @@ function App() {
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [chatData, setChatData] = useState(null);
   const [pageNotification, setPageNotification] = useState(null);
+  const [suggestedTopic, setSuggestedTopic] = useState(null);
   const [globalNotifications, setGlobalNotifications] = useState([]);
   const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -217,6 +218,7 @@ function App() {
         globalFriendRequests={globalFriendRequests}
         setGlobalNotifications={setGlobalNotifications}
         setGlobalFriendRequests={setGlobalFriendRequests}
+        setSuggestedTopic={setSuggestedTopic}
         unreadCount={unreadCount}
         notification={pageNotification}
         onNotificationChange={setPageNotification}
@@ -226,7 +228,7 @@ function App() {
           chatExitRef.current = false;
         }}
 
-        onProfileOpen={() => {}}
+        onProfileOpen={() => setCurrentPage('profile')}
         onInboxOpen={() => {
           console.log('App: Inbox opened. Resetting unread count and navigating to inbox page.');
           setUnreadCount(0);
@@ -254,6 +256,32 @@ function App() {
     );
   }
 
+  if (currentPage === 'profile') {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 font-sans">
+        <div className="w-full max-w-md bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-2xl p-8 shadow-2xl">
+          <h1 className="text-3xl font-bold text-white mb-6">Profile</h1>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm text-zinc-400">Username</label>
+              <p className="text-lg text-white">{currentUser.username}</p>
+            </div>
+            <div>
+              <label className="text-sm text-zinc-400">User ID</label>
+              <p className="text-lg text-white font-mono">{currentUser.id}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setCurrentPage('home')}
+            className="mt-8 w-full py-3 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ChatPage 
       socket={globalSocketRef.current}
@@ -262,6 +290,8 @@ function App() {
       currentUsername={currentUser.username}
       initialChatData={chatData}
       targetFriend={selectedFriend}
+      suggestedTopic={suggestedTopic}
+      setSuggestedTopic={setSuggestedTopic}
       globalNotifications={globalNotifications}
       globalFriendRequests={globalFriendRequests}
       setGlobalNotifications={setGlobalNotifications}
@@ -273,6 +303,7 @@ function App() {
         setSelectedFriend(null);
         setChatData(null);
         setPageNotification(null);
+        setSuggestedTopic(null);
         setCurrentPage('home');
       }}
       onInboxOpen={() => {

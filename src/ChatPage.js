@@ -25,7 +25,7 @@ const SwipeUpIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
 );
 
-function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount }) {
+function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic }) {
   // --- STATE ---
   const [chatId, setChatId] = useState(null);
   const [chatPartner, setChatPartner] = useState(null);
@@ -76,6 +76,17 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const hardExitRef = useRef(false);
 
   
+  const handleAcceptSuggestion = () => {
+    if (suggestedTopic) {
+      setNewMessage(suggestedTopic);
+      setSuggestedTopic(null); // Clear it in App.js state
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleDismissSuggestion = () => {
+    setSuggestedTopic(null); // Clear it in App.js state
+  };
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // --- FUNCTIONS ---
@@ -303,7 +314,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setChatId(initialChatData.chatId);
         setChatPartner(partner);
         setMessages([]);
-        //setNotification(null);
         // ✅ Prevent join-chat spam
         if (initialChatData.chatId !== joinedChatIdRef.current) {
           joinedChatIdRef.current = initialChatData.chatId;
@@ -315,7 +325,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       console.log('Setting up friend chat:', targetFriend);
       setChatId(targetFriend.chatId);
       setChatPartner(targetFriend);
-      //setNotification(null);
       // ✅ Prevent join-chat spam
       if (targetFriend.chatId !== joinedChatIdRef.current) {
         joinedChatIdRef.current = targetFriend.chatId;
@@ -690,7 +699,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           {/* Messages */}
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-4 pt-12 pb-4 space-y-3"
+            className="flex-1 overflow-y-auto px-4 pt-12 pb-4 space-y-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full"
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}
           >
@@ -769,6 +778,19 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           {/* Input Area */}
           <div className="w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent shrink-0 z-30">
             <div className="max-w-2xl mx-auto">
+              {suggestedTopic && (
+                <div className="flex items-center justify-between px-4 py-2 mb-2 bg-indigo-900/50 backdrop-blur rounded-xl border border-indigo-500/30 text-xs text-zinc-200 animate-in fade-in">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span role="img" aria-label="light-bulb">💡</span>
+                    <span className="truncate">Topic idea: <span className="font-bold text-white">{suggestedTopic}</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={handleAcceptSuggestion} className="px-2 py-1 hover:bg-indigo-700 rounded-md text-xs font-semibold">Use</button>
+                    <button onClick={handleDismissSuggestion} className="p-1 hover:bg-zinc-700 rounded-full">✕</button>
+                  </div>
+                </div>
+              )}
+
               {replyingTo && (
                 <div className="flex items-center justify-between px-4 py-2 mb-2 bg-zinc-800/80 backdrop-blur rounded-xl border border-white/5 text-xs text-zinc-300">
                   <div className="flex items-center gap-2 overflow-hidden">

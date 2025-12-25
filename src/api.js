@@ -267,6 +267,22 @@ export const api = {
     return data;
   },
 
+  async suggestTopic(userId) {
+    console.log(`API: suggestTopic called for userId: ${userId}`);
+    if (!userId) {
+      throw new Error('A userId is required to suggest a topic.');
+    }
+    const response = await fetch(`${API_BASE_URL}/api/suggest-topic/${userId}`);
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => 'Could not read error body');
+      console.error('Failed to suggest a topic:', response.status, errorBody);
+      throw new Error(`Failed to suggest a topic. Status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log(`API: suggestTopic response for ${userId}:`, data);
+    return data; // expecting { success: true, suggestion: '...' }
+  },
+
   async exitChat(socketId, userId, chatId, requeuePartner = false) {
     console.log(`API: exitChat called with socketId: ${socketId}, userId: ${userId}, chatId: ${chatId}, requeuePartner: ${requeuePartner}`);
     const response = await fetch(`${API_BASE_URL}/api/exit`, {

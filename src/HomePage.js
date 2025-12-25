@@ -35,7 +35,7 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount }) {
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
   const [notification, setNotification] = useState(externalNotification || null);
@@ -128,8 +128,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     } catch (error) {
       console.error('Error loading friend requests:', error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId]);
+  }, [currentUserId, setFriendRequests]);
 
   const handleAcceptFriend = async (requestId) => {
   console.log('👍 HomePage accepting friend request:', requestId);
@@ -217,10 +216,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       // Fetch a suggested topic when joining the queue
       try {
         const topicData = await api.suggestTopic(currentUserId);
-        if (topicData && topicData.topic) {
+        if (topicData && topicData.suggestion) {
           // We'll use a global notification to pass this to the ChatPage
-          const topicNotification = { id: `topic-${Date.now()}`, type: 'suggested-topic', message: topicData.topic };
-          setGlobalNotifications(prev => [...prev, topicNotification]);
+          setSuggestedTopic(topicData.suggestion);
         }
       } catch (topicError) {
         console.error('Error fetching suggested topic:', topicError);
@@ -245,7 +243,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
-      <nav className="fixed top-0 w-full z-10 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
+      <nav className="fixed top-0 w-full z-20 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
             B
