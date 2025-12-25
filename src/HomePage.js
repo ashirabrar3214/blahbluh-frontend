@@ -213,6 +213,19 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       setQueuePosition(result.queuePosition ?? 0);
       setNotification(null);
       if (onNotificationChange) onNotificationChange(null);
+
+      // Fetch a suggested topic when joining the queue
+      try {
+        const topicData = await api.suggestTopic(currentUserId);
+        if (topicData && topicData.topic) {
+          // We'll use a global notification to pass this to the ChatPage
+          const topicNotification = { id: `topic-${Date.now()}`, type: 'suggested-topic', message: topicData.topic };
+          setGlobalNotifications(prev => [...prev, topicNotification]);
+        }
+      } catch (topicError) {
+        console.error('Error fetching suggested topic:', topicError);
+        // Don't block user from chatting if topic suggestion fails
+      }
     } catch (error) {
       console.error('❌ Error joining queue:', error);
     }
