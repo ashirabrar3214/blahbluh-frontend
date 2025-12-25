@@ -24,6 +24,15 @@ const ReplyIcon = () => (
 const SwipeUpIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
 );
+const MoreIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+);
+const ReportIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+);
+const EmojiIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+);
 
 function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic }) {
   // --- STATE ---
@@ -39,7 +48,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setCurrentUsername(propUsername ?? null);
   }, [propUserId, propUsername]);
   const [replyingTo, setReplyingTo] = useState(null);
-  const [showActions, setShowActions] = useState(null);
+  const [activeActionMenu, setActiveActionMenu] = useState(null);      // messageId
+  const [actionMenuView, setActionMenuView] = useState('main');         // 'main' | 'react'
+  const [menuVerticalPosition, setMenuVerticalPosition] = useState('top-1/2 -translate-y-1/2'); // Tries to center, falls back to top/bottom
+  const [actionMenuCoords, setActionMenuCoords] = useState({ top: 0, left: 0 }); // New state for menu position
   // Use global state instead of local state
   const friendRequests = globalFriendRequests;
   const notifications = globalNotifications;
@@ -55,6 +67,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [partnerToReview, setPartnerToReview] = useState(null);
   const [existingRating, setExistingRating] = useState(null);
   const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
+  const [promptAnswer, setPromptAnswer] = useState('');
 
   // --- REFS ---
   const currentUserIdRef = useRef(null);
@@ -66,8 +79,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const joinedChatIdRef = useRef(null);    // Prevents join-chat spam
   const partnerDisconnectedRef = useRef(false); // Prevents leave-chat emit on disconnect
 
-  const longPressTimer = useRef(null);
-  const hoverTimer = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -75,18 +86,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const swipeStartY = useRef(null);
   const hardExitRef = useRef(false);
 
-  
-  const handleAcceptSuggestion = () => {
-    if (suggestedTopic) {
-      setNewMessage(suggestedTopic);
-      setSuggestedTopic(null); // Clear it in App.js state
-      inputRef.current?.focus();
-    }
-  };
-
-  const handleDismissSuggestion = () => {
-    setSuggestedTopic(null); // Clear it in App.js state
-  };
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // --- FUNCTIONS ---
@@ -183,16 +182,24 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   }, [messages, chatId]);
 
-  // Click Outside
+  // Click Outside (works with fixed menus too)
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showActions && !event.target.closest('.message-actions')) {
-        setShowActions(null);
-      }
+    const handlePointerDown = (event) => {
+      if (!activeActionMenu) return;
+
+      const t = event.target;
+
+      // If click is inside the action button container OR inside the fixed menu, ignore
+      if (t.closest('.message-actions-container') || t.closest('.action-menu-fixed')) return;
+
+      setActiveActionMenu(null);
+      setActionMenuView('main');
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showActions]);
+
+    // capture=true so it runs before other click handlers
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [activeActionMenu]);
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
@@ -211,14 +218,29 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     };
 
     const handleMessageReaction = ({ messageId, emoji, userId }) => {
+      // We already applied our own reaction optimistically in handleReaction().
+      // If we process our own broadcast too, it toggles off (appears then disappears).
+      if (userId === currentUserId) return;
+
       setMessages(prev => prev.map(msg => {
         if (msg.id === messageId) {
-          const reactions = { ...msg.reactions };
-          if (!reactions[emoji]) reactions[emoji] = [];
-          if (!reactions[emoji].includes(userId)) {
-            reactions[emoji].push(userId);
+          const newReactions = { ...(msg.reactions || {}) };
+
+          const userPreviousReaction = Object.keys(newReactions).find(e => newReactions[e].includes(userId));
+
+          if (userPreviousReaction) {
+            newReactions[userPreviousReaction] = newReactions[userPreviousReaction].filter(uid => uid !== userId);
+            if (newReactions[userPreviousReaction].length === 0) {
+              delete newReactions[userPreviousReaction];
+            }
           }
-          return { ...msg, reactions };
+
+          if (userPreviousReaction !== emoji) {
+            if (!newReactions[emoji]) newReactions[emoji] = [];
+            newReactions[emoji].push(userId);
+          }
+
+          return { ...msg, reactions: newReactions };
         }
         return msg;
       }));
@@ -364,6 +386,36 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   }, [initialChatData, targetFriend, currentUserId, currentUsername, socket]);
 
+  const handlePromptSubmit = () => {
+    if (!promptAnswer.trim() || !chatId || !currentUserId) return;
+    
+    if (!socket?.connected) {
+        setActionToast('Connection lost');
+        return;
+    }
+
+    const messageData = {
+      id: Date.now(),
+      chatId,
+      message: promptAnswer.trim(),
+      prompt: suggestedTopic,
+      userId: currentUserId,
+      username: currentUsername,
+      timestamp: new Date().toISOString(),
+      replyTo: null,
+      reactions: {}
+    };
+
+    // Add locally for immediate feedback
+    setMessages(prev => [...prev, messageData]);
+    
+    socket.emit('send-message', messageData);
+    
+    // Clear prompt and answer
+    setSuggestedTopic(null);
+    setPromptAnswer('');
+  };
+
 
   const handleExitToHome = async (requeuePartner = false) => {
     // Mark this as a controlled, hard exit. This prevents the unmount
@@ -425,55 +477,44 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const handleReaction = (messageId, emoji) => {
     if (!chatId || !currentUserId || !socket) return;
     
-    setMessages(prev => prev.map(msg => {
-      if (msg.id === messageId) {
-        const reactions = { ...msg.reactions };
-        Object.keys(reactions).forEach(existingEmoji => {
-          reactions[existingEmoji] = reactions[existingEmoji].filter(uid => uid !== currentUserId);
-          if (reactions[existingEmoji].length === 0) {
-            delete reactions[existingEmoji];
+    // Optimistically update the UI for a responsive feel
+    setMessages(prevMessages =>
+      prevMessages.map(msg => {
+        if (msg.id === messageId) {
+          const newReactions = { ...(msg.reactions || {}) };
+
+          const userPreviousReaction = Object.keys(newReactions).find(e => newReactions[e].includes(currentUserId));
+
+          // If the user had a previous reaction, remove it
+          if (userPreviousReaction) {
+            newReactions[userPreviousReaction] = newReactions[userPreviousReaction].filter(uid => uid !== currentUserId);
+            if (newReactions[userPreviousReaction].length === 0) {
+              delete newReactions[userPreviousReaction];
+            }
           }
-        });
-        return { ...msg, reactions };
-      }
-      return msg;
-    }));
+
+          // If the new emoji is different from the previous one (i.e., not just toggling off), add it
+          if (userPreviousReaction !== emoji) {
+            if (!newReactions[emoji]) {
+              newReactions[emoji] = [];
+            }
+            newReactions[emoji].push(currentUserId);
+          }
+          return { ...msg, reactions: newReactions };
+        }
+        return msg;
+      })
+    );
     
+    // Emit the reaction event to the server
     socket.emit('add-reaction', { chatId, messageId, emoji, userId: currentUserId });
-    setShowActions(null);
+    setActiveActionMenu(null);
   };
 
   const handleReply = (message) => {
     setReplyingTo(message);
-    setShowActions(null);
+    setActiveActionMenu(null);
     inputRef.current?.focus();
-  };
-
-  const handleLongPress = (messageId) => {
-    longPressTimer.current = setTimeout(() => {
-      setShowActions(messageId);
-    }, 500);
-  };
-
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-    }
-  };
-
-  const handleMouseEnter = (messageId) => {
-    if (!isMobile) {
-      if (hoverTimer.current) clearTimeout(hoverTimer.current);
-      setShowActions(messageId);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (!isMobile) {
-      hoverTimer.current = setTimeout(() => {
-        setShowActions(null);
-      }, 2000);
-    }
   };
 
   const handleSwipeStart = (e) => {
@@ -517,7 +558,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setChatPartner(null);
     setMessages([]);
     setReplyingTo(null);
-    setShowActions(null);
+    setActiveActionMenu(null);
     setPartnerToReview(null);
 
     onGoHome?.();
@@ -591,7 +632,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   // ===============================
 
   const handleNextUser = () => {
-    setShowActions(null);
+    setActiveActionMenu(null);
     setShowWarning(true);
   };
 
@@ -622,8 +663,41 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   };
 
+  const handleReport = (message) => {
+    // In a real app, you'd open a modal and send a report to the server.
+    console.log("Reporting message:", message);
+    setActionToast(`Message from ${message.username} reported.`);
+    setActiveActionMenu(null);
+  };
+
   // --- RENDER: CHAT UI ---
   if (chatId && chatPartner) {
+    if (suggestedTopic && !chatId.startsWith('friend_')) {
+      return (
+          <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center font-sans h-[100dvh] p-4">
+              <div className="w-full max-w-lg text-center">
+                  <h2 className="text-2xl font-bold text-zinc-400 mb-4">Icebreaker</h2>
+                  <p className="text-4xl font-bold text-white mb-8 leading-tight">{suggestedTopic}</p>
+                  <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-4">
+                      <textarea
+                          value={promptAnswer}
+                          onChange={(e) => setPromptAnswer(e.target.value)}
+                          placeholder="Your answer..."
+                          className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                          autoFocus
+                      />
+                      <button
+                          type="submit"
+                          disabled={!promptAnswer.trim()}
+                          className="w-full py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
+                      >
+                          Unlock Chat & Send
+                      </button>
+                  </form>
+              </div>
+          </div>
+      );
+    }
     return (
       <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
         {/* Header - Different for friend vs random chat */}
@@ -704,6 +778,26 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             onTouchEnd={handleSwipeEnd}
           >
             {messages.map((msg, index) => {
+              const isOwn = msg.userId === currentUserId;
+
+              if (msg.prompt) {
+                return (
+                  <div key={msg.id || index} className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`relative max-w-[80%] sm:max-w-[70%] w-full`}>
+                      <div
+                        className={`px-4 py-3 rounded-2xl border ${isOwn ? 'border-blue-500/30 bg-blue-900/20' : 'border-zinc-700 bg-zinc-900/50'}`}
+                      >
+                        <p className="text-sm text-zinc-400 mb-2 font-medium italic">
+                          "{msg.prompt}"
+                        </p>
+                        <p className="text-white text-[15px] leading-relaxed">
+                          {msg.message}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               if (msg.userId === 'system') {
                 return (
                   <div key={msg.id || index} className="flex w-full justify-center my-4 opacity-75">
@@ -714,63 +808,128 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 );
               }
 
-              const isOwn = msg.userId === currentUserId;
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
               const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
 
-              return (
-                <div key={msg.id || index} className={`group flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`relative max-w-[80%] sm:max-w-[70%]`}>
-                    
-                    <div
-                      className={`relative px-4 py-2.5 shadow-sm transition-all duration-200 cursor-default
-                        ${isOwn 
-                          ? 'bg-blue-600 text-white rounded-[20px] rounded-br-sm' 
-                          : 'bg-zinc-800 text-gray-100 rounded-[20px] rounded-bl-sm' 
-                        }
-                      `}
-                      onTouchStart={() => handleLongPress(msg.id)}
-                      onTouchEnd={handleTouchEnd}
-                      onMouseEnter={() => handleMouseEnter(msg.id)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                      {replyMsg && (
-                        <div className={`mb-1 pl-2 py-0.5 border-l-2 text-[10px] mb-2 overflow-hidden ${isOwn ? 'border-white/30 text-white/80' : 'border-zinc-500 text-zinc-400'}`}>
-                          <span className="font-bold block">{replyMsg.username}</span>
-                          <span className="truncate block opacity-80">{replyMsg.message}</span>
+                return (
+                  <div key={msg.id || index} className={`group flex w-full items-center gap-2 ${isOwn ? 'justify-end' : 'flex-row-reverse justify-end'}`}>
+                    {/* Action button and menu */}
+                    <div className="relative message-actions-container">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          if (activeActionMenu === msg.id) {
+                            setActiveActionMenu(null);
+                            return;
+                          }
+
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const MENU_W = 224; // tailwind w-56 (wider so all 5 emojis fit)
+                          const GAP = 8;
+                          const PAD = 12;
+
+                          // place menu left for your own msg, right for partner msg
+                          let left = isOwn ? rect.left - GAP - MENU_W : rect.right + GAP;
+                          left = Math.max(PAD, Math.min(left, window.innerWidth - PAD - MENU_W));
+
+                          // estimate main menu height (react view is smaller but this is safe)
+                          const estH = 140;
+                          let top = rect.top + rect.height / 2;
+                          top = Math.max(PAD + estH / 2, Math.min(top, window.innerHeight - PAD - estH / 2));
+
+                          setActionMenuCoords({ top, left });
+                          setActiveActionMenu(msg.id);
+                          setActionMenuView('main');
+                        }}
+                        className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-zinc-700 transition-all opacity-0 group-hover:opacity-50 focus:opacity-100"
+                      >
+                        <MoreIcon />
+                      </button>
+                      {activeActionMenu === msg.id && (
+                        <div
+                          className="action-menu-fixed fixed w-56 bg-zinc-900/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            top: actionMenuCoords.top,
+                            left: actionMenuCoords.left,
+                            transform: 'translateY(-50%)',
+                          }}
+                        >
+                          {actionMenuView === 'react' ? (
+                            <div className="px-2 py-2">
+                              <div className="flex items-center justify-between gap-1">
+                                {['❤️', '😂', '👍', '👎', '🔥'].map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => {
+                                      handleReaction(msg.id, emoji);
+                                      setActionMenuView('main');
+                                    }}
+                                    className="p-1 text-xl leading-none hover:scale-110 transition-transform"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col">
+                              <button
+                                onClick={() => handleReply(msg)}
+                                className="flex items-center gap-3 w-full px-3 py-2 text-sm text-left text-zinc-200 hover:bg-zinc-700/70 transition-colors"
+                              >
+                                <ReplyIcon />
+                                <span>Reply</span>
+                              </button>
+                              <button
+                                onClick={() => setActionMenuView('react')}
+                                className="flex items-center gap-3 w-full px-3 py-2 text-sm text-left text-zinc-200 hover:bg-zinc-700/70 transition-colors"
+                              >
+                                <EmojiIcon />
+                                <span>React</span>
+                              </button>
+                              <div className="h-px bg-white/10 my-1"></div>
+                              <button
+                                onClick={() => handleReport(msg)}
+                                className="flex items-center gap-3 w-full px-3 py-2 text-sm text-left text-red-400 hover:bg-zinc-700/70 transition-colors"
+                              >
+                                <ReportIcon />
+                                <span>Report</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
-                      <div className="text-[15px] leading-relaxed break-words font-normal">
-                        {msg.message}
-                      </div>
                     </div>
 
-                    {hasReactions && (
-                      <div className={`absolute -bottom-2 ${isOwn ? 'right-0' : 'left-0'} z-10 flex gap-0.5 px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700 shadow-lg scale-90`}>
-                        {Object.entries(msg.reactions).map(([emoji, users]) => (
-                          <div key={emoji} onClick={() => handleReaction(msg.id, emoji)} className="cursor-pointer hover:scale-125 transition-transform text-xs">
-                            {emoji} <span className="text-[9px] text-zinc-500 font-mono">{users.length > 1 ? users.length : ''}</span>
+                    {/* Message bubble */}
+                    <div className={`relative max-w-[80%] sm:max-w-[70%]`}>
+                      <div className={`relative px-4 py-2.5 shadow-sm transition-all duration-200 cursor-default ${isOwn ? 'bg-blue-600 text-white rounded-[20px] rounded-br-sm' : 'bg-zinc-800 text-gray-100 rounded-[20px] rounded-bl-sm'}`}>
+                        {replyMsg && (
+                          <div className={`mb-1 pl-2 py-0.5 border-l-2 text-[10px] mb-2 overflow-hidden ${isOwn ? 'border-white/30 text-white/80' : 'border-zinc-500 text-zinc-400'}`}>
+                            <span className="font-bold block">{replyMsg.username}</span>
+                            <span className="truncate block opacity-80">{replyMsg.message}</span>
                           </div>
-                        ))}
+                        )}
+                        <div className="text-[15px] leading-relaxed break-words font-normal">
+                          {msg.message}
+                        </div>
                       </div>
-                    )}
 
-                    {showActions === msg.id && (
-                      <div className={`absolute -top-12 ${isOwn ? 'right-0' : 'left-0'} flex items-center gap-2 p-1.5 bg-zinc-800/90 backdrop-blur-md rounded-full shadow-2xl border border-white/10 z-20 animate-in fade-in zoom-in duration-200`}>
-                        {['❤️', '😂', '👍', '👎', '🔥'].map(emoji => (
-                          <button key={emoji} onClick={() => handleReaction(msg.id, emoji)} className="hover:scale-125 transition-transform p-1 text-lg leading-none">
-                            {emoji}
-                          </button>
-                        ))}
-                        <div className="w-px h-4 bg-white/20 mx-1"></div>
-                        <button onClick={() => handleReply(msg)} className="text-zinc-300 hover:text-white p-1">
-                          <ReplyIcon />
-                        </button>
-                      </div>
-                    )}
+                      {hasReactions && (
+                        <div className={`absolute -bottom-2 ${isOwn ? 'right-0' : 'left-0'} z-10 flex gap-0.5 px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700 shadow-lg scale-90`}>
+                          {Object.entries(msg.reactions).map(([emoji, users]) => (
+                            <div key={emoji} onClick={() => handleReaction(msg.id, emoji)} className="cursor-pointer hover:scale-125 transition-transform text-xs">
+                              {emoji} <span className="text-[9px] text-zinc-500 font-mono">{users.length > 1 ? users.length : ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
+                );
             })}
             <div ref={messagesEndRef} />
           </div>
@@ -778,19 +937,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           {/* Input Area */}
           <div className="w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent shrink-0 z-30">
             <div className="max-w-2xl mx-auto">
-              {suggestedTopic && (
-                <div className="flex items-center justify-between px-4 py-2 mb-2 bg-indigo-900/50 backdrop-blur rounded-xl border border-indigo-500/30 text-xs text-zinc-200 animate-in fade-in">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <span role="img" aria-label="light-bulb">💡</span>
-                    <span className="truncate">Topic idea: <span className="font-bold text-white">{suggestedTopic}</span></span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={handleAcceptSuggestion} className="px-2 py-1 hover:bg-indigo-700 rounded-md text-xs font-semibold">Use</button>
-                    <button onClick={handleDismissSuggestion} className="p-1 hover:bg-zinc-700 rounded-full">✕</button>
-                  </div>
-                </div>
-              )}
-
               {replyingTo && (
                 <div className="flex items-center justify-between px-4 py-2 mb-2 bg-zinc-800/80 backdrop-blur rounded-xl border border-white/5 text-xs text-zinc-300">
                   <div className="flex items-center gap-2 overflow-hidden">
@@ -808,7 +954,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type something fun..."
-                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 text-[16px]"
+                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 focus:outline-none text-[16px]"
                   autoComplete="off"
                 />
                 <button

@@ -26,6 +26,15 @@ function App() {
   useEffect(() => {
     currentPageRef.current = currentPage;
   }, [currentPage]);
+
+  useEffect(() => {
+    if (chatData && suggestedTopic) {
+      console.log("Partner and topic ready, navigating to chat");
+      setSelectedFriend(null);
+      setCurrentPage('chat');
+    }
+  }, [chatData, suggestedTopic]);
+
     // Load initial unread count when user is set
   useEffect(() => {
     if (!currentUser) return;
@@ -92,8 +101,6 @@ function App() {
       }
 
       setChatData(data);
-      setSelectedFriend(null);
-      setCurrentPage('chat');
     });
 
     // Background presence for friend chats
