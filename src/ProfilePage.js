@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import StarRating from './components/StarRating';
 
 const EditIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -11,12 +12,6 @@ const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M19 12H5"></path>
     <path d="M12 19l-7-7 7-7"></path>
-  </svg>
-);
-
-const StarIcon = ({ filled }) => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={filled ? 'text-yellow-400' : 'text-zinc-600'}>
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
   </svg>
 );
 
@@ -170,11 +165,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                 <label className="block text-zinc-400 text-sm font-medium">Your Reviews</label>
                 {!ratingLoading && ratingSummary?.count > 0 && (
                   <div className="flex items-center gap-1">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <StarIcon key={star} filled={star <= Math.round(ratingSummary.average)} />
-                      ))}
-                    </div>
+                    <StarRating rating={ratingSummary.average} size="sm" />
                     <span className="text-xs text-zinc-400 ml-1">
                       {ratingSummary.average}/5 ({ratingSummary.count})
                     </span>
@@ -193,11 +184,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                   {reviews.slice(-3).reverse().map((review, index) => (
                     <div key={index} className="flex items-center justify-between py-1">
                       <div className="flex items-center gap-2">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <StarIcon key={star} filled={star <= review.rating} />
-                          ))}
-                        </div>
+                        <StarRating rating={review.rating} size="sm" />
                         <span className="text-xs text-zinc-400">from {review.fromUser}</span>
                       </div>
                       <span className="text-xs text-zinc-500">{new Date(review.timestamp).toLocaleDateString()}</span>

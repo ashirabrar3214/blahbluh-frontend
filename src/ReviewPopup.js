@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import StarRating from './components/StarRating';
 
 const StarIcon = ({ filled, onClick, onMouseEnter, onMouseLeave }) => (
   <svg
@@ -14,21 +15,6 @@ const StarIcon = ({ filled, onClick, onMouseEnter, onMouseLeave }) => (
     onClick={onClick}
     onMouseEnter={onMouseEnter}
     onMouseLeave={onMouseLeave}
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
-
-const DisplayStarIcon = ({ filled }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill={filled ? '#fbbf24' : 'none'}
-    stroke="#fbbf24"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
   >
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
@@ -79,11 +65,7 @@ export default function ReviewPopup({
               <h2 className="text-lg font-bold text-white">Rate {partner?.username || 'Stranger'}</h2>
               {partnerRating && partnerRating.reviewCount > 0 && (
                 <div className="flex items-center gap-1 mt-1">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <DisplayStarIcon key={star} filled={star <= Math.round(partnerRating.averageRating)} />
-                    ))}
-                  </div>
+                  <StarRating rating={partnerRating.averageRating} size="md" />
                   <span className="text-xs text-zinc-400">
                     ({partnerRating.reviewCount} reviews)
                   </span>
