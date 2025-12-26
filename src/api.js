@@ -209,10 +209,30 @@ export const api = {
 
   async getUserRating(userId) {
     console.log(`API: getUserRating called for userId: ${userId}`);
-    const res = await fetch(`${API_BASE_URL}/api/user-rating/${userId}`);
-    const data = await res.json();
-    console.log(`API: getUserRating response for ${userId}:`, data);
-    return data;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user-rating/${userId}`);
+      if (!res.ok) {
+        console.error(`API: getUserRating failed for ${userId} with status ${res.status}`);
+        return { reviewCount: 0, averageRating: 0 };
+      }
+      const data = await res.json();
+      console.log(`API: getUserRating raw response for ${userId}:`, data);
+
+      // The backend might return an array, and with snake_case keys. Let's normalize it.
+      const rawRating = Array.isArray(data) ? data[0] : data;
+
+      if (!rawRating || rawRating.review_count === undefined) {
+        return { reviewCount: 0, averageRating: 0 };
+      }
+
+      return {
+        reviewCount: parseInt(rawRating.review_count, 10) || 0,
+        averageRating: parseFloat(rawRating.average_rating) || 0,
+      };
+    } catch (error) {
+      console.error(`API: Error in getUserRating for ${userId}:`, error);
+      return { reviewCount: 0, averageRating: 0 };
+    }
   },
 
   async getFriendChats(userId) {

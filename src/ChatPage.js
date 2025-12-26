@@ -66,6 +66,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
   const [existingRating, setExistingRating] = useState(null);
+  const [partnerRating, setPartnerRating] = useState(null);
   const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
   const [promptAnswer, setPromptAnswer] = useState('');
 
@@ -572,12 +573,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     
   };
 
-
   const confirmLeaveChat = async () => {
     setShowWarning(false);
 
     const partner = chatPartner;
     if (!partner || !chatId) {
+      finishLeavingChat(chatId);
+      return;
+    }
+    
+    // If the skip is initiated from an active icebreaker, bypass the review popup
+    const isIcebreakerActive = suggestedTopic && !chatId.startsWith('friend_');
+    if (isIcebreakerActive) {
       finishLeavingChat(chatId);
       return;
     }
@@ -599,6 +606,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     } catch {
       setExistingRating(0);
     }
+
+    try {
+      const ratingData = await api.getUserRating(partnerId);
+      setPartnerRating(ratingData);
+    } catch (error) {
+      console.error("Failed to fetch partner rating", error);
+      setPartnerRating(null);
+    }
   };
 
   const handleReviewSubmit = async (reviewData) => {
@@ -618,6 +633,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setShowReviewPopup(false);
       setPartnerToReview(null);
       setExistingRating(null);
+      setPartnerRating(null);
 
       // 3️⃣ NOW actually skip the user (THIS WAS MISSING)
       finishLeavingChat(cid);
@@ -672,34 +688,12 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   // --- RENDER: CHAT UI ---
   if (chatId && chatPartner) {
-    if (suggestedTopic && !chatId.startsWith('friend_')) {
-      return (
-          <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center font-sans h-[100dvh] p-4">
-              <div className="w-full max-w-lg text-center">
-                  <h2 className="text-2xl font-bold text-zinc-400 mb-4">Icebreaker</h2>
-                  <p className="text-4xl font-bold text-white mb-8 leading-tight">{suggestedTopic}</p>
-                  <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-4">
-                      <textarea
-                          value={promptAnswer}
-                          onChange={(e) => setPromptAnswer(e.target.value)}
-                          placeholder="Your answer..."
-                          className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                          autoFocus
-                      />
-                      <button
-                          type="submit"
-                          disabled={!promptAnswer.trim()}
-                          className="w-full py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
-                      >
-                          Unlock Chat & Send
-                      </button>
-                  </form>
-              </div>
-          </div>
-      );
-    }
+    const isIcebreakerActive = suggestedTopic && !chatId.startsWith('friend_');
+
     return (
-      <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
+      <>
+        {/* Main Chat Page - Blurred when icebreaker is active */}
+        <div className={`fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh] transition-all duration-300 ${isIcebreakerActive ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header - Different for friend vs random chat */}
         <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
           {/* Left: Exit Button */}
@@ -973,6 +967,53 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           </div>
         </div>
 
+        </div>
+
+        {/* Icebreaker Popup */}
+        {isIcebreakerActive && (
+          <div className="fixed inset-0 bg-black/60 text-white flex flex-col items-center justify-center font-sans h-[100dvh] p-4 z-50 animate-in fade-in duration-300">
+            <div className="w-full max-w-lg text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-8 shadow-2xl">
+              <div className="flex flex-col items-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2">
+                  <span className="text-xl font-bold text-white tracking-wide">
+                    {chatPartner?.username?.[0]?.toUpperCase() || '?'}
+                  </span>
+                </div>
+                <span className="text-lg font-semibold text-gray-100 leading-tight">
+                  {chatPartner?.username || 'Stranger'}
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-zinc-400 mb-4">Icebreaker</h2>
+              <p className="text-4xl font-bold text-white mb-8 leading-tight">{suggestedTopic}</p>
+              <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-4">
+                <textarea
+                  value={promptAnswer}
+                  onChange={(e) => setPromptAnswer(e.target.value)}
+                  placeholder="Your answer..."
+                  className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                  autoFocus
+                />
+                <div className="flex flex-col gap-2 mt-2">
+                  <button
+                    type="submit"
+                    disabled={!promptAnswer.trim()}
+                    className="w-full py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
+                  >
+                    Unlock Chat & Send
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmLeaveChat}
+                    className="w-full py-3 rounded-full text-zinc-400 text-sm font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
+                  >
+                    Skip
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Warning Popup */}
         {showWarning && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1009,6 +1050,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           <ReviewPopup
             key={`${partnerToReview.userId || partnerToReview.id}-${existingRating ?? 0}`}
             partner={partnerToReview}
+            partnerRating={partnerRating}
             initialRating={existingRating ?? 0}
             onSubmit={handleReviewSubmit}
             onClose={() => {
@@ -1016,12 +1058,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             setShowReviewPopup(false);
             setPartnerToReview(null);
             setExistingRating(null);
+            setPartnerRating(null);
           }}
           />
         )}
-
-
-      </div>
+      </>
     );
   }
 

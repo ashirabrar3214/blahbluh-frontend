@@ -30,6 +30,8 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState(profile);
   const [reviews, setReviews] = useState([]);
+  const [ratingSummary, setRatingSummary] = useState({ average: null, count: 0 });
+  const [ratingLoading, setRatingLoading] = useState(true);
 
   useEffect(() => {
     // Load profile from localStorage
@@ -45,6 +47,30 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
     if (savedReviews) {
       setReviews(JSON.parse(savedReviews));
     }
+
+    let ignore = false;
+
+    (async () => {
+      try {
+        setRatingLoading(true);
+
+        // IMPORTANT: adjust this URL to match how you mounted userRoutes
+        // Common ones: /api/users/user-rating/:id  OR  /users/user-rating/:id
+        const res = await fetch(`/api/users/user-rating/${currentUserId}`);
+        const data = await res.json();
+
+        if (!ignore) setRatingSummary(data);
+      } catch (e) {
+        if (!ignore) setRatingSummary({ average: null, count: 0 });
+        console.error("Failed to load rating summary:", e);
+      } finally {
+        if (!ignore) setRatingLoading(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
   }, [currentUserId, currentUsername]);
 
   const handleSave = () => {
@@ -142,15 +168,21 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
             <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800">
               <div className="flex items-center justify-between mb-3">
                 <label className="block text-zinc-400 text-sm font-medium">Your Reviews</label>
-                {reviews.length > 0 && (
+                {!ratingLoading && ratingSummary?.count > 0 && (
                   <div className="flex items-center gap-1">
                     <div className="flex">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <StarIcon key={star} filled={star <= Math.round(getAverageRating())} />
+                        <StarIcon key={star} filled={star <= Math.round(ratingSummary.average)} />
                       ))}
                     </div>
-                    <span className="text-xs text-zinc-400 ml-1">{getAverageRating()}/5 ({reviews.length})</span>
+                    <span className="text-xs text-zinc-400 ml-1">
+                      {ratingSummary.average}/5 ({ratingSummary.count})
+                    </span>
                   </div>
+                )}
+
+                {!ratingLoading && (!ratingSummary?.count || ratingSummary.count === 0) && (
+                  <p className="text-xs text-zinc-500 mt-1">No ratings yet</p>
                 )}
               </div>
               

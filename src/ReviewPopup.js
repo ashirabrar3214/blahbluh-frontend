@@ -19,11 +19,27 @@ const StarIcon = ({ filled, onClick, onMouseEnter, onMouseLeave }) => (
   </svg>
 );
 
+const DisplayStarIcon = ({ filled }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill={filled ? '#fbbf24' : 'none'}
+    stroke="#fbbf24"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
 export default function ReviewPopup({
   partner,
+  partnerRating,
   initialRating = 0,
-  onSubmit,      // must be async-safe
-  onClose        // just closes UI
+  onSubmit, // must be async-safe
+  onClose // just closes UI
 }) {
   const [rating, setRating] = useState(initialRating);
   const [hovered, setHovered] = useState(0);
@@ -32,6 +48,10 @@ export default function ReviewPopup({
   useEffect(() => {
     setRating(initialRating || 0);
   }, [initialRating]);
+
+  const getInitials = (name) => {
+    return name ? name.charAt(0).toUpperCase() : '?';
+  };
 
   const run = async (payload) => {
     if (submitting) return;
@@ -48,12 +68,29 @@ export default function ReviewPopup({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
       <div className="w-[92%] max-w-md rounded-2xl bg-zinc-900 border border-white/10 p-6 shadow-2xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-white">Rate {partner?.username || 'Stranger'}</h2>
-            <p className="text-xs text-zinc-400 mt-1">
-              Rate your chat partner to help us improve the community.
-            </p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner flex-shrink-0">
+              <span className="text-lg font-bold text-white tracking-wide">
+                {getInitials(partner?.username)}
+              </span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Rate {partner?.username || 'Stranger'}</h2>
+              {partnerRating && partnerRating.reviewCount > 0 && (
+                <div className="flex items-center gap-1 mt-1">
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <DisplayStarIcon key={star} filled={star <= Math.round(partnerRating.averageRating)} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-zinc-400">
+                    ({partnerRating.reviewCount} reviews)
+                  </span>
+                </div>
+              )}
+              <p className="text-xs text-zinc-400 mt-1">Rate your chat partner to help us improve the community.</p>
+            </div>
           </div>
 
           <button

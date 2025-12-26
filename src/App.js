@@ -6,6 +6,12 @@ import InboxPage from './InboxPage';
 import SignupForm from './components/SignupForm';
 import { api } from './api';
 
+const StarIcon = ({ filled }) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={filled ? 'text-yellow-400' : 'text-zinc-600'}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+  </svg>
+);
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -18,6 +24,7 @@ function App() {
   const [globalNotifications, setGlobalNotifications] = useState([]);
   const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userRating, setUserRating] = useState(null);
   const globalSocketRef = useRef(null);
   const currentPageRef = useRef(currentPage);
   const chatExitRef = useRef(false);
@@ -235,7 +242,18 @@ function App() {
           chatExitRef.current = false;
         }}
 
-        onProfileOpen={() => setCurrentPage('profile')}
+        onProfileOpen={async () => {
+          if (currentUser?.id) {
+            try {
+              const ratingData = await api.getUserRating(currentUser.id);
+              setUserRating(ratingData);
+            } catch (error) {
+              console.error("Failed to fetch user rating", error);
+              setUserRating(null);
+            }
+          }
+          setCurrentPage('profile');
+        }}
         onInboxOpen={() => {
           console.log('App: Inbox opened. Resetting unread count and navigating to inbox page.');
           setUnreadCount(0);
@@ -264,18 +282,52 @@ function App() {
   }
 
   if (currentPage === 'profile') {
+    const getInitials = (name) => {
+      return name ? name.charAt(0).toUpperCase() : '?';
+    };
+
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 font-sans">
         <div className="w-full max-w-md bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-2xl p-8 shadow-2xl">
-          <h1 className="text-3xl font-bold text-white mb-6">Profile</h1>
+          {/* PFP and Username */}
+          <div className="text-center mb-6">
+            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-4">
+              <span className="text-3xl font-bold text-white">
+                {getInitials(currentUser.username)}
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold text-white">{currentUser.username}</h1>
+          </div>
+
+          {/* Average Review */}
+          {userRating && userRating.reviewCount > 0 ? (
+            <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800 mb-6">
+              <label className="block text-zinc-400 text-sm font-medium mb-2">Average Rating</label>
+              <div className="flex items-center gap-2">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <StarIcon key={star} filled={star <= Math.round(userRating.averageRating)} />
+                  ))}
+                </div>
+                <span className="text-sm text-zinc-400">
+                  {userRating.averageRating.toFixed(1)}/5 ({userRating.reviewCount} reviews)
+                </span>
+              </div>
+            </div>
+          ) : (
+             <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800 mb-6 text-center">
+                <p className="text-zinc-400 text-sm">No reviews yet.</p>
+             </div>
+          )}
+
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-zinc-400">Username</label>
-              <p className="text-lg text-white">{currentUser.username}</p>
+              <label className="text-sm text-zinc-400">Gender</label>
+              <p className="text-lg text-white">{currentUser.gender || 'Not specified'}</p>
             </div>
             <div>
-              <label className="text-sm text-zinc-400">User ID</label>
-              <p className="text-lg text-white font-mono">{currentUser.id}</p>
+              <label className="text-sm text-zinc-400">Country</label>
+              <p className="text-lg text-white">{currentUser.country || 'Not specified'}</p>
             </div>
           </div>
           <button
