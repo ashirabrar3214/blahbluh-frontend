@@ -221,20 +221,25 @@ export const api = {
       // The backend might return an array, and with snake_case keys. Let's normalize it.
       const rawRating = Array.isArray(data) ? data[0] : data;
 
-      if (!rawRating || rawRating.review_count === undefined) {
+      // FIX: Check for 'count' (backend format) OR 'review_count' (legacy/db format)
+      // and 'average' (backend format) OR 'average_rating'
+      const count = rawRating.count !== undefined ? rawRating.count : rawRating.review_count;
+      const avg = rawRating.average !== undefined ? rawRating.average : rawRating.average_rating;
+
+      if (count === undefined) {
         return { reviewCount: 0, averageRating: 0 };
       }
 
       return {
-        reviewCount: parseInt(rawRating.review_count, 10) || 0,
-        averageRating: parseFloat(rawRating.average_rating) || 0,
+        reviewCount: parseInt(count, 10) || 0,
+        averageRating: parseFloat(avg) || 0,
       };
     } catch (error) {
       console.error(`API: Error in getUserRating for ${userId}:`, error);
       return { reviewCount: 0, averageRating: 0 };
     }
   },
-
+  
   async getFriendChats(userId) {
     console.log(`API: getFriendChats called for userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/friend-chats/${userId}`);
