@@ -1,11 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function SignupForm({ onComplete, loading = false }) {
-  console.log('SignupForm component rendering');
+  // To temporarily pause the signup page, set this to true.
+  // To re-enable the signup form, set this to false.
+  const BYPASS_SIGNUP = true;
+
   const [formData, setFormData] = useState({
     gender: '',
     country: ''
   });
+
+  useEffect(() => {
+    if (BYPASS_SIGNUP && !loading) {
+      onComplete({
+        gender: 'male',
+        country: 'United States',
+      });
+    }
+  }, [BYPASS_SIGNUP, onComplete, loading]);
+
+  if (BYPASS_SIGNUP) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-2xl shadow-lg mx-auto mb-4 animate-pulse">
+              B
+            </div>
+            <h1 className="text-3xl font-bold mb-2">Welcome to blahbluh</h1>
+            <p className="text-gray-400">Getting things ready for you...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

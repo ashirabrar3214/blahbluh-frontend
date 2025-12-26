@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StarRating from './components/StarRating';
+import { api } from './api';
+import PfpSelect from './components/PfpSelect';
 
 const EditIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -20,41 +22,41 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
     username: currentUsername || '',
     gender: '',
     country: '',
-    interests: ''
+    interests: '',
+    pfp: '',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState(profile);
-  const [reviews, setReviews] = useState([]);
   const [ratingSummary, setRatingSummary] = useState({ average: null, count: 0 });
   const [ratingLoading, setRatingLoading] = useState(true);
+  const [showPfpSelect, setShowPfpSelect] = useState(false);
 
   useEffect(() => {
     // Load profile from localStorage
     const savedProfile = localStorage.getItem(`profile_${currentUserId}`);
     if (savedProfile) {
       const parsed = JSON.parse(savedProfile);
-      setProfile({ ...parsed, username: currentUsername });
-      setEditedProfile({ ...parsed, username: currentUsername });
+      const newProfile = { ...profile, ...parsed, username: currentUsername };
+      setProfile(newProfile);
+      setEditedProfile(newProfile);
     }
     
-    // Load reviews from localStorage
-    const savedReviews = localStorage.getItem(`reviews_${currentUserId}`);
-    if (savedReviews) {
-      setReviews(JSON.parse(savedReviews));
-    }
-
     let ignore = false;
 
     (async () => {
       try {
         setRatingLoading(true);
 
-        // IMPORTANT: adjust this URL to match how you mounted userRoutes
-        // Common ones: /api/users/user-rating/:id  OR  /users/user-rating/:id
-        const res = await fetch(`/api/users/user-rating/${currentUserId}`);
-        const data = await res.json();
+        // Use the api helper instead of raw fetch
+        const data = await api.getUserRating(currentUserId);
 
-        if (!ignore) setRatingSummary(data);
+        // Map the API response (reviewCount/averageRating) to the component state (count/average)
+        if (!ignore) {
+          setRatingSummary({
+            average: data.averageRating,
+            count: data.reviewCount
+          });
+        }
       } catch (e) {
         if (!ignore) setRatingSummary({ average: null, count: 0 });
         console.error("Failed to load rating summary:", e);
@@ -69,9 +71,8 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   }, [currentUserId, currentUsername]);
 
   const handleSave = () => {
-    const updatedProfile = { ...profile, interests: editedProfile.interests };
-    setProfile(updatedProfile);
-    localStorage.setItem(`profile_${currentUserId}`, JSON.stringify(updatedProfile));
+    setProfile(editedProfile);
+    localStorage.setItem(`profile_${currentUserId}`, JSON.stringify(editedProfile));
     setIsEditing(false);
   };
 
@@ -84,10 +85,9 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
-  const getAverageRating = () => {
-    if (reviews.length === 0) return 0;
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
-    return (sum / reviews.length).toFixed(1);
+  const handlePfpSelect = (pfpUrl) => {
+    setEditedProfile({ ...editedProfile, pfp: pfpUrl });
+    setShowPfpSelect(false);
   };
 
   return (
@@ -118,11 +118,29 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
         <div className="max-w-md mx-auto space-y-6">
           
           {/* Profile Picture */}
-          <div className="text-center">
-            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-4">
-              <span className="text-3xl font-bold text-white">
-                {getInitials(profile.username)}
-              </span>
+          <div className="text-center"> 
+            <div 
+              className="relative w-28 h-28 mx-auto rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-4 group"
+            >
+              {(isEditing ? editedProfile.pfp : profile.pfp) ? (
+                <img 
+                  src={isEditing ? editedProfile.pfp : profile.pfp} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <span className="text-3xl font-bold text-white">
+                  {getInitials(profile.username)}
+                </span>
+              )}
+              {isEditing && (
+                <button 
+                  onClick={() => setShowPfpSelect(true)}
+                  className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <EditIcon />
+                </button>
+              )}
             </div>
             <h2 className="text-xl font-bold text-white">{profile.username}</h2>
             <p className="text-zinc-500 text-sm">ID: {currentUserId?.slice(-8)}</p>
@@ -161,39 +179,18 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
 
             {/* Your Reviews */}
             <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800">
-              <div className="flex items-center justify-between mb-3">
-                <label className="block text-zinc-400 text-sm font-medium">Your Reviews</label>
-                {!ratingLoading && ratingSummary?.count > 0 && (
-                  <div className="flex items-center gap-1">
-                    <StarRating rating={ratingSummary.average} size="sm" />
-                    <span className="text-xs text-zinc-400 ml-1">
-                      {ratingSummary.average}/5 ({ratingSummary.count})
-                    </span>
-                  </div>
-                )}
-
-                {!ratingLoading && (!ratingSummary?.count || ratingSummary.count === 0) && (
-                  <p className="text-xs text-zinc-500 mt-1">No ratings yet</p>
-                )}
-              </div>
-              
-              {reviews.length === 0 ? (
-                <p className="text-zinc-500 text-sm">No reviews yet. Chat with people to get reviews!</p>
-              ) : (
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {reviews.slice(-3).reverse().map((review, index) => (
-                    <div key={index} className="flex items-center justify-between py-1">
-                      <div className="flex items-center gap-2">
-                        <StarRating rating={review.rating} size="sm" />
-                        <span className="text-xs text-zinc-400">from {review.fromUser}</span>
-                      </div>
-                      <span className="text-xs text-zinc-500">{new Date(review.timestamp).toLocaleDateString()}</span>
-                    </div>
-                  ))}
-                  {reviews.length > 3 && (
-                    <p className="text-xs text-zinc-500 text-center pt-1">+{reviews.length - 3} more reviews</p>
-                  )}
+              <label className="block text-zinc-400 text-sm font-medium mb-2">Your Rating</label>
+              {ratingLoading ? (
+                <p className="text-zinc-500 text-sm">Loading rating...</p>
+              ) : ratingSummary.count > 0 ? (
+                <div className="flex items-center gap-2">
+                  <StarRating rating={ratingSummary.average} size="md" />
+                  <span className="text-zinc-400 text-sm">
+                    {Number(ratingSummary.average || 0).toFixed(1)}/5 ({ratingSummary.count} review{ratingSummary.count === 1 ? '' : 's'})
+                  </span>
                 </div>
+              ) : (
+                <p className="text-zinc-500 text-sm">No reviews yet. Chat with people to get reviews!</p>
               )}
             </div>
           </div>
@@ -217,6 +214,15 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
           )}
         </div>
       </div>
+
+      {/* PFP Selection Modal */}
+      {showPfpSelect && isEditing && (
+        <PfpSelect 
+          onClose={() => setShowPfpSelect(false)}
+          onSelect={handlePfpSelect}
+          currentPfp={editedProfile.pfp}
+        />
+      )}
     </div>
   );
 }
