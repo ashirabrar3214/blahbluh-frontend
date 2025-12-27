@@ -268,18 +268,18 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
-      <nav className="fixed top-0 w-full z-20 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
+      <nav className="fixed top-0 w-full z-20 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
+        <div className="flex items-center gap-2 md:gap-2.5">
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-base md:text-lg shadow-lg shadow-white/10">
             B
           </div>
-          <span className="font-bold text-lg tracking-tight text-white">blahbluh</span>
+          <span className="font-bold text-base md:text-lg tracking-tight text-white">blahbluh</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors relative"
+              className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors relative"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -346,7 +346,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           </div>
           <button
             onClick={onInboxOpen}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors relative"
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors relative"
           >
             <InboxIcon />
             {unreadCount > 0 && (
@@ -357,12 +357,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           </button>
           <button
             onClick={onProfileOpen}
-            className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-2 pl-1 pr-2 md:pr-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] md:text-xs text-zinc-400 font-mono hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
           >
             {pfpUrl ? (
-              <img src={pfpUrl} alt="Profile" className="w-7 h-7 rounded-full object-contain bg-zinc-700" />
+              <img src={pfpUrl} alt="Profile" className="w-6 h-6 md:w-7 md:h-7 rounded-full object-contain bg-zinc-700" />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center">
+              <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-zinc-800 flex items-center justify-center">
                 <UserIcon />
               </div>
             )}
@@ -413,7 +413,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
                 </div>
                 <button
                   onClick={leaveQueue}
-                  className="mt-4 px-6 py-3 rounded-full bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 transition-colors"
+                  className="mt-4 px-5 py-2.5 md:px-6 md:py-3 rounded-full bg-zinc-800 text-white text-xs md:text-sm font-medium hover:bg-zinc-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -430,7 +430,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
               <button 
                 onClick={joinQueue} 
                 disabled={tags.length === 0}
-                className={`group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] ${tags.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                className={`group relative w-full py-4 md:py-5 rounded-full bg-white text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] ${tags.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
               >
                 Start Chatting
                 <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>

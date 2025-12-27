@@ -254,6 +254,7 @@ function App() {
         key={inboxKey}
         socket={globalSocketRef.current}
         currentUserId={currentUser.id}
+        currentUsername={currentUser.username}
         onBack={() => setCurrentPage('home')}
         onChatOpen={(friend) => {
           console.log('App: Opening friend chat from inbox with friend:', friend);

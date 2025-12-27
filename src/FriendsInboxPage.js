@@ -24,6 +24,7 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const selectedChatRef = useRef(null);
+  const [pfpUrl, setPfpUrl] = useState(null);
 
   const loadFriendChats = useCallback(async () => {
     setLoading(true);
@@ -102,6 +103,24 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
 
     return () => socketRef.current?.disconnect();
   }, [currentUserId, loadFriendChats]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    let ignore = false;
+    const loadPfp = async () => {
+      try {
+        const pfpData = await api.getUserPfp(currentUserId);
+        if (!ignore && pfpData) {
+          const url = pfpData.pfp || pfpData.pfpLink;
+          if (url) setPfpUrl(url);
+        }
+      } catch (error) {
+        console.error('Error loading user PFP:', error);
+      }
+    };
+    loadPfp();
+    return () => { ignore = true; };
+  }, [currentUserId]);
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -188,6 +207,17 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
         ) : (
           <h1 className="text-lg font-bold">Friends</h1>
         )}
+        <div className="ml-auto">
+          <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-700">
+            {pfpUrl ? (
+              <img src={pfpUrl} alt="Profile" className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-xs font-bold text-zinc-400">
+                {currentUsername?.[0]?.toUpperCase() || '?'}
+              </span>
+            )}
+          </div>
+        </div>
       </header>
 
       <div className="flex-1 flex">

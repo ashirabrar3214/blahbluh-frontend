@@ -730,10 +730,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           {/* Left: Exit Button */}
           <div className="justify-self-start">
             <button onClick={() => handleExitToHome(!chatId?.startsWith('friend_'))} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-xs shadow-lg shadow-white/10">
+              <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-[10px] md:text-xs shadow-lg shadow-white/10">
                 B
               </div>
-              <span className="text-xs font-medium">Exit Chat</span>
+              <span className="text-[10px] md:text-xs font-medium">Exit Chat</span>
             </button>
           </div>
 
@@ -758,7 +758,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             {chatId?.startsWith('friend_') ? (
               // Friend chat header - simple: block only
               <>
-                <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
+                <button onClick={handleBlockUser} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
               </>
@@ -766,18 +766,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               // Random chat header - full: add friend, next
               <>
                 {isAlreadyFriend ? (
-                  <div className="w-9 h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
+                  <div className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
                     <CheckIcon />
                   </div>
                 ) : (
-                  <button onClick={handleAddFriend} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
+                  <button onClick={handleAddFriend} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
                     <UserPlusIcon />
                   </button>
                 )}
-                <button onClick={handleBlockUser} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
+                <button onClick={handleBlockUser} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
-                <button onClick={handleNextUser} className="hidden md:flex ml-2 pl-4 pr-5 py-2 rounded-full bg-white text-black font-bold text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5">
+                <button onClick={handleNextUser} className="flex ml-2 pl-3 pr-4 py-1.5 md:pl-4 md:pr-5 md:py-2 rounded-full bg-white text-black font-bold text-[10px] md:text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5">
                   <span>Next</span>
                   <NextIcon />
                 </button>

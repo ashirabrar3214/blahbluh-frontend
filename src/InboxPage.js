@@ -14,9 +14,10 @@ const MessageIcon = () => (
   </svg>
 );
 
-function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
+function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket }) {
   const [friends, setFriends] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [pfpUrl, setPfpUrl] = useState(null);
 
   useEffect(() => {
     const loadFriends = async () => {
@@ -46,6 +47,24 @@ function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
       }
     };
     loadFriends();
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    let ignore = false;
+    const loadPfp = async () => {
+      try {
+        const pfpData = await api.getUserPfp(currentUserId);
+        if (!ignore && pfpData) {
+          const url = pfpData.pfp || pfpData.pfpLink;
+          if (url) setPfpUrl(url);
+        }
+      } catch (error) {
+        console.error('Error loading user PFP:', error);
+      }
+    };
+    loadPfp();
+    return () => { ignore = true; };
   }, [currentUserId]);
 
   // Listen for new messages to update unread counts
@@ -98,7 +117,15 @@ function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
         
         <h1 className="text-lg font-bold text-white">Inbox</h1>
         
-        <div className="w-16"></div> {/* Spacer for centering */}
+        <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-700">
+          {pfpUrl ? (
+            <img src={pfpUrl} alt="Profile" className="w-full h-full object-contain" />
+          ) : (
+            <span className="text-xs font-bold text-zinc-400">
+              {getInitials(currentUsername)}
+            </span>
+          )}
+        </div>
       </header>
 
       {/* Inbox Content */}
