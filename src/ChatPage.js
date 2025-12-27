@@ -726,39 +726,39 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {/* Main Chat Page - Blurred when icebreaker is active */}
         <div className={`fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh] transition-all duration-300 ${isIcebreakerActive ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header - Different for friend vs random chat */}
-        <header className="absolute top-0 left-0 right-0 z-20 px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
+        <header className="absolute top-0 left-0 right-0 z-20 px-3 py-2 md:px-4 md:py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
           {/* Left: Exit Button */}
           <div className="justify-self-start">
-            <button onClick={() => handleExitToHome(!chatId?.startsWith('friend_'))} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-full hover:bg-zinc-800">
+            <button onClick={() => handleExitToHome(!chatId?.startsWith('friend_'))} className="flex items-center gap-1.5 md:gap-2 text-zinc-400 hover:text-white transition-colors px-1.5 py-1 md:px-2 md:py-1 rounded-full hover:bg-zinc-800">
               <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-[10px] md:text-xs shadow-lg shadow-white/10">
                 B
               </div>
-              <span className="text-[10px] md:text-xs font-medium">Exit Chat</span>
+              <span className="text-[10px] md:text-xs font-medium">Exit</span>
             </button>
           </div>
 
           {/* Center: Profile Info */}
           <div className="justify-self-center flex flex-col items-center">
-             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner overflow-hidden">
+             <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner overflow-hidden">
                 {chatPartner?.pfp ? (
                   <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
                 ) : (
-                  <span className="text-sm font-bold text-white tracking-wide">
+                  <span className="text-xs md:text-sm font-bold text-white tracking-wide">
                     {chatPartner?.username?.[0]?.toUpperCase() || '?'}
                   </span>
                 )}
              </div>
-             <span className="text-sm font-semibold text-gray-100 leading-tight mt-1.5">
+             <span className="text-[10px] md:text-sm font-semibold text-gray-100 leading-tight mt-0.5 md:mt-1.5 max-w-[100px] truncate text-center">
                 {chatPartner?.username || 'Stranger'}
              </span>
           </div>
 
           {/* Right: Action Buttons */}
-          <div className="justify-self-end flex items-center gap-2">
+          <div className="justify-self-end flex items-center gap-1.5 md:gap-2">
             {chatId?.startsWith('friend_') ? (
               // Friend chat header - simple: block only
               <>
-                <button onClick={handleBlockUser} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
+                <button onClick={handleBlockUser} className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
               </>
@@ -766,18 +766,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               // Random chat header - full: add friend, next
               <>
                 {isAlreadyFriend ? (
-                  <div className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
+                  <div className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
                     <CheckIcon />
                   </div>
                 ) : (
-                  <button onClick={handleAddFriend} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
+                  <button onClick={handleAddFriend} className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
                     <UserPlusIcon />
                   </button>
                 )}
-                <button onClick={handleBlockUser} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
+                <button onClick={handleBlockUser} className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
-                <button onClick={handleNextUser} className="flex ml-2 pl-3 pr-4 py-1.5 md:pl-4 md:pr-5 md:py-2 rounded-full bg-white text-black font-bold text-[10px] md:text-xs items-center gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5">
+                <button onClick={handleNextUser} className="flex ml-1 pl-2 pr-3 py-1 md:ml-2 md:pl-4 md:pr-5 md:py-2 rounded-full bg-white text-black font-bold text-[10px] md:text-xs items-center gap-1 md:gap-1.5 hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5">
                   <span>Next</span>
                   <NextIcon />
                 </button>
@@ -1007,43 +1007,43 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {/* Icebreaker Popup */}
         {isIcebreakerActive && (
           <div className="fixed inset-0 bg-black/60 text-white flex flex-col items-center justify-center font-sans h-[100dvh] p-4 z-50 animate-in fade-in duration-300">
-            <div className="w-full max-w-lg text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
-              <div className="flex flex-col items-center mb-4 md:mb-6">
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2 overflow-hidden">
+            <div className="w-full max-w-md text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl">
+              <div className="flex flex-col items-center mb-3 md:mb-5">
+                <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2 overflow-hidden">
                   {chatPartner?.pfp ? (
                     <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
                   ) : (
-                    <span className="text-lg md:text-xl font-bold text-white tracking-wide">
+                    <span className="text-base md:text-lg font-bold text-white tracking-wide">
                       {chatPartner?.username?.[0]?.toUpperCase() || '?'}
                     </span>
                   )}
                 </div>
-                <span className="text-base md:text-lg font-semibold text-gray-100 leading-tight">
+                <span className="text-sm md:text-base font-semibold text-gray-100 leading-tight">
                   {chatPartner?.username || 'Stranger'}
                 </span>
               </div>
-              <h2 className="text-lg md:text-xl font-bold text-zinc-400 mb-2 md:mb-4">Icebreaker</h2>
-              <p className="text-2xl md:text-4xl font-bold text-white mb-6 md:mb-8 leading-tight">{suggestedTopic}</p>
-              <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-3 md:gap-4">
+              <h2 className="text-base md:text-lg font-bold text-zinc-400 mb-2 md:mb-3">Icebreaker</h2>
+              <p className="text-xl md:text-3xl font-bold text-white mb-5 md:mb-6 leading-tight">{suggestedTopic}</p>
+              <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-2 md:gap-3">
                 <textarea
                   value={promptAnswer}
                   onChange={(e) => setPromptAnswer(e.target.value)}
                   placeholder="Your answer..."
-                  className="w-full h-24 md:h-32 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-3 md:p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none text-sm md:text-base"
+                  className="w-full h-20 md:h-24 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none text-xs md:text-sm"
                   autoFocus
                 />
-                <div className="flex flex-col gap-2 mt-2">
+                <div className="flex flex-col gap-2 mt-1">
                   <button
                     type="submit"
                     disabled={!promptAnswer.trim()}
-                    className="w-full py-3 md:py-4 rounded-full bg-blue-600 text-white font-bold text-sm md:text-base hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
+                    className="w-full py-2.5 md:py-3 rounded-full bg-blue-600 text-white font-bold text-xs md:text-sm hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
                   >
                     Unlock Chat & Send
                   </button>
                   <button
                     type="button"
                     onClick={confirmLeaveChat}
-                    className="w-full py-2.5 md:py-3 rounded-full text-zinc-400 text-xs md:text-sm font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
+                    className="w-full py-2 md:py-2.5 rounded-full text-zinc-400 text-[10px] md:text-xs font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
                   >
                     Skip
                   </button>
