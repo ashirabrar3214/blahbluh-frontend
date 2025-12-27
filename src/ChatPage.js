@@ -50,7 +50,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [replyingTo, setReplyingTo] = useState(null);
   const [activeActionMenu, setActiveActionMenu] = useState(null);      // messageId
   const [actionMenuView, setActionMenuView] = useState('main');         // 'main' | 'react'
-  const [menuVerticalPosition, setMenuVerticalPosition] = useState('top-1/2 -translate-y-1/2'); // Tries to center, falls back to top/bottom
+  //const [menuVerticalPosition, setMenuVerticalPosition] = useState('top-1/2 -translate-y-1/2'); // Tries to center, falls back to top/bottom
   const [actionMenuCoords, setActionMenuCoords] = useState({ top: 0, left: 0 }); // New state for menu position
   // Use global state instead of local state
   const friendRequests = globalFriendRequests;
@@ -87,7 +87,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const swipeStartY = useRef(null);
   const hardExitRef = useRef(false);
 
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  //const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // --- FUNCTIONS ---
   const loadFriendRequests = useCallback(async () => {
