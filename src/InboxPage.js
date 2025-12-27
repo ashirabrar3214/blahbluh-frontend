@@ -127,10 +127,14 @@ function InboxPage({ currentUserId, onBack, onChatOpen, socket }) {
                 className="flex items-center gap-3 p-4 hover:bg-zinc-900/50 rounded-2xl cursor-pointer transition-colors border-b border-zinc-800/50 last:border-b-0"
               >
                 {/* Avatar */}
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-white">
-                    {getInitials(friend.username)}
-                  </span>
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {friend.pfp ? (
+                    <img src={friend.pfp} alt={`${friend.username}'s avatar`} className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-sm font-bold text-white">
+                      {getInitials(friend.username)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Message Info */}

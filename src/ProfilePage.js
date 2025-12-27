@@ -32,48 +32,71 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   const [showPfpSelect, setShowPfpSelect] = useState(false);
 
   useEffect(() => {
-    // Load profile from localStorage
-    const savedProfile = localStorage.getItem(`profile_${currentUserId}`);
-    if (savedProfile) {
-      const parsed = JSON.parse(savedProfile);
-      const newProfile = { ...profile, ...parsed, username: currentUsername };
-      setProfile(newProfile);
-      setEditedProfile(newProfile);
-    }
-    
     let ignore = false;
 
-    (async () => {
+    const loadProfileData = async () => {
+      if (!currentUserId) return;
+      
+      setRatingLoading(true);
       try {
-        setRatingLoading(true);
+        // Fetch full profile and rating data from the backend
+        const [userProfile, ratingData, pfpData] = await Promise.all([
+          api.getUser(currentUserId),
+          api.getUserRating(currentUserId),
+          api.getUserPfp(currentUserId).catch(() => null),
+        ]);
 
-        // Use the api helper instead of raw fetch
-        const data = await api.getUserRating(currentUserId);
-
-        // Map the API response (reviewCount/averageRating) to the component state (count/average)
         if (!ignore) {
+          const pfpUrl = pfpData?.pfp || pfpData?.pfpLink || userProfile.pfp;
+          const newProfile = { ...profile, ...userProfile, pfp: pfpUrl, username: userProfile.username || currentUsername };
+          setProfile(newProfile);
+          setEditedProfile(newProfile);
+
           setRatingSummary({
-            average: data.averageRating,
-            count: data.reviewCount
+            average: ratingData.averageRating,
+            count: ratingData.reviewCount
           });
         }
-      } catch (e) {
-        if (!ignore) setRatingSummary({ average: null, count: 0 });
-        console.error("Failed to load rating summary:", e);
+      } catch (error) {
+        console.error("Failed to load profile data:", error);
+        if (!ignore) {
+          setRatingSummary({ average: null, count: 0 });
+        }
       } finally {
-        if (!ignore) setRatingLoading(false);
+        if (!ignore) {
+          setRatingLoading(false);
+        }
       }
-    })();
+    };
+
+    loadProfileData();
 
     return () => {
       ignore = true;
     };
-  }, [currentUserId, currentUsername]);
+  }, [currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    // Optimistically update local state
+    const oldProfile = { ...profile };
     setProfile(editedProfile);
-    localStorage.setItem(`profile_${currentUserId}`, JSON.stringify(editedProfile));
     setIsEditing(false);
+
+    // Save to backend so others can see it
+    try {
+      const promises = [];
+      if (oldProfile.pfp !== editedProfile.pfp) {
+        promises.push(api.updateUserPfp(currentUserId, editedProfile.pfp));
+      }
+      if (oldProfile.interests !== editedProfile.interests) {
+        promises.push(api.updateUser(currentUserId, { interests: editedProfile.interests }));
+      }
+      await Promise.all(promises);
+    } catch (error) {
+      console.error("Failed to save profile to backend:", error);
+      // Revert optimistic update on failure
+      setProfile(oldProfile);
+    }
   };
 
   const handleCancel = () => {
@@ -126,7 +149,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                 <img 
                   src={isEditing ? editedProfile.pfp : profile.pfp} 
                   alt="Profile" 
-                  className="w-full h-full object-cover rounded-full"
+                  className="w-full h-full object-contain rounded-full"
                 />
               ) : (
                 <span className="text-3xl font-bold text-white">

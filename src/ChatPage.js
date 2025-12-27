@@ -138,6 +138,36 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   }, [currentUserId, chatPartner, checkFriendshipStatus]);
 
+  // Load partner PFP separately to ensure it's up to date
+  useEffect(() => {
+    const partnerId = chatPartner?.userId || chatPartner?.id;
+    if (!partnerId) return;
+
+    let ignore = false;
+    const loadPfp = async () => {
+      try {
+        const pfpData = await api.getUserPfp(partnerId).catch(() => null);
+        if (!ignore && pfpData) {
+          const pfpUrl = pfpData.pfp || pfpData.pfpLink;
+          if (pfpUrl) {
+            setChatPartner(prev => {
+              const prevId = prev?.userId || prev?.id;
+              // Only update if it's the same user and PFP is different
+              if (prevId === partnerId && prev.pfp !== pfpUrl) {
+                return { ...prev, pfp: pfpUrl };
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading partner PFP:', error);
+      }
+    };
+    loadPfp();
+    return () => { ignore = true; };
+  }, [chatPartner?.userId, chatPartner?.id]);
+
   // Poll for friend requests
   useEffect(() => {
     if (!currentUserId) return;
@@ -660,6 +690,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
     try {
       await api.sendFriendRequest(currentUserId, partnerId);
+      setActionToast('Friend request sent');
     } catch (err) {
       console.error('handleAddFriend failed:', err);
     }
@@ -708,12 +739,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
           {/* Center: Profile Info */}
           <div className="justify-self-center flex flex-col items-center">
-             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner">
-                <span className="text-sm font-bold text-white tracking-wide">
-                  {chatPartner?.username?.[0]?.toUpperCase() || '?'}
-                </span>
+             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner overflow-hidden">
+                {chatPartner?.pfp ? (
+                  <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
+                ) : (
+                  <span className="text-sm font-bold text-white tracking-wide">
+                    {chatPartner?.username?.[0]?.toUpperCase() || '?'}
+                  </span>
+                )}
              </div>
-             <span className="text-sm font-semibold text-gray-100 leading-tight mt-1">
+             <span className="text-sm font-semibold text-gray-100 leading-tight mt-1.5">
                 {chatPartner?.username || 'Stranger'}
              </span>
           </div>
@@ -974,10 +1009,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           <div className="fixed inset-0 bg-black/60 text-white flex flex-col items-center justify-center font-sans h-[100dvh] p-4 z-50 animate-in fade-in duration-300">
             <div className="w-full max-w-lg text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-8 shadow-2xl">
               <div className="flex flex-col items-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2">
-                  <span className="text-xl font-bold text-white tracking-wide">
-                    {chatPartner?.username?.[0]?.toUpperCase() || '?'}
-                  </span>
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2 overflow-hidden">
+                  {chatPartner?.pfp ? (
+                    <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-xl font-bold text-white tracking-wide">
+                      {chatPartner?.username?.[0]?.toUpperCase() || '?'}
+                    </span>
+                  )}
                 </div>
                 <span className="text-lg font-semibold text-gray-100 leading-tight">
                   {chatPartner?.username || 'Stranger'}

@@ -48,6 +48,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const [bannerMessage, setBannerMessage] = useState(null);
   const bellNotifications = notifications.filter(n => n.id !== 'partner-disconnected');
   const [tags, setTags] = useState([]);
+  const [pfpUrl, setPfpUrl] = useState(null);
 
 
   // Debug logging for notification counts
@@ -116,6 +117,30 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       }
     };
     loadInterests();
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    let ignore = false;
+    const loadPfp = async () => {
+      try {
+        const pfpData = await api.getUserPfp(currentUserId);
+        if (!ignore && pfpData) {
+          const url = pfpData.pfp || pfpData.pfpLink;
+          if (url) {
+            setPfpUrl(url);
+          }
+        }
+      } catch (error) {
+        // It's okay if this fails, we'll just show the default icon.
+        console.log("Could not load user PFP for nav bar, showing default icon.", error.message);
+      }
+    };
+
+    loadPfp();
+
+    return () => { ignore = true; };
   }, [currentUserId]);
 
   const loadFriendRequests = useCallback(async () => {
@@ -332,9 +357,15 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           </button>
           <button
             onClick={onProfileOpen}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
           >
-            <UserIcon />
+            {pfpUrl ? (
+              <img src={pfpUrl} alt="Profile" className="w-7 h-7 rounded-full object-contain bg-zinc-700" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center">
+                <UserIcon />
+              </div>
+            )}
             {currentUsername || 'guest'}
           </button>
         </div>

@@ -41,6 +41,7 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
             id: chatId,
             friendId: friendId,
             friendName: friendName,
+            pfp: friend.pfp,
             lastMessage: 'Start a conversation...',
             lastMessageTime: null,
             isOnline: false
@@ -168,16 +169,25 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-800 transition-colors">
           <BackIcon />
         </button>
-        <div>
-          <h1 className="text-lg font-bold">
-            {selectedChat ? selectedChat.friendName : 'Friends'}
-          </h1>
-          {selectedChat && (
-            <p className="text-xs text-zinc-400">
-              {selectedChat.isOnline ? 'Online' : 'Last seen recently'}
-            </p>
-          )}
-        </div>
+        {selectedChat ? (
+          <>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {selectedChat.pfp ? (
+                <img src={selectedChat.pfp} alt={`${selectedChat.friendName}'s avatar`} className="w-full h-full object-contain" />
+              ) : (
+                <span className="font-bold text-sm">{selectedChat.friendName[0].toUpperCase()}</span>
+              )}
+            </div>
+            <div>
+              <h1 className="text-lg font-bold">{selectedChat.friendName}</h1>
+              <p className="text-xs text-zinc-400">
+                {selectedChat.isOnline ? 'Online' : 'Last seen recently'}
+              </p>
+            </div>
+          </>
+        ) : (
+          <h1 className="text-lg font-bold">Friends</h1>
+        )}
       </header>
 
       <div className="flex-1 flex">
@@ -206,8 +216,12 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold">
-                      {chat.friendName[0].toUpperCase()}
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
+                      {chat.pfp ? (
+                        <img src={chat.pfp} alt={`${chat.friendName}'s avatar`} className="w-full h-full object-contain" />
+                      ) : (
+                        chat.friendName[0].toUpperCase()
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">

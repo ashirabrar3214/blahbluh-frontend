@@ -29,6 +29,32 @@ export const api = {
     return data;
   },
 
+  async updateUserPfp(userId, pfpLink) {
+    console.log(`API: updateUserPfp called for userId: ${userId} with pfpLink:`, pfpLink);
+    const response = await fetch(`${API_BASE_URL}/api/${userId}/pfp`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pfpLink })
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    console.log(`API: updateUserPfp response for ${userId}:`, data);
+    return data;
+  },
+
+  async getUserPfp(userId) {
+    console.log(`API: getUserPfp called for userId: ${userId}`);
+    const response = await fetch(`${API_BASE_URL}/api/${userId}/pfp`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  },
+
   async reportUser(userId) {
     console.log(`API: reportUser called for userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/${userId}/report`, {

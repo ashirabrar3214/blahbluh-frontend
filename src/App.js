@@ -198,12 +198,6 @@ function App() {
       const user = await api.updateUser(gen.userId, signupData);
       console.log('App: Signup complete, created user:', user);
 
-      // Save the newly created user profile to localStorage.
-      // This allows ProfilePage to load the correct data.
-      if (user && user.id) {
-        localStorage.setItem(`profile_${user.id}`, JSON.stringify(user));
-      }
-
       setCurrentUser(user);
       setCurrentPage('home');
     } catch (e) {
