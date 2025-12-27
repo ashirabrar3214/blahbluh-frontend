@@ -53,20 +53,20 @@ export default function ReviewPopup({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="w-[92%] max-w-md rounded-2xl bg-zinc-900 border border-white/10 p-6 shadow-2xl">
+      <div className="w-[92%] max-w-md rounded-2xl bg-zinc-900 border border-white/10 p-5 md:p-6 shadow-2xl">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner flex-shrink-0 overflow-hidden">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner flex-shrink-0 overflow-hidden">
               {partner?.pfp ? (
                 <img src={partner.pfp} alt={`${partner?.username || 'Partner'}'s avatar`} className="w-full h-full object-contain" />
               ) : (
-                <span className="text-lg font-bold text-white tracking-wide">
+                <span className="text-base md:text-lg font-bold text-white tracking-wide">
                   {getInitials(partner?.username)}
                 </span>
               )}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Rate {partner?.username || 'Stranger'}</h2>
+              <h2 className="text-base md:text-lg font-bold text-white">Rate {partner?.username || 'Stranger'}</h2>
               {partnerRating && partnerRating.reviewCount > 0 && (
                 <div className="flex items-center gap-1 mt-1">
                   <StarRating rating={partnerRating.averageRating} size="md" />

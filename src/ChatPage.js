@@ -1007,43 +1007,43 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {/* Icebreaker Popup */}
         {isIcebreakerActive && (
           <div className="fixed inset-0 bg-black/60 text-white flex flex-col items-center justify-center font-sans h-[100dvh] p-4 z-50 animate-in fade-in duration-300">
-            <div className="w-full max-w-lg text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-8 shadow-2xl">
-              <div className="flex flex-col items-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2 overflow-hidden">
+            <div className="w-full max-w-lg text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
+              <div className="flex flex-col items-center mb-4 md:mb-6">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2 overflow-hidden">
                   {chatPartner?.pfp ? (
                     <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
                   ) : (
-                    <span className="text-xl font-bold text-white tracking-wide">
+                    <span className="text-lg md:text-xl font-bold text-white tracking-wide">
                       {chatPartner?.username?.[0]?.toUpperCase() || '?'}
                     </span>
                   )}
                 </div>
-                <span className="text-lg font-semibold text-gray-100 leading-tight">
+                <span className="text-base md:text-lg font-semibold text-gray-100 leading-tight">
                   {chatPartner?.username || 'Stranger'}
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-zinc-400 mb-4">Icebreaker</h2>
-              <p className="text-4xl font-bold text-white mb-8 leading-tight">{suggestedTopic}</p>
-              <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-4">
+              <h2 className="text-lg md:text-xl font-bold text-zinc-400 mb-2 md:mb-4">Icebreaker</h2>
+              <p className="text-2xl md:text-4xl font-bold text-white mb-6 md:mb-8 leading-tight">{suggestedTopic}</p>
+              <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-3 md:gap-4">
                 <textarea
                   value={promptAnswer}
                   onChange={(e) => setPromptAnswer(e.target.value)}
                   placeholder="Your answer..."
-                  className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                  className="w-full h-24 md:h-32 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-3 md:p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none text-sm md:text-base"
                   autoFocus
                 />
                 <div className="flex flex-col gap-2 mt-2">
                   <button
                     type="submit"
                     disabled={!promptAnswer.trim()}
-                    className="w-full py-4 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
+                    className="w-full py-3 md:py-4 rounded-full bg-blue-600 text-white font-bold text-sm md:text-base hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
                   >
                     Unlock Chat & Send
                   </button>
                   <button
                     type="button"
                     onClick={confirmLeaveChat}
-                    className="w-full py-3 rounded-full text-zinc-400 text-sm font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
+                    className="w-full py-2.5 md:py-3 rounded-full text-zinc-400 text-xs md:text-sm font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
                   >
                     Skip
                   </button>
@@ -1057,17 +1057,17 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {showWarning && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="w-full max-w-xs bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl scale-100">
-              <h3 className="text-lg font-bold text-white text-center mb-2">Skip Chat?</h3>
-              <p className="text-zinc-400 text-sm text-center mb-6 leading-relaxed">
+              <h3 className="text-base md:text-lg font-bold text-white text-center mb-2">Skip Chat?</h3>
+              <p className="text-zinc-400 text-xs md:text-sm text-center mb-6 leading-relaxed">
                 Are you sure you want to disconnect?
                 <br/>
                 <span className="text-xs text-zinc-500 hidden md:inline-block mt-2">(Press ESC to close)</span>
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setShowWarning(false)} className="flex-1 py-3.5 rounded-2xl bg-zinc-800 text-white font-medium text-sm hover:bg-zinc-700 transition-colors">
+                <button onClick={() => setShowWarning(false)} className="flex-1 py-3 md:py-3.5 rounded-2xl bg-zinc-800 text-white font-medium text-xs md:text-sm hover:bg-zinc-700 transition-colors">
                   Cancel
                 </button>
-                <button onClick={confirmLeaveChat} className="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors">
+                <button onClick={confirmLeaveChat} className="flex-1 py-3 md:py-3.5 rounded-2xl bg-white text-black font-bold text-xs md:text-sm hover:bg-gray-200 transition-colors">
                   Yes, Skip
                 </button>
               </div>
