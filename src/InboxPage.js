@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './api';
+import LoadingScreen from './components/LoadingScreen';
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -18,6 +19,7 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket 
   const [friends, setFriends] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
   const [pfpUrl, setPfpUrl] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadFriends = async () => {
@@ -44,6 +46,8 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket 
       } catch (error) {
         console.error('Error in loading friends:', error);
         setFriends([]);
+      } finally {
+        setLoading(false);
       }
     };
     loadFriends();
@@ -101,7 +105,9 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket 
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
-
+  if (loading) {
+    return <LoadingScreen message="Loading inbox..." />;
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans">

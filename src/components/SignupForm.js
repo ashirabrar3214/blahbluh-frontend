@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingScreen from './LoadingScreen';
 
 function SignupForm({ onComplete, loading = false }) {
   // To temporarily pause the signup page, set this to true.
@@ -21,17 +22,7 @@ function SignupForm({ onComplete, loading = false }) {
 
   if (BYPASS_SIGNUP) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-2xl shadow-lg mx-auto mb-4 animate-pulse">
-              B
-            </div>
-            <h1 className="text-3xl font-bold mb-2">Welcome to blahbluh</h1>
-            <p className="text-gray-400">Getting things ready for you...</p>
-          </div>
-        </div>
-      </div>
+      <LoadingScreen message="Getting things ready..." />
     );
   }
 

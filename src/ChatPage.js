@@ -21,9 +21,6 @@ const BlockIcon = () => (
 const ReplyIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>
 );
-const SwipeUpIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
-);
 const MoreIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
 );
@@ -32,6 +29,9 @@ const ReportIcon = () => (
 );
 const EmojiIcon = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+);
+const HourglassIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
 );
 
 function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic }) {
@@ -69,6 +69,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [partnerRating, setPartnerRating] = useState(null);
   const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
   const [promptAnswer, setPromptAnswer] = useState('');
+  const [isAddingFriend, setIsAddingFriend] = useState(false);
 
   // --- REFS ---
   const currentUserIdRef = useRef(null);
@@ -83,8 +84,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const swipeStartX = useRef(null);
-  const swipeStartY = useRef(null);
   const hardExitRef = useRef(false);
 
   //const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -183,17 +182,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
-
-  // Handle ESC Key
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (chatId && e.key === 'Escape') {
-        setShowWarning(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [chatId]);
 
   // Toast Timer
   useEffect(() => {
@@ -548,27 +536,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     inputRef.current?.focus();
   };
 
-  const handleSwipeStart = (e) => {
-    const touch = e.touches[0];
-    swipeStartX.current = touch.clientX;
-    swipeStartY.current = touch.clientY;
-  };
-
-  const handleSwipeEnd = (e) => {
-    if (!swipeStartX.current || !swipeStartY.current) return;
-    
-    const touch = e.changedTouches[0];
-    const deltaX = touch.clientX - swipeStartX.current;
-    const deltaY = touch.clientY - swipeStartY.current;
-    
-    if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY < -100) {
-      setShowWarning(true);
-    }
-    
-    swipeStartX.current = null;
-    swipeStartY.current = null;
-  };
-
   const finishLeavingChat = (chatIdOverride) => {
     const cid = chatIdOverride || chatId;
     if (!cid || !socket || !currentUserId) return;
@@ -683,16 +650,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   };
 
   const handleAddFriend = async () => {
-    if (!chatPartner || !currentUserId) return;
+    if (!chatPartner || !currentUserId || isAddingFriend) return;
 
     const partnerId = chatPartner.userId || chatPartner.id;
     if (!partnerId) return;
 
+    setIsAddingFriend(true);
     try {
       await api.sendFriendRequest(currentUserId, partnerId);
       setActionToast('Friend request sent');
     } catch (err) {
       console.error('handleAddFriend failed:', err);
+      setIsAddingFriend(false);
     }
   };
 
@@ -733,7 +702,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-[10px] md:text-xs shadow-lg shadow-white/10">
                 B
               </div>
-              <span className="text-[10px] md:text-xs font-medium">Exit</span>
+              <span className="text-[10px] md:text-xs font-medium">Leave Chat</span>
             </button>
           </div>
 
@@ -770,8 +739,12 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                     <CheckIcon />
                   </div>
                 ) : (
-                  <button onClick={handleAddFriend} className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
-                    <UserPlusIcon />
+                  <button 
+                    onClick={handleAddFriend} 
+                    disabled={isAddingFriend}
+                    className={`w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-all active:scale-95 ${isAddingFriend ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`}
+                  >
+                    {isAddingFriend ? <HourglassIcon /> : <UserPlusIcon />}
                   </button>
                 )}
                 <button onClick={handleBlockUser} className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
@@ -788,23 +761,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
         {/* Content */}
         <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto overflow-hidden pt-12">
-          {/* Hints */}
-          <div className="absolute top-20 left-0 right-0 z-10 flex justify-center pointer-events-none opacity-60">
-             <div className="md:hidden flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
-                <SwipeUpIcon />
-                <span>Swipe up to skip</span>
-             </div>
-             <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/5 text-[10px] text-zinc-400 animate-pulse">
-                <span>Press Esc to skip</span>
-             </div>
-          </div>
-
           {/* Messages */}
           <div 
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto px-4 pt-12 pb-4 space-y-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full"
-            onTouchStart={handleSwipeStart}
-            onTouchEnd={handleSwipeEnd}
           >
             {messages.map((msg, index) => {
               const isOwn = msg.userId === currentUserId;

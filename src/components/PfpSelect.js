@@ -1,4 +1,4 @@
-import React, { useEffect, useId } from 'react';
+import React, { useEffect, useId, useState, useRef } from 'react';
 
 const PFP_BASE_URL = 'https://pub-c344659298794c9f96898621acc3f91a.r2.dev';
 const PFP_FILES = [
@@ -25,10 +25,27 @@ const PFP_FILES = [
     'u.png',
 ];
 
-const pfpUrls = PFP_FILES.map(file => `${PFP_BASE_URL}/${encodeURIComponent(file)}`);
+const BG_BASE_URL = 'https://pub-f0d85aac44cf4aa895afe84cb6649484.r2.dev';
+const BG_FILES = [
+  'a.png',
+];
 
-function PfpSelect({ onSelect, onClose, currentPfp }) {
+const pfpUrls = PFP_FILES.map(file => `${PFP_BASE_URL}/${encodeURIComponent(file)}`);
+const bgUrls = BG_FILES.map(file => `${BG_BASE_URL}/${encodeURIComponent(file)}`);
+
+function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
   const titleId = useId();
+  const [previewPfp, setPreviewPfp] = useState(currentPfp || pfpUrls[0]);
+  const [previewBg, setPreviewBg] = useState(currentBg || '');
+  
+  const pfpScrollRef = useRef(null);
+  const bgScrollRef = useRef(null);
+  
+  const pfpScrollTimeout = useRef(null);
+  const bgScrollTimeout = useRef(null);
+  
+  const isPfpScrolling = useRef(false);
+  const isBgScrolling = useRef(false);
 
   // Handle Escape key to close the modal
   useEffect(() => {
@@ -44,42 +61,213 @@ function PfpSelect({ onSelect, onClose, currentPfp }) {
     };
   }, [onClose]);
 
+  // Scroll to initial PFP on mount
+  useEffect(() => {
+    const container = pfpScrollRef.current;
+    if (container && currentPfp) {
+      const elementToScrollTo = container.querySelector(`[data-pfp-url="${currentPfp}"]`);
+      if (elementToScrollTo) {
+        setTimeout(() => {
+          elementToScrollTo.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+        }, 0);
+      }
+    }
+    
+    const bgContainer = bgScrollRef.current;
+    if (bgContainer) {
+      const selector = currentBg ? `[data-bg-url="${currentBg}"]` : '[data-bg-url=""]';
+      const elementToScrollTo = bgContainer.querySelector(selector);
+      if (elementToScrollTo) {
+        setTimeout(() => {
+          elementToScrollTo.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+        }, 0);
+      }
+    }
+  }, [currentPfp, currentBg]);
+
+  const handleConfirm = () => {
+    onSave({ pfp: previewPfp, bg: previewBg });
+    onClose();
+  };
+
+  const createScrollHandler = (ref, timeoutRef, isScrollingRef, setPreview, dataAttr) => () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    isScrollingRef.current = true;
+    timeoutRef.current = setTimeout(() => {
+      isScrollingRef.current = false;
+      const container = ref.current;
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.left + containerRect.width / 2;
+      let closestElement = null;
+      let minDistance = Infinity;
+
+      container.childNodes.forEach(child => {
+        if (child.nodeType === 1) { // Ensure it's an element
+          const childRect = child.getBoundingClientRect();
+          const childCenter = childRect.left + childRect.width / 2;
+          const distance = Math.abs(containerCenter - childCenter);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestElement = child;
+          }
+        }
+      });
+
+      if (closestElement) {
+        const val = closestElement.dataset[dataAttr];
+        if (val !== undefined) setPreview(val);
+      }
+    }, 150); // Debounce time
+  };
+
+  const handlePfpScroll = createScrollHandler(pfpScrollRef, pfpScrollTimeout, isPfpScrolling, setPreviewPfp, 'pfpUrl');
+  const handleBgScroll = createScrollHandler(bgScrollRef, bgScrollTimeout, isBgScrolling, setPreviewBg, 'bgUrl');
+
+  const handleThumbnailClick = (val, setPreview, ref, dataAttr, isScrollingRef) => {
+    if (isScrollingRef.current) return;
+    setPreview(val);
+    const container = ref.current;
+    if (container) {
+      const selector = `[data-${dataAttr}="${val}"]`;
+      const el = container.querySelector(selector);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
     >
-      <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-3xl border border-zinc-800 shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="grid grid-cols-3 items-center mb-6 shrink-0">
-          <div /> {/* Spacer */}
-          <h2 id={titleId} className="text-xl font-bold text-white text-center">Your Avatar</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white justify-self-end" aria-label="Close">
+      <div className="bg-zinc-950/90 backdrop-blur-xl rounded-3xl p-6 w-full max-w-md border border-white/10 shadow-2xl flex flex-col max-h-[90vh] relative overflow-hidden">
+        
+        {/* Decorative background glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-indigo-500/20 blur-[100px] pointer-events-none" />
+
+        <div className="flex items-center justify-between mb-8 shrink-0 relative z-10">
+          <h2 id={titleId} className="text-xl font-bold text-white tracking-tight">Edit Profile</h2>
+          <button 
+            onClick={onClose} 
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors" 
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>
         
-        <div className="flex flex-wrap gap-4 justify-center overflow-y-auto min-h-0 p-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full">
-          {pfpUrls.map((url, index) => (
-            <button
-              key={url}
-              onClick={() => onSelect(url)}
-              className={`w-28 h-28 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                currentPfp === url ? 'ring-2 ring-blue-500 scale-105' : 'ring-1 ring-zinc-700 hover:ring-blue-500 hover:scale-105'
-              }`}
-            >
-              <img src={url} alt={`Profile avatar option ${index + 1}`} className="w-full h-full object-contain" />
-            </button>
-          ))}
+        {/* Main Preview */}
+        <div className="flex-1 flex items-center justify-center mb-10 min-h-0 relative z-10">
+            <div className="relative group">
+                {/* Glow effect behind preview */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
+                
+                <div 
+                  className={`relative w-48 h-48 rounded-full overflow-hidden flex items-center justify-center shadow-2xl border-4 border-zinc-900/50 ring-1 ring-white/10 ${previewBg ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'}`}
+                  style={previewBg ? { backgroundImage: `url(${previewBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                >
+                    <img src={previewPfp} alt="Selected Avatar" className="w-full h-full object-contain drop-shadow-lg" />
+                </div>
+            </div>
         </div>
 
-        <div className="pt-6 mt-2 shrink-0">
+        {/* Avatar Carousel */}
+        <div className="mb-8 relative z-10">
+            <div className="flex items-center justify-between mb-3 px-1">
+                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Avatar</h3>
+                <span className="text-[10px] text-zinc-600 bg-zinc-900/50 px-2 py-0.5 rounded-full border border-white/5">Scroll to select</span>
+            </div>
+            
+            <div className="relative -mx-6">
+                {/* Fade Gradients */}
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-zinc-950/90 to-transparent z-10 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-zinc-950/90 to-transparent z-10 pointer-events-none" />
+
+                <div 
+                  ref={pfpScrollRef}
+                  onScroll={handlePfpScroll}
+                  className="flex items-center gap-4 overflow-x-auto px-6 pb-4 pt-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+                >
+                  {pfpUrls.map((url, index) => (
+                    <button
+                      key={url}
+                      data-pfp-url={url}
+                      onClick={() => handleThumbnailClick(url, setPreviewPfp, pfpScrollRef, 'pfp-url', isPfpScrolling)}
+                      className={`snap-center shrink-0 w-16 h-16 rounded-full overflow-hidden transition-all duration-300 ease-out ${
+                        previewPfp === url 
+                          ? 'ring-2 ring-white scale-110 shadow-lg shadow-indigo-500/20 opacity-100 z-10' 
+                          : 'ring-1 ring-white/10 scale-90 opacity-40 hover:opacity-80 hover:scale-100 grayscale hover:grayscale-0'
+                      }`}
+                    >
+                      <img src={url} alt={`Option ${index + 1}`} className="w-full h-full object-contain" />
+                    </button>
+                  ))}
+                </div>
+            </div>
+        </div>
+
+        {/* Background Carousel */}
+        <div className="mb-6 relative z-10">
+            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3 px-1">Background</h3>
+            
+            <div className="relative -mx-6">
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-zinc-950/90 to-transparent z-10 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-zinc-950/90 to-transparent z-10 pointer-events-none" />
+
+                <div 
+                  ref={bgScrollRef}
+                  onScroll={handleBgScroll}
+                  className="flex items-center gap-4 overflow-x-auto px-6 pb-4 pt-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+                >
+                  {/* Default BG Option */}
+                  <button
+                      data-bg-url=""
+                      onClick={() => handleThumbnailClick('', setPreviewBg, bgScrollRef, 'bg-url', isBgScrolling)}
+                      className={`snap-center shrink-0 w-16 h-16 rounded-full overflow-hidden transition-all duration-300 ease-out flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 ${
+                        previewBg === '' 
+                          ? 'ring-2 ring-white scale-110 shadow-lg shadow-purple-500/20 opacity-100 z-10' 
+                          : 'ring-1 ring-white/10 scale-90 opacity-40 hover:opacity-80 hover:scale-100'
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold text-white/90">None</span>
+                  </button>
+
+                  {bgUrls.map((url) => (
+                    <button
+                      key={url}
+                      data-bg-url={url}
+                      onClick={() => handleThumbnailClick(url, setPreviewBg, bgScrollRef, 'bg-url', isBgScrolling)}
+                      className={`snap-center shrink-0 w-16 h-16 rounded-full overflow-hidden transition-all duration-300 ease-out bg-black ${
+                        previewBg === url 
+                          ? 'ring-2 ring-white scale-110 shadow-lg shadow-indigo-500/20 opacity-100 z-10' 
+                          : 'ring-1 ring-white/10 scale-90 opacity-40 hover:opacity-80 hover:scale-100 grayscale hover:grayscale-0'
+                      }`}
+                    >
+                      <img src={url} alt="Background option" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+            </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="pt-4 mt-auto shrink-0 flex gap-3 relative z-10">
           <button
             onClick={onClose}
-            className="w-full px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-white transition-colors font-medium"
+            className="flex-1 px-4 py-3.5 bg-zinc-900 hover:bg-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all font-medium text-sm border border-white/5"
           >
-            Close
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="flex-1 px-4 py-3.5 bg-white text-black hover:bg-gray-200 rounded-2xl transition-all font-bold text-sm shadow-lg shadow-white/10 active:scale-95"
+          >
+            Save Changes
           </button>
         </div>
       </div>

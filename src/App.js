@@ -6,6 +6,7 @@ import InboxPage from './InboxPage';
 import ProfilePage from './ProfilePage';
 import SignupForm from './components/SignupForm';
 import { api } from './api';
+import LoadingScreen from './components/LoadingScreen';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -209,10 +210,13 @@ function App() {
   // 🔥 GLOBAL SIGNUP GATE
   if (!currentUser) {
     return (
-      <SignupForm
-        onComplete={handleSignupComplete}
-        loading={loading}
-      />
+      <>
+        {loading && <LoadingScreen message="Creating your account..." />}
+        <SignupForm
+          onComplete={handleSignupComplete}
+          loading={loading}
+        />
+      </>
     );
   }
 

@@ -196,7 +196,20 @@ export const api = {
     const response = await fetch(`${API_BASE_URL}/api/friends/${userId}`);
     const data = await response.json();
     console.log(`API: getFriends response for ${userId}:`, data);
-    return data;
+
+    // Fetch PFPs for each friend
+    const friendsWithPfps = await Promise.all(data.map(async (friend) => {
+      try {
+        const friendId = friend.userId || friend.id;
+        const pfpData = await this.getUserPfp(friendId);
+        return { ...friend, pfp: pfpData.pfp || pfpData.pfpLink || friend.pfp };
+      } catch (error) {
+        console.warn(`API: Failed to load PFP for friend ${friend.userId || friend.id}:`, error);
+        return friend;
+      }
+    }));
+
+    return friendsWithPfps;
   },
 
   async blockUser(userId, blockedUserId) {

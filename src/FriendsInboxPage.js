@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import { api } from './api';
 import { makeFriendChatId } from './utils/chatUtils';
+import LoadingScreen from './components/LoadingScreen';
 
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -33,21 +34,29 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
       const friends = await api.getFriends(currentUserId);
       
       if (friends && friends.length > 0) {
-        const friendChats = friends.map(friend => {
+        const friendChats = await Promise.all(friends.map(async (friend) => {
           const friendId = friend.userId;
           const friendName = friend.username;
           const chatId = makeFriendChatId(currentUserId, friendId);
           
+          let pfp = friend.pfp;
+          try {
+            const pfpData = await api.getUserPfp(friendId);
+            pfp = pfpData.pfp || pfpData.pfpLink || friend.pfp;
+          } catch (error) {
+            console.warn('Failed to load PFP for friend:', friendId);
+          }
+
           return {
             id: chatId,
             friendId: friendId,
             friendName: friendName,
-            pfp: friend.pfp,
+            pfp,
             lastMessage: 'Start a conversation...',
             lastMessageTime: null,
             isOnline: false
           };
-        });
+        }));
         
         setFriendChats(friendChats);
       } else {
@@ -176,9 +185,7 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-t-blue-500 border-zinc-800 rounded-full animate-spin"></div>
-      </div>
+      <LoadingScreen message="Loading chats..." />
     );
   }
 

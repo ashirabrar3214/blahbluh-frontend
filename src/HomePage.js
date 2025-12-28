@@ -49,6 +49,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const bellNotifications = notifications.filter(n => n.id !== 'partner-disconnected');
   const [tags, setTags] = useState([]);
   const [pfpUrl, setPfpUrl] = useState(null);
+  const [processingRequests, setProcessingRequests] = useState(new Set());
 
 
   // Debug logging for notification counts
@@ -156,6 +157,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   }, [currentUserId, setFriendRequests]);
 
   const handleAcceptFriend = async (requestId) => {
+  if (processingRequests.has(requestId)) return;
+
+  setProcessingRequests(prev => new Set(prev).add(requestId));
   console.log('👍 HomePage accepting friend request:', requestId);
   console.log('Current user accepting on HomePage:', currentUserId);
 
@@ -181,6 +185,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       });
     } catch (error) {
       console.error('❌ HomePage error accepting friend request:', error);
+    } finally {
+      setProcessingRequests(prev => {
+        const next = new Set(prev);
+        next.delete(requestId);
+        return next;
+      });
     }
   };
 
@@ -308,9 +318,14 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
                           </div>
                           <button
                             onClick={() => handleAcceptFriend(request.id)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors shadow-lg"
+                            disabled={processingRequests.has(request.id)}
+                            className={`px-3 py-1 text-white text-xs rounded-lg transition-colors shadow-lg ${
+                              processingRequests.has(request.id) 
+                                ? 'bg-blue-800 cursor-not-allowed opacity-70' 
+                                : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
                           >
-                            Accept
+                            {processingRequests.has(request.id) ? 'Accepting...' : 'Accept'}
                           </button>
                         </div>
                       ))}
