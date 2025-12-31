@@ -491,7 +491,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         api.markMessagesAsRead(currentUserId, targetFriend.userId).catch(console.error);
       }
     }
-  }, [initialChatData, targetFriend, currentUserId, currentUsername, socket]);
+  }, [initialChatData, targetFriend, currentUserId, currentUsername, socket, setSuggestedTopic]);
 
   const handlePromptSubmit = () => {
     if (!promptAnswer.trim() || !chatId || !currentUserId) return;
