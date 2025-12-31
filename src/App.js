@@ -29,24 +29,13 @@ function App() {
     currentPageRef.current = currentPage;
   }, [currentPage]);
 
-  useEffect(() => {
-    if (chatData) {
-      if (suggestedTopic) {
-        console.log("Partner and topic ready, navigating to chat");
-        setSelectedFriend(null);
-        setCurrentPage('chat');
-      } else if (currentUser?.id) {
-        api.suggestTopic(currentUser.id)
-          .then((data) => {
-            setSuggestedTopic(data?.suggestion || "What's on your mind?");
-          })
-          .catch((err) => {
-            console.error("Failed to fetch topic:", err);
-            setSuggestedTopic("What's on your mind?");
-          });
-      }
-    }
-  }, [chatData, suggestedTopic, currentUser]);
+useEffect(() => {
+  if (!chatData) return;
+
+  // Just go to chat. ChatPage will generate prompts per chatId.
+  setSelectedFriend(null);
+  setCurrentPage('chat');
+}, [chatData]);
 
     // Load initial unread count when user is set
   useEffect(() => {
@@ -242,7 +231,6 @@ function App() {
         globalFriendRequests={globalFriendRequests}
         setGlobalNotifications={setGlobalNotifications}
         setGlobalFriendRequests={setGlobalFriendRequests}
-        setSuggestedTopic={setSuggestedTopic}
         unreadCount={unreadCount}
         notification={pageNotification}
         onNotificationChange={setPageNotification}

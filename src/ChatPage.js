@@ -44,6 +44,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [currentUserId, setCurrentUserId] = useState(propUserId ?? null);
   const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
 
+  const [icebreakerOpen, setIcebreakerOpen] = useState(false);
+  const [icebreakerTopic, setIcebreakerTopic] = useState(null);
+  const topicChatIdRef = useRef(null);
+
   useEffect(() => {
     setCurrentUserId(propUserId ?? null);
     setCurrentUsername(propUsername ?? null);
@@ -223,31 +227,83 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     return () => document.removeEventListener('pointerdown', handlePointerDown, true);
   }, [activeActionMenu]);
 
+  useEffect(() => {
+    if (!chatId || !currentUserId) return;
+  
+    // No icebreaker for friend chats
+    if (chatId.startsWith('friend_')) {
+      setIcebreakerOpen(false);
+      setIcebreakerTopic(null);
+      return;
+    }
+  
+    // Prevent refetch spam for same chatId
+    if (topicChatIdRef.current === chatId) return;
+    topicChatIdRef.current = chatId;
+  
+    // Every new chatId => new prompt
+    setIcebreakerOpen(true);
+    setPromptAnswer('');
+    setIcebreakerTopic(null);
+  
+    api.suggestTopic(currentUserId)
+      .then((data) => {
+        if (topicChatIdRef.current !== chatId) return; // stale guard
+        setIcebreakerTopic(data?.suggestion || "What's on your mind?");
+      })
+      .catch(() => {
+        if (topicChatIdRef.current !== chatId) return;
+        setIcebreakerTopic("What's on your mind?");
+      });
+  }, [chatId, currentUserId, setSuggestedTopic]);
+
   // --- SOCKET LISTENERS ---
   useEffect(() => {
     if (!socket || !currentUserId) return;
 
     const handleChatPaired = (payload) => {
       console.log('ChatPage: Re-paired via socket', payload);
-      
-      // 1. Identify the new partner from the payload users array
-      const newPartner = payload.users?.find(u => (u.id || u.userId) !== currentUserId);
 
-      if (newPartner) {
-        // 2. Update state to show the new chat
-        setChatId(payload.chatId);
-        setChatPartner(newPartner);
-        setMessages([]); // Clear previous chat messages
-        setSuggestedTopic(payload.topic || null); // Set new topic if provided
-        
-        // 3. IMPORTANT: Turn off the loading screen
-        setIsRequeuing(false);
+      const newPartner = payload.users?.find(
+        (u) => (u.id || u.userId) !== currentUserId
+      );
 
-        // 4. Update the join ref and join the new room
-        joinedChatIdRef.current = payload.chatId;
-        socket.emit('join-chat', { chatId: payload.chatId });
+      if (!newPartner) return;
+
+      const newChatId = payload.chatId;
+
+      // 1) Switch UI to the new chat
+      setChatId(newChatId);
+      setChatPartner(newPartner);
+      setMessages([]);
+      setPromptAnswer(''); // reset whatever they typed last time
+      setIsRequeuing(false);
+
+      // 2) Join the new room (and update the ref FIRST)
+      joinedChatIdRef.current = newChatId;
+      socket.emit('join-chat', { chatId: newChatId });
+
+      // 3) Always ensure we have a prompt topic for the popup
+      if (payload.topic) {
+        setSuggestedTopic(payload.topic);
+        return;
       }
+
+      // Server didn't provide a topic -> fetch one here
+      setSuggestedTopic(null); // optional: clears previous topic before we set the new one
+      api.suggestTopic(currentUserId)
+        .then((data) => {
+          // stale guard: ignore if we already moved to another chat
+          if (joinedChatIdRef.current !== newChatId) return;
+          setSuggestedTopic(data?.suggestion || "What's on your mind?");
+        })
+        .catch((err) => {
+          console.error('ChatPage: Failed to fetch topic for new pairing:', err);
+          if (joinedChatIdRef.current !== newChatId) return;
+          setSuggestedTopic("What's on your mind?");
+        });
     };
+
 
     const handleNewMessage = (msg) => {
       // For friend chats, show all messages. For random chats, prevent echo
@@ -348,7 +404,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('friend-request-received', handleFriendRequestReceived);
       socket.off('friend-message-received');
     };
-  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId]);
+  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
   // Notify server when user leaves chat via navigation (Home button)
   useEffect(() => {
       // Reset flag when entering a new chat
@@ -384,6 +440,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setChatId(initialChatData.chatId);
         setChatPartner(partner);
         setMessages([]);
+        setSuggestedTopic(initialChatData.topic || null);
+
         // ✅ Prevent join-chat spam
         if (initialChatData.chatId !== joinedChatIdRef.current) {
           joinedChatIdRef.current = initialChatData.chatId;
@@ -447,7 +505,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       id: Date.now(),
       chatId,
       message: promptAnswer.trim(),
-      prompt: suggestedTopic,
+      prompt: icebreakerTopic,
       userId: currentUserId,
       username: currentUsername,
       timestamp: new Date().toISOString(),
@@ -461,7 +519,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     socket.emit('send-message', messageData);
     
     // Clear prompt and answer
-    setSuggestedTopic(null);
+    setIcebreakerOpen(false);
+    setIcebreakerTopic(null);
+    setSuggestedTopic?.(null); // optional, harmless
     setPromptAnswer('');
   };
 
@@ -590,6 +650,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setReplyingTo(null);
     setActiveActionMenu(null);
     setPartnerToReview(null);
+    setSuggestedTopic(null);
+    setPromptAnswer('');
+    setIcebreakerOpen(false);
+    setIcebreakerTopic(null);
+    topicChatIdRef.current = null;
 
     // Instead of going home, show a "searching" state until the next match.
     setIsRequeuing(true);
@@ -613,7 +678,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
     
     // If the skip is initiated from an active icebreaker, bypass the review popup
-    const isIcebreakerActive = suggestedTopic && !chatId.startsWith('friend_');
+    const isIcebreakerActive = icebreakerOpen && !chatId.startsWith('friend_');
     if (isIcebreakerActive) {
       finishLeavingChat(chatId);
       return;
@@ -766,7 +831,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   }
 
   if (chatId && chatPartner) {
-    const isIcebreakerActive = suggestedTopic && !chatId.startsWith('friend_');
+    const isIcebreakerActive = icebreakerOpen && !chatId.startsWith('friend_');
 
     return (
       <>
@@ -1067,7 +1132,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 </span>
               </div>
               <h2 className="text-base md:text-lg font-bold text-zinc-400 mb-2 md:mb-3">Icebreaker</h2>
-              <p className="text-xl md:text-3xl font-bold text-white mb-5 md:mb-6 leading-tight">{suggestedTopic}</p>
+              <p className="text-xl md:text-3xl font-bold text-white mb-5 md:mb-6 leading-tight">
+                {icebreakerTopic || "Generating icebreaker..."}
+              </p>
               <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-2 md:gap-3">
                 <textarea
                   value={promptAnswer}
@@ -1079,7 +1146,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 <div className="flex flex-col gap-2 mt-1">
                   <button
                     type="submit"
-                    disabled={!promptAnswer.trim()}
+                    disabled={!icebreakerTopic || !promptAnswer.trim()}
                     className="w-full py-2.5 md:py-3 rounded-full bg-blue-600 text-white font-bold text-xs md:text-sm hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
                   >
                     Unlock Chat & Send
