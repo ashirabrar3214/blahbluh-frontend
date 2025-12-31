@@ -29,12 +29,12 @@ export const api = {
     return data;
   },
 
-  async updateUserPfp(userId, pfpLink) {
-    console.log(`API: updateUserPfp called for userId: ${userId} with pfpLink:`, pfpLink);
+  async updateUserPfp(userId, pfpLink, pfpBackground) {
+    console.log(`API: updateUserPfp called for userId: ${userId} with pfpLink:`, pfpLink, 'bg:', pfpBackground);
     const response = await fetch(`${API_BASE_URL}/api/${userId}/pfp`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pfpLink })
+      body: JSON.stringify({ pfpLink, pfp_background: pfpBackground })
     });
     if (!response.ok) {
       const errorText = await response.text();
@@ -193,34 +193,127 @@ export const api = {
 
   async getFriends(userId) {
     console.log(`API: getFriends called for userId: ${userId}`);
-    const response = await fetch(`${API_BASE_URL}/api/friends/${userId}`);
-    const data = await response.json();
-    console.log(`API: getFriends response for ${userId}:`, data);
 
-    // Fetch PFPs for each friend
-    const friendsWithPfps = await Promise.all(data.map(async (friend) => {
+    // Fetch current user's data to get their username and list of blocked users.
+    let currentUserData;
+    try {
+      currentUserData = await this.getUser(userId);
+    } catch (error) {
+      console.error("API: getFriends failed to fetch current user data. Cannot check for blocks.", error);
+      return []; // Fallback to empty list on critical failure.
+    }
+    const currentUsername = currentUserData.username;
+    if (!currentUsername) {
+        console.error("API: getFriends could not determine current username. Cannot check for blocks.");
+        return [];
+    }
+    const currentUserBlockedIds = currentUserData.blocked_users || [];
+
+    const response = await fetch(`${API_BASE_URL}/api/friends/${userId}`);
+    const friendsData = await response.json();
+    console.log(`API: getFriends raw response for ${userId}:`, friendsData);
+
+    // Filter out friends who are blocked or have blocked the current user.
+    const unblockedFriends = [];
+    for (const friend of friendsData) {
+      const friendId = friend.userId || friend.id;
+      // 1. Check if the current user has blocked this friend.
+      if (currentUserBlockedIds.includes(friendId)) {
+        console.log(`Current user has blocked '${friend.username}'. Not loading inbox.`);
+        continue; // Skip this friend
+      }
+
+      // 2. Check if this friend has blocked the current user.
+      try {
+        const { isBlocked } = await this.isBlocked(friend.username, currentUsername);
+        if (isBlocked) {
+          console.log(`User is blocked by '${friend.username}'. Not loading inbox.`);
+          continue; // Skip this friend
+        }
+      } catch (error) {
+        console.warn(
+          'Block check failed, assuming NOT blocked:',
+          friend.username,
+          error
+        );
+      }
+      unblockedFriends.push(friend);
+    }
+
+    // Fetch PFPs for each unblocked friend
+    const friendsWithPfps = await Promise.all(unblockedFriends.map(async (friend) => {
       try {
         const friendId = friend.userId || friend.id;
         const pfpData = await this.getUserPfp(friendId);
-        return { ...friend, pfp: pfpData.pfp || pfpData.pfpLink || friend.pfp };
+        return { 
+          ...friend, 
+          pfp: pfpData.pfp || pfpData.pfpLink || friend.pfp,
+          pfp_background: pfpData.pfp_background || friend.pfp_background
+        };
       } catch (error) {
         console.warn(`API: Failed to load PFP for friend ${friend.userId || friend.id}:`, error);
         return friend;
       }
     }));
 
+    console.log(`API: getFriends filtered response for ${userId}:`, friendsWithPfps);
     return friendsWithPfps;
+  },
+
+  async removeFriend(userId, friendId) {
+    console.log(`API: removeFriend called for userId: ${userId} and friendId: ${friendId}`);
+    const response = await fetch(`${API_BASE_URL}/api/${userId}/friends/${friendId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error removing friend:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    console.log(`API: removeFriend response for ${userId}:`, data);
+    return data;
   },
 
   async blockUser(userId, blockedUserId) {
     console.log(`API: blockUser called for userId: ${userId} to block ${blockedUserId}`);
-    const response = await fetch(`${API_BASE_URL}/api/block`, {
+    const response = await fetch(`${API_BASE_URL}/api/${userId}/block`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, blockedUserId })
+      body: JSON.stringify({ blockedUserId })
     });
     const data = await response.json();
     console.log(`API: blockUser response for ${userId}:`, data);
+    return data;
+  },
+
+  async unblockUser(userId, blockedUserId) {
+    console.log(`API: unblockUser called for userId: ${userId} to unblock ${blockedUserId}`);
+    const response = await fetch(`${API_BASE_URL}/api/${userId}/unblock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blockedUserId })
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error unblocking user:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    console.log(`API: unblockUser response for ${userId}:`, data);
+    return data;
+  },
+
+  async isBlocked(blockerUsername, blockedUsername) {
+    console.log(`API: isBlocked check from '${blockerUsername}' on '${blockedUsername}'`);
+    const response = await fetch(`${API_BASE_URL}/api/is-blocked?blockerUsername=${encodeURIComponent(blockerUsername)}&blockedUsername=${encodeURIComponent(blockedUsername)}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error checking block status:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    console.log(`API: isBlocked response:`, data);
     return data;
   },
   

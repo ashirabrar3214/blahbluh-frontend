@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from './api';
 import ReviewPopup from './ReviewPopup';
+import BlockUserPopup from './BlockUserPopup';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -12,8 +13,8 @@ const NextIcon = () => (
 const UserPlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
 );
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg>
+const UserCheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
 );
 const BlockIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
@@ -62,6 +63,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     console.log('NOTIFICATION DEBUG: ChatPage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
   }, [friendRequests.length, notifications.length]);
   const [showWarning, setShowWarning] = useState(false);
+  const [showBlockPopup, setShowBlockPopup] = useState(false);
   const [actionToast, setActionToast] = useState(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
   const [partnerToReview, setPartnerToReview] = useState(null);
@@ -69,6 +71,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [partnerRating, setPartnerRating] = useState(null);
   const [isAlreadyFriend, setIsAlreadyFriend] = useState(false);
   const [promptAnswer, setPromptAnswer] = useState('');
+  const [isRequeuing, setIsRequeuing] = useState(false);
   const [isAddingFriend, setIsAddingFriend] = useState(false);
 
   // --- REFS ---
@@ -224,6 +227,28 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   useEffect(() => {
     if (!socket || !currentUserId) return;
 
+    const handleChatPaired = (payload) => {
+      console.log('ChatPage: Re-paired via socket', payload);
+      
+      // 1. Identify the new partner from the payload users array
+      const newPartner = payload.users?.find(u => (u.id || u.userId) !== currentUserId);
+
+      if (newPartner) {
+        // 2. Update state to show the new chat
+        setChatId(payload.chatId);
+        setChatPartner(newPartner);
+        setMessages([]); // Clear previous chat messages
+        setSuggestedTopic(payload.topic || null); // Set new topic if provided
+        
+        // 3. IMPORTANT: Turn off the loading screen
+        setIsRequeuing(false);
+
+        // 4. Update the join ref and join the new room
+        joinedChatIdRef.current = payload.chatId;
+        socket.emit('join-chat', { chatId: payload.chatId });
+      }
+    };
+
     const handleNewMessage = (msg) => {
       // For friend chats, show all messages. For random chats, prevent echo
       if (chatId?.startsWith('friend_') || msg.userId !== currentUserId) {
@@ -297,6 +322,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     const handleFriendRequestReceived = () => loadFriendRequests();
     // Removed - now handled by App.js
 
+    socket.on('chat-paired', handleChatPaired);
     socket.on('new-message', handleNewMessage);
     socket.on('message-reaction', handleMessageReaction);
     socket.on('partner-disconnected', handlePartnerDisconnected);
@@ -315,6 +341,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     });
 
     return () => {
+      socket.off('chat-paired', handleChatPaired);
       socket.off('new-message', handleNewMessage);
       socket.off('message-reaction', handleMessageReaction);
       socket.off('partner-disconnected', handlePartnerDisconnected);
@@ -331,6 +358,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       return () => {
         if (hardExitRef.current) return;
         if (partnerDisconnectedRef.current) return; // ✅ Don't emit if partner already disconnected
+        if (skipFlowRef.current) return;
         if (chatId && socket?.connected && currentUserId) {
           socket.emit('leave-chat', {
             chatId,
@@ -352,6 +380,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       const partner = initialChatData.users.find(u => (u.id || u.userId) !== myId);
       if (partner) {
         console.log('Setting up random chat:', partner);
+        setIsRequeuing(false);
         setChatId(initialChatData.chatId);
         setChatPartner(partner);
         setMessages([]);
@@ -364,6 +393,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     } else if (targetFriend && currentUserId && currentUsername) {
       // Friend chat from inbox - only proceed if we have user info
       console.log('Setting up friend chat:', targetFriend);
+      setIsRequeuing(false);
       setChatId(targetFriend.chatId);
       setChatPartner(targetFriend);
       // ✅ Prevent join-chat spam
@@ -540,6 +570,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     const cid = chatIdOverride || chatId;
     if (!cid || !socket || !currentUserId) return;
 
+    skipFlowRef.current = true;
+
     // Prevent double skip emits for the same chatId
     if (leaveOnceRef.current && leavingChatIdRef.current === cid) return;
     leaveOnceRef.current = true;
@@ -559,7 +591,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setActiveActionMenu(null);
     setPartnerToReview(null);
 
-    onGoHome?.();
+    // Instead of going home, show a "searching" state until the next match.
+    setIsRequeuing(true);
 
     // Reset guard shortly after
     setTimeout(() => {
@@ -665,7 +698,31 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   };
 
-  const handleBlockUser = async () => {
+  const handleRemoveFriend = async () => {
+    if (!chatPartner || !currentUserId || isAddingFriend) return;
+
+    const partnerId = chatPartner.userId || chatPartner.id;
+    if (!partnerId) return;
+
+    setIsAddingFriend(true);
+    try {
+      await api.removeFriend(currentUserId, partnerId);
+      setActionToast('Friend removed');
+      setIsAlreadyFriend(false);
+    } catch (err) {
+      console.error('handleRemoveFriend failed:', err);
+      setActionToast('Failed to remove friend');
+    } finally {
+      setIsAddingFriend(false);
+    }
+  };
+
+
+  const handleBlockUser = () => {
+    setShowBlockPopup(true);
+  };
+
+  const confirmBlockUser = async () => {
     if (!chatPartner || !currentUserId) return;
 
     const partnerId = chatPartner.userId || chatPartner.id;
@@ -673,10 +730,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
     try {
       await api.blockUser(currentUserId, partnerId);
-      confirmLeaveChat(); // block implies leave
+      setShowBlockPopup(false);
+      // Block implies leave, but we skip the review popup.
+      finishLeavingChat();
     } catch (err) {
       console.error('handleBlockUser failed:', err);
     }
+  };
+
+  const handleReportUser = () => {
+    console.log("Reporting user:", chatPartner);
+    setActionToast(`User ${chatPartner?.username} reported.`);
+    setShowBlockPopup(false);
   };
 
   const handleReport = (message) => {
@@ -687,6 +752,19 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   };
 
   // --- RENDER: CHAT UI ---
+  if (isRequeuing) {
+    return (
+      <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center font-sans h-[100dvh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
+          <div className="text-center">
+             <h3 className="text-xl font-bold text-white mb-1 mt-4">Finding a new match...</h3>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (chatId && chatPartner) {
     const isIcebreakerActive = suggestedTopic && !chatId.startsWith('friend_');
 
@@ -735,14 +813,20 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               // Random chat header - full: add friend, next
               <>
                 {isAlreadyFriend ? (
-                  <div className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-green-800 text-green-400 transition-all">
-                    <CheckIcon />
-                  </div>
+                  <button
+                    onClick={handleRemoveFriend}
+                    disabled={isAddingFriend}
+                    className={`w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-all active:scale-95 ${isAddingFriend ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-green-800 text-green-400 hover:bg-red-800 hover:text-red-400'}`}
+                    title="Remove friend"
+                  >
+                    {isAddingFriend ? <HourglassIcon /> : <UserCheckIcon />}
+                  </button>
                 ) : (
                   <button 
                     onClick={handleAddFriend} 
                     disabled={isAddingFriend}
                     className={`w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-all active:scale-95 ${isAddingFriend ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`}
+                    title="Send friend request"
                   >
                     {isAddingFriend ? <HourglassIcon /> : <UserPlusIcon />}
                   </button>
@@ -1035,6 +1119,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           </div>
         )}
 
+        {/* Block User Popup */}
+        {showBlockPopup && (
+          <BlockUserPopup
+            username={chatPartner?.username}
+            onBlock={confirmBlockUser}
+            onCancel={() => setShowBlockPopup(false)}
+            onReport={handleReportUser}
+          />
+        )}
+
         {/* Toast */}
         {actionToast && (
           <div className="fixed top-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
@@ -1053,12 +1147,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             initialRating={existingRating ?? 0}
             onSubmit={handleReviewSubmit}
             onClose={() => {
-            // ONLY close the popup, do NOT skip
-            setShowReviewPopup(false);
-            setPartnerToReview(null);
-            setExistingRating(null);
-            setPartnerRating(null);
-          }}
+              // If the user closes the review popup (e.g. by pressing Esc or a 'skip' button),
+              // we treat it as skipping without a rating. This ensures the skip flow completes.
+              handleReviewSubmit({});
+            }}
           />
         )}
       </>

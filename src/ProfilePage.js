@@ -33,6 +33,8 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   const [ratingLoading, setRatingLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(true);
   const [showPfpSelect, setShowPfpSelect] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [blockedUsers, setBlockedUsers] = useState([]);
 
   useEffect(() => {
     let ignore = false;
@@ -47,15 +49,17 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
       setRatingLoading(true);
       try {
         // Fetch full profile and rating data from the backend
-        const [userProfile, ratingData, pfpData] = await Promise.all([
+        const [userProfile, ratingData, pfpData, friendsData] = await Promise.all([
           api.getUser(currentUserId),
           api.getUserRating(currentUserId),
           api.getUserPfp(currentUserId).catch(() => null),
+          api.getFriends(currentUserId).catch(() => []),
         ]);
 
         if (!ignore) {
           const pfpUrl = pfpData?.pfp || pfpData?.pfpLink || userProfile.pfp;
-          const newProfile = { ...profile, ...userProfile, pfp: pfpUrl, username: userProfile.username || currentUsername, pfp_background: userProfile.pfp_background || '' };
+          const pfpBg = pfpData?.pfp_background || userProfile.pfp_background || '';
+          const newProfile = { ...profile, ...userProfile, pfp: pfpUrl, username: userProfile.username || currentUsername, pfp_background: pfpBg };
           setProfile(newProfile);
           setEditedProfile(newProfile);
 
@@ -63,6 +67,17 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
             average: ratingData.averageRating,
             count: ratingData.reviewCount
           });
+
+          setFriends(friendsData);
+
+          if (userProfile.blocked_users && userProfile.blocked_users.length > 0) {
+            const blockedUsersData = await Promise.all(
+              userProfile.blocked_users.map(id => api.getUser(id).catch(() => null))
+            );
+            setBlockedUsers(blockedUsersData.filter(Boolean));
+          } else {
+            setBlockedUsers([]);
+          }
         }
       } catch (error) {
         console.error("Failed to load profile data:", error);
@@ -93,14 +108,11 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
     // Save to backend so others can see it
     try {
       const promises = [];
-      if (oldProfile.pfp !== editedProfile.pfp) {
-        promises.push(api.updateUserPfp(currentUserId, editedProfile.pfp));
+      if (oldProfile.pfp !== editedProfile.pfp || oldProfile.pfp_background !== editedProfile.pfp_background) {
+        promises.push(api.updateUserPfp(currentUserId, editedProfile.pfp, editedProfile.pfp_background));
       }
       if (oldProfile.interests !== editedProfile.interests) {
         promises.push(api.updateUser(currentUserId, { interests: editedProfile.interests }));
-      }
-      if (oldProfile.pfp_background !== editedProfile.pfp_background) {
-        promises.push(api.updateUser(currentUserId, { pfp_background: editedProfile.pfp_background }));
       }
       await Promise.all(promises);
     } catch (error) {
@@ -122,6 +134,16 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   const handleImageSave = ({ pfp, bg }) => {
     setEditedProfile({ ...editedProfile, pfp, pfp_background: bg });
     setShowPfpSelect(false);
+  };
+
+  const handleUnblock = async (blockedUserId) => {
+    if (!currentUserId) return;
+    try {
+      await api.unblockUser(currentUserId, blockedUserId);
+      setBlockedUsers(prev => prev.filter(u => u.id !== blockedUserId));
+    } catch (error) {
+      console.error("Failed to unblock user:", error);
+    }
   };
 
   if (pageLoading) {
@@ -257,6 +279,60 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                 </div>
               ) : (
                 <p className="text-zinc-500 text-sm italic relative z-10">No reviews yet. Chat to get rated!</p>
+              )}
+            </div>
+
+            {/* Friends Section */}
+            <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl p-6 border border-white/5">
+              <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3">Friends ({friends.length})</label>
+              {friends.length > 0 ? (
+                <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                  {friends.map(friend => (
+                    <li key={friend.userId || friend.id} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-white/5 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 overflow-hidden">
+                        {friend.pfp ? (
+                          <img src={friend.pfp} alt={friend.username} className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="font-bold text-white">{getInitials(friend.username)}</span>
+                        )}
+                      </div>
+                      <span className="font-medium text-zinc-200">{friend.username}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-zinc-500 text-sm italic">No friends yet. Add friends during chats!</p>
+              )}
+            </div>
+
+            {/* Blocked Users Section */}
+            <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl p-6 border border-white/5">
+              <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3">Blocked Users ({blockedUsers.length})</label>
+              {blockedUsers.length > 0 ? (
+                <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                  {blockedUsers.map(user => (
+                    <li key={user.id} className="flex items-center justify-between gap-3 p-2 -mx-2 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden">
+                          {user.pfp ? (
+                            <img src={user.pfp} alt={user.username} className="w-full h-full object-contain" />
+                          ) : (
+                            <span className="font-bold text-zinc-400">{getInitials(user.username)}</span>
+                          )}
+                        </div>
+                        <span className="font-medium text-zinc-200">{user.username}</span>
+                      </div>
+                      <button
+                        onClick={() => handleUnblock(user.id)}
+                        className="px-3 py-1.5 text-xs font-medium text-zinc-400 bg-zinc-800 hover:bg-zinc-700 hover:text-white rounded-lg transition-colors"
+                      >
+                        Unblock
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-zinc-500 text-sm italic">No blocked users.</p>
               )}
             </div>
           </div>
