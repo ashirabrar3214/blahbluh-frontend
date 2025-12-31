@@ -223,6 +223,24 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
     }
   }, [socket, currentUserId, loadFriendRequests]);
 
+  // Fix: Listen for backend-initiated queue joining (Fixes "Ghost Position 0")
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleQueueJoined = (data) => {
+      console.log('HomePage: Received queue-joined event from server:', data);
+      setInQueue(true);
+      // Backend uses 1-based index (queue.length), so 1 is the first spot.
+      setQueuePosition(data.queuePosition || 1); 
+    };
+
+    socket.on('queue-joined', handleQueueJoined);
+
+    return () => {
+      socket.off('queue-joined', handleQueueJoined);
+    };
+  }, [socket]);
+
   const joinQueue = async () => {
     if (!currentUserId) {
       console.log('HomePage: joinQueue attempted without currentUserId.');

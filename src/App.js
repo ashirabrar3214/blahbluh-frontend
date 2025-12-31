@@ -30,12 +30,23 @@ function App() {
   }, [currentPage]);
 
   useEffect(() => {
-    if (chatData && suggestedTopic) {
-      console.log("Partner and topic ready, navigating to chat");
-      setSelectedFriend(null);
-      setCurrentPage('chat');
+    if (chatData) {
+      if (suggestedTopic) {
+        console.log("Partner and topic ready, navigating to chat");
+        setSelectedFriend(null);
+        setCurrentPage('chat');
+      } else if (currentUser?.id) {
+        api.suggestTopic(currentUser.id)
+          .then((data) => {
+            setSuggestedTopic(data?.suggestion || "What's on your mind?");
+          })
+          .catch((err) => {
+            console.error("Failed to fetch topic:", err);
+            setSuggestedTopic("What's on your mind?");
+          });
+      }
     }
-  }, [chatData, suggestedTopic]);
+  }, [chatData, suggestedTopic, currentUser]);
 
     // Load initial unread count when user is set
   useEffect(() => {
