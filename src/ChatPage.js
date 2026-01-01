@@ -35,12 +35,19 @@ const HourglassIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
 );
 
-const AnimatedDots = () => (
-  <span className="inline-flex ml-2">
-    <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-    <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.15s] ml-1"></span>
-    <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce ml-1"></span>
-  </span>
+const IcebreakerLoader = () => (
+  <div className="flex flex-col items-center justify-center gap-4">
+    <div className="flex items-end justify-center space-x-1.5 h-8">
+      <div className="w-1.5 h-3 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.5s]" />
+      <div className="w-1.5 h-5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+      <div className="w-1.5 h-7 bg-zinc-300 rounded-full animate-bounce [animation-delay:-0.1s]" />
+      <div className="w-1.5 h-5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+      <div className="w-1.5 h-3 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.5s]" />
+    </div>
+    <p className="text-sm font-medium text-zinc-400 tracking-wider">
+      Generating Icebreaker
+    </p>
+  </div>
 );
 
 function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic }) {
@@ -1140,14 +1147,15 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 </span>
               </div>
               <h2 className="text-base md:text-lg font-bold text-zinc-400 mb-2 md:mb-3">Icebreaker</h2>
-              <p className="text-xl md:text-3xl font-bold text-white mb-5 md:mb-6 leading-tight flex justify-center items-center min-h-[50px] md:min-h-[75px]">
-                {icebreakerTopic ? icebreakerTopic : (
-                  <>
-                    <span>Generating icebreaker</span>
-                    <AnimatedDots />
-                  </>
+              <div className="flex justify-center items-center min-h-[92px] md:min-h-[100px] mb-5 md:mb-6">
+                {icebreakerTopic ? (
+                  <p className="text-xl md:text-3xl font-bold text-white leading-tight text-center">
+                    {icebreakerTopic}
+                  </p>
+                ) : (
+                  <IcebreakerLoader />
                 )}
-              </p>
+              </div>
               <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-2 md:gap-3">
                 <textarea
                   value={promptAnswer}
