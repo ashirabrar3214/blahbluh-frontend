@@ -93,6 +93,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [isRequeuing, setIsRequeuing] = useState(false);
   const [isAddingFriend, setIsAddingFriend] = useState(false);
 
+  // --- SWIPE STATE ---
+  const [swipeY, setSwipeY] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartY = useRef(null);
+
   // --- REFS ---
   const currentUserIdRef = useRef(null);
   
@@ -271,6 +276,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setIcebreakerTopic("What's on your mind?");
       });
   }, [chatId, currentUserId, setSuggestedTopic]);
+
+  // Reset swipe state when icebreaker opens/closes
+  useEffect(() => {
+    if (!icebreakerOpen) {
+      setSwipeY(0);
+      setIsSwiping(false);
+    }
+  }, [icebreakerOpen]);
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
@@ -750,6 +763,35 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   };
 
+  // --- SWIPE HANDLERS ---
+  const handleIcebreakerTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsSwiping(true);
+  };
+
+  const handleIcebreakerTouchMove = (e) => {
+    if (touchStartY.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY.current;
+    
+    // Only allow swiping up (negative diff)
+    if (diff < 0) {
+      setSwipeY(diff);
+    }
+  };
+
+  const handleIcebreakerTouchEnd = () => {
+    if (touchStartY.current === null) return;
+    setIsSwiping(false);
+    touchStartY.current = null;
+
+    if (swipeY < -150) {
+      setSwipeY(-1000); // Animate off screen
+      setTimeout(() => confirmLeaveChat(), 300);
+    } else {
+      setSwipeY(0); // Bounce back
+    }
+  };
 
   
 
@@ -1131,7 +1173,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {/* Icebreaker Popup */}
         {isIcebreakerActive && (
           <div className="fixed inset-0 bg-black/60 text-white flex flex-col items-center justify-center font-sans h-[100dvh] p-4 z-50 animate-in fade-in duration-300">
-            <div className="w-full max-w-md text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl">
+            <div 
+              className="w-full max-w-md text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl touch-none relative"
+              style={{
+                transform: `translateY(${swipeY}px) rotate(${swipeY * 0.02}deg)`,
+                transition: isSwiping ? 'none' : 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s ease',
+                opacity: Math.max(0, 1 + (swipeY / 600))
+              }}
+              onTouchStart={handleIcebreakerTouchStart}
+              onTouchMove={handleIcebreakerTouchMove}
+              onTouchEnd={handleIcebreakerTouchEnd}
+            >
+              <div className="w-12 h-1.5 bg-zinc-700/50 rounded-full mx-auto mb-4 md:hidden" />
               <div className="flex flex-col items-center mb-3 md:mb-5">
                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2 overflow-hidden">
                   {chatPartner?.pfp ? (
@@ -1180,6 +1233,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                   </button>
                 </div>
               </form>
+            </div>
+            <div className={`absolute bottom-10 text-zinc-500 text-sm font-medium transition-opacity duration-300 md:hidden ${isSwiping || swipeY < 0 ? 'opacity-0' : 'opacity-100'}`}>
+              Swipe up to skip
             </div>
           </div>
         )}
