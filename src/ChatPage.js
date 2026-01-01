@@ -35,6 +35,14 @@ const HourglassIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
 );
 
+const AnimatedDots = () => (
+  <span className="inline-flex ml-2">
+    <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+    <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.15s] ml-1"></span>
+    <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce ml-1"></span>
+  </span>
+);
+
 function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic }) {
   // --- STATE ---
   const [chatId, setChatId] = useState(null);
@@ -1132,8 +1140,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 </span>
               </div>
               <h2 className="text-base md:text-lg font-bold text-zinc-400 mb-2 md:mb-3">Icebreaker</h2>
-              <p className="text-xl md:text-3xl font-bold text-white mb-5 md:mb-6 leading-tight">
-                {icebreakerTopic || "Generating icebreaker..."}
+              <p className="text-xl md:text-3xl font-bold text-white mb-5 md:mb-6 leading-tight flex justify-center items-center min-h-[50px] md:min-h-[75px]">
+                {icebreakerTopic ? icebreakerTopic : (
+                  <>
+                    <span>Generating icebreaker</span>
+                    <AnimatedDots />
+                  </>
+                )}
               </p>
               <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-2 md:gap-3">
                 <textarea
@@ -1145,8 +1158,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 />
                 <div className="flex flex-col gap-2 mt-1">
                   <button
-                    type="submit"
-                    disabled={!icebreakerTopic || !promptAnswer.trim()}
+                    type="submit"                    disabled={!icebreakerTopic || !promptAnswer.trim()}
                     className="w-full py-2.5 md:py-3 rounded-full bg-blue-600 text-white font-bold text-xs md:text-sm hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
                   >
                     Unlock Chat & Send
