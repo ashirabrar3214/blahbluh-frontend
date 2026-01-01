@@ -95,8 +95,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   // --- SWIPE STATE ---
   const [swipeY, setSwipeY] = useState(0);
+  const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStartY = useRef(null);
+  const touchStartX = useRef(null);
 
   // --- REFS ---
   const currentUserIdRef = useRef(null);
@@ -281,6 +283,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   useEffect(() => {
     if (!icebreakerOpen) {
       setSwipeY(0);
+      setSwipeX(0);
       setIsSwiping(false);
     }
   }, [icebreakerOpen]);
@@ -766,17 +769,21 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   // --- SWIPE HANDLERS ---
   const handleIcebreakerTouchStart = (e) => {
     touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
     setIsSwiping(true);
   };
 
   const handleIcebreakerTouchMove = (e) => {
-    if (touchStartY.current === null) return;
+    if (touchStartY.current === null || touchStartX.current === null) return;
     const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartY.current;
+    const currentX = e.touches[0].clientX;
+    const diffY = currentY - touchStartY.current;
+    const diffX = currentX - touchStartX.current;
     
-    // Only allow swiping up (negative diff)
-    if (diff < 0) {
-      setSwipeY(diff);
+    // Only allow swiping up (negative diffY)
+    if (diffY < 0) {
+      setSwipeY(diffY);
+      setSwipeX(diffX);
     }
   };
 
@@ -784,12 +791,15 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     if (touchStartY.current === null) return;
     setIsSwiping(false);
     touchStartY.current = null;
+    touchStartX.current = null;
 
     if (swipeY < -150) {
       setSwipeY(-1000); // Animate off screen
+      setSwipeX(swipeX * 1.5); // Continue horizontal momentum
       setTimeout(() => confirmLeaveChat(), 300);
     } else {
       setSwipeY(0); // Bounce back
+      setSwipeX(0);
     }
   };
 
@@ -1176,7 +1186,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             <div 
               className="w-full max-w-md text-center bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl touch-none relative"
               style={{
-                transform: `translateY(${swipeY}px) rotate(${swipeY * 0.02}deg)`,
+                transform: `translate(${swipeX}px, ${swipeY}px) rotate(${swipeX * 0.05}deg)`,
                 transition: isSwiping ? 'none' : 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s ease',
                 opacity: Math.max(0, 1 + (swipeY / 600))
               }}
