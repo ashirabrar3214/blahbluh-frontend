@@ -13,13 +13,46 @@ function AnimatedDots() {
         if (prev === '..') return '...';
         return '.';
       });
-    }, 500);
+    }, 300);
     
     return () => clearInterval(interval);
   }, []);
   
   return <span>{dots}</span>;
 }
+
+const Typewriter = ({ texts }) => {
+  const [currentText, setCurrentText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const fullText = texts[currentIndex];
+    let timeout;
+
+    if (!isDeleting && currentText === fullText) {
+      timeout = setTimeout(() => setIsDeleting(true), 900);
+    } else if (isDeleting && currentText === '') {
+      setIsDeleting(false);
+      setCurrentIndex((prev) => (prev + 1) % texts.length);
+    } else {
+      timeout = setTimeout(() => {
+        setCurrentText(prev => 
+          isDeleting ? prev.slice(0, -1) : fullText.slice(0, prev.length + 1)
+        );
+      }, isDeleting ? 20 : 50);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [currentText, isDeleting, currentIndex, texts]);
+
+  return (
+    <span className="text-[#fefefe]/60 text-sm font-medium tracking-wide">
+      {currentText}
+      <span className="animate-pulse ml-0.5 text-[#ffbd59]">|</span>
+    </span>
+  );
+};
 
 const UserIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -295,52 +328,50 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
-      <nav className="fixed top-0 w-full z-20 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
+    <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
+      <nav className="fixed top-0 w-full z-20 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center bg-[#000000]/50 backdrop-blur-md border-b border-[#fefefe]/5">
         <div className="flex items-center gap-2 md:gap-2.5">
-          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-base md:text-lg shadow-lg shadow-white/10">
-            B
-          </div>
-          <span className="font-bold text-base md:text-lg tracking-tight text-white">blahbluh</span>
+          <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-8 h-8 md:w-9 md:h-9 object-contain rounded-[18%]" />
+          <span className="font-bold text-base md:text-lg tracking-tight text-[#fefefe]">blahbluh</span>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors relative"
+              className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors relative"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
               {(friendRequests.length > 0 || bellNotifications.length > 0) && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff907c] text-black text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-[#ff907c]/50">
                   {friendRequests.length + bellNotifications.length}
                 </span>
               )}
             </button>
             {showNotifications && (friendRequests.length > 0 || bellNotifications.length > 0) && (
-              <div className="absolute top-10 right-0 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-600 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
+              <div className="absolute top-10 right-0 w-80 bg-[#000000]/95 backdrop-blur-md border border-[#fefefe]/10 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
                 {friendRequests.length > 0 && (
                   <>
-                    <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    <h3 className="text-[#fefefe] font-bold mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-[#ff907c] rounded-full animate-pulse"></span>
                       Friend Requests
                     </h3>
                     <div className="space-y-3 mb-4">
                       {friendRequests.map(request => (
-                        <div key={request.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-blue-500">
+                        <div key={request.id} className="flex items-center justify-between p-3 bg-[#fefefe]/5 rounded-lg border-l-4 border-[#ffbd59]">
                           <div>
-                            <p className="text-white text-sm font-medium">{request.from_user.username} sent you a friend request</p>
-                            <p className="text-gray-400 text-xs">Click accept to add them as a friend</p>
+                            <p className="text-[#fefefe] text-sm font-medium">{request.from_user.username} sent you a friend request</p>
+                            <p className="text-[#fefefe]/60 text-xs">Click accept to add them as a friend</p>
                           </div>
                           <button
                             onClick={() => handleAcceptFriend(request.id)}
                             disabled={processingRequests.has(request.id)}
-                            className={`px-3 py-1 text-white text-xs rounded-lg transition-colors shadow-lg ${
+                            className={`px-3 py-1 text-black text-xs rounded-lg transition-colors shadow-lg ${
                               processingRequests.has(request.id) 
-                                ? 'bg-blue-800 cursor-not-allowed opacity-70' 
-                                : 'bg-blue-600 hover:bg-blue-700'
+                                ? 'bg-[#ffbd59]/50 cursor-not-allowed opacity-70' 
+                                : 'bg-[#ffbd59] hover:bg-[#ffbd59]/80'
                             }`}
                           >
                             {processingRequests.has(request.id) ? 'Accepting...' : 'Accept'}
@@ -352,20 +383,20 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
                 )}
                 {bellNotifications.length > 0 && (
                   <>
-                    <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <h3 className="text-[#fefefe] font-bold mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-[#ffbd59] rounded-full animate-pulse"></span>
                       Notifications
                     </h3>
                     <div className="space-y-3">
                       {bellNotifications.map(notification => (
-                        <div key={notification.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-green-500">
+                        <div key={notification.id} className="flex items-center justify-between p-3 bg-[#fefefe]/5 rounded-lg border-l-4 border-[#ffbd59]">
                           <div>
-                            <p className="text-white text-sm font-medium">🎉 {notification.message}</p>
-                            <p className="text-gray-400 text-xs">{new Date(notification.timestamp).toLocaleTimeString()}</p>
+                            <p className="text-[#fefefe] text-sm font-medium">🎉 {notification.message}</p>
+                            <p className="text-[#fefefe]/60 text-xs">{new Date(notification.timestamp).toLocaleTimeString()}</p>
                           </div>
                           <button
                             onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
-                            className="px-2 py-1 text-gray-400 hover:text-white text-xs transition-colors"
+                            className="px-2 py-1 text-[#fefefe]/60 hover:text-[#fefefe] text-xs transition-colors"
                           >
                             ✕
                           </button>
@@ -379,23 +410,23 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           </div>
           <button
             onClick={onInboxOpen}
-            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors relative"
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors relative"
           >
             <InboxIcon />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg animate-pulse">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff907c] text-black text-xs rounded-full flex items-center justify-center shadow-lg animate-pulse">
                 {unreadCount}
               </span>
             )}
           </button>
           <button
             onClick={onProfileOpen}
-            className="flex items-center gap-2 pl-1 pr-2 md:pr-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] md:text-xs text-zinc-400 font-mono hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-2 pl-1 pr-2 md:pr-3 py-1 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[10px] md:text-xs text-[#fefefe]/60 font-mono hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors"
           >
             {pfpUrl ? (
-              <img src={pfpUrl} alt="Profile" className="w-6 h-6 md:w-7 md:h-7 rounded-full object-contain bg-zinc-700" />
+              <img src={pfpUrl} alt="Profile" className="w-6 h-6 md:w-7 md:h-7 rounded-full object-contain bg-[#fefefe]/10" />
             ) : (
-              <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-zinc-800 flex items-center justify-center">
+              <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-[#fefefe]/10 flex items-center justify-center">
                 <UserIcon />
               </div>
             )}
@@ -405,48 +436,51 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       </nav>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px] pointer-events-none"></div>
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
 
         <div className="max-w-lg w-full text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
-            <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
-            <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 backdrop-blur-md mb-8">
+            <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-[#ffbd59] shadow-[0_0_10px_rgba(255,189,89,0.5)]' : 'bg-[#ff907c] animate-pulse'}`}></span>
+            <span className="text-xs font-medium text-[#fefefe]/80 uppercase tracking-wider">
               {socket?.connected ? 'System Online' : 'Connecting...'}
             </span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
             Yap with <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">
               Randos.
             </span>
           </h1>
           
-          {/* <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
+          {/* <p className="text-lg text-[#fefefe]/60 mb-12 max-w-md mx-auto leading-relaxed">
             Instant anonymous connections. No login required. Just pure conversation.
           </p> */}
           <div className="mb-8 text-left">
+            <div className="mb-2 ml-1 h-6 flex items-center">
+               <Typewriter texts={["recent movies you watched", "recent tv show you are binge watching"]} />
+            </div>
             <TagInput tags={tags} onTagsChange={setTags} />
           </div>
           {bannerMessage && (
-            <div className="px-4 py-3 mb-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm animate-in fade-in">
+            <div className="px-4 py-3 mb-4 rounded-2xl bg-[#ff907c]/10 border border-[#ff907c]/20 text-[#ff907c] text-sm animate-in fade-in">
               {bannerMessage}
             </div>
           )}
 
 
           {inQueue ? (
-            <div className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-8 rounded-[32px] shadow-2xl">
+            <div className="w-full bg-[#000000]/80 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] shadow-2xl">
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
+                <div className="w-16 h-16 rounded-full border-2 border-t-[#ffbd59] border-[#fefefe]/10 animate-spin"></div>
                 <div className="text-center">
-                  <h3 className="text-xl font-bold text-white mb-1">Finding a match<AnimatedDots /></h3>
-                  <p className="text-zinc-500 text-sm">Position in queue: <span className="text-white font-mono">{queuePosition}</span></p>
+                  <h3 className="text-xl font-bold text-[#fefefe] mb-1">Finding a match<AnimatedDots /></h3>
+                  <p className="text-[#fefefe]/60 text-sm">Position in queue: <span className="text-[#fefefe] font-mono">{queuePosition}</span></p>
                 </div>
                 <button
                   onClick={leaveQueue}
-                  className="mt-4 px-5 py-2.5 md:px-6 md:py-3 rounded-full bg-zinc-800 text-white text-xs md:text-sm font-medium hover:bg-zinc-700 transition-colors"
+                  className="mt-4 px-5 py-2.5 md:px-6 md:py-3 rounded-full bg-[#fefefe]/10 text-[#fefefe] text-xs md:text-sm font-medium hover:bg-[#fefefe]/20 transition-colors"
                 >
                   Cancel
                 </button>
@@ -463,7 +497,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
               <button 
                 onClick={joinQueue} 
                 disabled={tags.length === 0}
-                className={`group relative w-full py-4 md:py-5 rounded-full bg-white text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] ${tags.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                className={`group relative w-full py-4 md:py-5 rounded-full bg-[#ffbd59] text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,189,89,0.3)] ${tags.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
               >
                 Start Chatting
                 <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
@@ -473,7 +507,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
         </div>
       </div>
       
-      <div className="py-6 text-center text-zinc-600 text-xs font-medium">
+      <div className="py-6 text-center text-[#fefefe]/40 text-xs font-medium">
         &copy; 2025 blahbluh. Crafted for anonymity.
       </div>
     </div>

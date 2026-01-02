@@ -909,9 +909,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           {/* Left: Exit Button */}
           <div className="justify-self-start">
             <button onClick={() => handleExitToHome(!chatId?.startsWith('friend_'))} className="flex items-center gap-1.5 md:gap-2 text-zinc-400 hover:text-white transition-colors px-1.5 py-1 md:px-2 md:py-1 rounded-full hover:bg-zinc-800">
-              <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-[10px] md:text-xs shadow-lg shadow-white/10">
-                B
-              </div>
+              <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain rounded-[15%]" />
               <span className="text-[10px] md:text-xs font-medium">Leave Chat</span>
             </button>
           </div>
