@@ -151,27 +151,27 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col font-sans relative overflow-hidden selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans relative overflow-hidden selection:bg-[#ffbd59]/30">
       {/* Ambient Background */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none" />
-      <div className="absolute -top-20 -right-20 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-40 -left-20 w-72 h-72 bg-blue-600/10 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-[#ffbd59]/10 to-transparent pointer-events-none" />
+      <div className="absolute -top-20 -right-20 w-96 h-96 bg-[#ff907c]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-40 -left-20 w-72 h-72 bg-[#ffbd59]/10 rounded-full blur-[80px] pointer-events-none" />
 
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between z-10 relative">
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
+          className="flex items-center gap-2 text-[#fefefe]/60 hover:text-[#fefefe] transition-colors"
         >
           <BackIcon />
           <span className="text-sm font-medium">Back</span>
         </button>
         
-        <h1 className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Profile</h1>
+        <h1 className="text-sm font-bold text-[#fefefe]/40 uppercase tracking-widest">Profile</h1>
         
         <button
           onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-200 hover:bg-white/10 hover:text-white transition-all text-xs font-medium backdrop-blur-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe] hover:bg-[#fefefe]/10 transition-all text-xs font-medium backdrop-blur-sm"
         >
           <EditIcon />
           {isEditing ? 'Save' : 'Edit'}
@@ -185,12 +185,12 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
           {/* Profile Picture */}
           <div className="flex flex-col items-center mb-10"> 
             <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full opacity-50 blur group-hover:opacity-75 transition duration-500"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#ffbd59] to-[#ff907c] rounded-full opacity-50 blur group-hover:opacity-75 transition duration-500"></div>
             <div 
               className={`relative w-32 h-32 rounded-full flex items-center justify-center shadow-2xl overflow-hidden border-4 border-black ${
                 (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
                   ? 'bg-black' 
-                  : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                  : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'
               }`}
               style={
                 (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
@@ -205,7 +205,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                   className="w-full h-full object-contain rounded-full z-10"
                 />
               ) : (
-                <span className="text-4xl font-bold text-white z-10">
+                <span className="text-4xl font-bold text-[#fefefe] z-10">
                   {getInitials(profile.username)}
                 </span>
               )}
@@ -213,7 +213,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                   <button 
                     onClick={() => setShowPfpSelect(true)}
-                    className="text-sm bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-white backdrop-blur-sm font-semibold"
+                    className="text-sm bg-[#fefefe]/20 hover:bg-[#fefefe]/30 px-4 py-2 rounded-lg text-[#fefefe] backdrop-blur-sm font-semibold"
                   >
                     Edit
                   </button>
@@ -221,8 +221,8 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
               )}
             </div>
             </div>
-            <h2 className="text-3xl font-bold text-white mt-5 tracking-tight">{profile.username}</h2>
-            <div className="mt-2 px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[10px] text-zinc-400 font-mono tracking-wider">
+            <h2 className="text-3xl font-bold text-[#fefefe] mt-5 tracking-tight">{profile.username}</h2>
+            <div className="mt-2 px-3 py-1 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/5 text-[10px] text-[#fefefe]/60 font-mono tracking-wider">
               ID: {currentUserId?.slice(-8)}
             </div>
           </div>
@@ -232,99 +232,99 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
             
             {/* Grid for Gender & Country */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
-                <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Gender</label>
-                <p className="text-lg font-medium text-zinc-200 capitalize">{profile.gender || 'N/A'}</p>
+              <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
+                <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Gender</label>
+                <p className="text-lg font-medium text-[#fefefe] capitalize">{profile.gender || 'N/A'}</p>
               </div>
 
-              <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
-                <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Country</label>
-                <p className="text-lg font-medium text-zinc-200 truncate">{profile.country || 'N/A'}</p>
+              <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
+                <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Country</label>
+                <p className="text-lg font-medium text-[#fefefe] truncate">{profile.country || 'N/A'}</p>
               </div>
             </div>
 
             {/* Interests */}
-            <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-colors">
-              <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3">Interests</label>
+            <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-6 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
+              <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-3">Interests</label>
               {isEditing ? (
                 <textarea
                   value={editedProfile.interests}
                   onChange={(e) => setEditedProfile({...editedProfile, interests: e.target.value})}
                   placeholder="What are you into? (e.g. Gaming, Music, Tech)"
                   rows={3}
-                  className="w-full bg-black/20 text-white rounded-xl px-4 py-3 border border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 focus:outline-none resize-none placeholder-zinc-600 text-sm"
+                  className="w-full bg-black/20 text-[#fefefe] rounded-xl px-4 py-3 border border-[#fefefe]/10 focus:border-[#ffbd59]/50 focus:ring-1 focus:ring-[#ffbd59]/50 focus:outline-none resize-none placeholder-[#fefefe]/40 text-sm"
                 />
               ) : (
-                <p className="text-zinc-300 leading-relaxed text-sm">
-                  {profile.interests || <span className="text-zinc-600 italic">No interests added yet.</span>}
+                <p className="text-[#fefefe]/80 leading-relaxed text-sm">
+                  {profile.interests || <span className="text-[#fefefe]/40 italic">No interests added yet.</span>}
                 </p>
               )}
             </div>
 
             {/* Your Reviews */}
-            <div className="bg-gradient-to-br from-zinc-900/40 to-zinc-900/20 backdrop-blur-md rounded-2xl p-6 border border-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-              <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3 relative z-10">Community Rating</label>
+            <div className="bg-gradient-to-br from-[#fefefe]/5 to-[#fefefe]/5 backdrop-blur-md rounded-2xl p-6 border border-[#fefefe]/5 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#ffbd59]/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+              <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-3 relative z-10">Community Rating</label>
               {ratingLoading ? (
-                <div className="h-6 w-24 bg-zinc-800/50 rounded animate-pulse"></div>
+                <div className="h-6 w-24 bg-[#fefefe]/10 rounded animate-pulse"></div>
               ) : ratingSummary.count > 0 ? (
                 <div className="flex items-end gap-3 relative z-10">
                   <div className="flex flex-col">
-                    <span className="text-3xl font-bold text-white leading-none">{Number(ratingSummary.average || 0).toFixed(1)}</span>
-                    <span className="text-[10px] text-zinc-500 font-medium mt-1">{ratingSummary.count} review{ratingSummary.count === 1 ? '' : 's'}</span>
+                    <span className="text-3xl font-bold text-[#fefefe] leading-none">{Number(ratingSummary.average || 0).toFixed(1)}</span>
+                    <span className="text-[10px] text-[#fefefe]/40 font-medium mt-1">{ratingSummary.count} review{ratingSummary.count === 1 ? '' : 's'}</span>
                   </div>
                   <div className="mb-1">
                     <StarRating rating={ratingSummary.average} size="md" />
                   </div>
                 </div>
               ) : (
-                <p className="text-zinc-500 text-sm italic relative z-10">No reviews yet. Chat to get rated!</p>
+                <p className="text-[#fefefe]/40 text-sm italic relative z-10">No reviews yet. Chat to get rated!</p>
               )}
             </div>
 
             {/* Friends Section */}
-            <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl p-6 border border-white/5">
-              <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3">Friends ({friends.length})</label>
+            <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-6 border border-[#fefefe]/5">
+              <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-3">Friends ({friends.length})</label>
               {friends.length > 0 ? (
                 <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
                   {friends.map(friend => (
-                    <li key={friend.userId || friend.id} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-white/5 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 overflow-hidden">
+                    <li key={friend.userId || friend.id} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-[#fefefe]/5 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#ffbd59] to-[#ff907c] flex-shrink-0 overflow-hidden">
                         {friend.pfp ? (
                           <img src={friend.pfp} alt={friend.username} className="w-full h-full object-contain" />
                         ) : (
-                          <span className="font-bold text-white">{getInitials(friend.username)}</span>
+                          <span className="font-bold text-[#fefefe]">{getInitials(friend.username)}</span>
                         )}
                       </div>
-                      <span className="font-medium text-zinc-200">{friend.username}</span>
+                      <span className="font-medium text-[#fefefe]">{friend.username}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-zinc-500 text-sm italic">No friends yet. Add friends during chats!</p>
+                <p className="text-[#fefefe]/40 text-sm italic">No friends yet. Add friends during chats!</p>
               )}
             </div>
 
             {/* Blocked Users Section */}
-            <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl p-6 border border-white/5">
-              <label className="block text-zinc-500 text-xs font-bold uppercase tracking-wider mb-3">Blocked Users ({blockedUsers.length})</label>
+            <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-6 border border-[#fefefe]/5">
+              <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-3">Blocked Users ({blockedUsers.length})</label>
               {blockedUsers.length > 0 ? (
                 <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
                   {blockedUsers.map(user => (
                     <li key={user.id} className="flex items-center justify-between gap-3 p-2 -mx-2 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-[#fefefe]/10 flex-shrink-0 overflow-hidden">
                           {user.pfp ? (
                             <img src={user.pfp} alt={user.username} className="w-full h-full object-contain" />
                           ) : (
-                            <span className="font-bold text-zinc-400">{getInitials(user.username)}</span>
+                            <span className="font-bold text-[#fefefe]/60">{getInitials(user.username)}</span>
                           )}
                         </div>
-                        <span className="font-medium text-zinc-200">{user.username}</span>
+                        <span className="font-medium text-[#fefefe]">{user.username}</span>
                       </div>
                       <button
                         onClick={() => handleUnblock(user.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-zinc-400 bg-zinc-800 hover:bg-zinc-700 hover:text-white rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-[#fefefe]/60 bg-[#fefefe]/10 hover:bg-[#fefefe]/20 hover:text-[#fefefe] rounded-lg transition-colors"
                       >
                         Unblock
                       </button>
@@ -332,7 +332,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
                   ))}
                 </ul>
               ) : (
-                <p className="text-zinc-500 text-sm italic">No blocked users.</p>
+                <p className="text-[#fefefe]/40 text-sm italic">No blocked users.</p>
               )}
             </div>
           </div>
@@ -342,13 +342,13 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
             <div className="flex gap-3 pt-4">
               <button
                 onClick={handleCancel}
-                className="flex-1 py-3.5 rounded-2xl bg-zinc-900 border border-white/10 text-zinc-400 font-medium hover:bg-zinc-800 hover:text-white transition-colors text-sm"
+                className="flex-1 py-3.5 rounded-2xl bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/60 font-medium hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors text-sm shadow-lg shadow-white/5"
+                className="flex-1 py-3.5 rounded-2xl bg-[#ffbd59] text-black font-bold hover:bg-[#ffbd59]/90 transition-colors text-sm shadow-lg shadow-[#ffbd59]/20"
               >
                 Save Changes
               </button>
