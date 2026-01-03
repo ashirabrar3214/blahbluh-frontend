@@ -1,7 +1,53 @@
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from './api';
 import TagInput from './TagInput';
 import './TagInput.css';
+
+const INTEREST_HINTS = [
+  "recent movies you watched",
+  "recent tv show you are binge watching",
+];
+
+// Super light: only re-renders every couple seconds, no per-letter updates
+function FadeRotateHint({ texts = INTEREST_HINTS, intervalMs = 2600, fadeMs = 180 }) {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (!texts || texts.length === 0) return;
+
+    let t1, t2;
+
+    const tick = () => {
+      setVisible(false);
+
+      t1 = setTimeout(() => {
+        setIndex((i) => (i + 1) % texts.length);
+        setVisible(true);
+      }, fadeMs);
+
+      t2 = setTimeout(tick, intervalMs);
+    };
+
+    t2 = setTimeout(tick, intervalMs);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [texts, intervalMs, fadeMs]);
+
+  return (
+    <span className="text-[#fefefe]/60 text-sm font-medium tracking-wide">
+      <span
+        className={`inline-block transition-opacity ease-out ${visible ? 'opacity-100' : 'opacity-0'}`}
+        style={{ transitionDuration: `${fadeMs}ms` }}
+      >
+        {texts[index]}
+      </span>
+    </span>
+  );
+}
 
 function AnimatedDots() {
   const [dots, setDots] = useState('.');
@@ -20,63 +66,6 @@ function AnimatedDots() {
   
   return <span>{dots}</span>;
 }
-
-const Typewriter = memo(({ texts }) => {
-  const [currentText, setCurrentText] = useState('');
-  
-  // Using refs to hold state that doesn't need to trigger re-renders itself
-  const stateRef = useRef({
-    textIndex: 0,
-    charIndex: 0,
-    isDeleting: false,
-    timeoutId: null,
-  });
-
-  const type = useCallback(() => {
-    const state = stateRef.current;
-    const fullText = texts[state.textIndex];
-    let newText;
-    let typingSpeed = state.isDeleting ? 20 : 50;
-
-    if (state.isDeleting) {
-      newText = fullText.substring(0, state.charIndex - 1);
-      state.charIndex--;
-    } else {
-      newText = fullText.substring(0, state.charIndex + 1);
-      state.charIndex++;
-    }
-
-    setCurrentText(newText);
-
-    if (!state.isDeleting && state.charIndex === fullText.length) {
-      typingSpeed = 900; // Pause at end
-      state.isDeleting = true;
-    } else if (state.isDeleting && state.charIndex === 0) {
-      state.isDeleting = false;
-      state.textIndex = (state.textIndex + 1) % texts.length;
-    }
-
-    state.timeoutId = setTimeout(type, typingSpeed);
-  }, [texts]);
-
-  useEffect(() => {
-    const currentRef = stateRef.current;
-    // Start the animation
-    currentRef.timeoutId = setTimeout(type, 100);
-    
-    // Cleanup on unmount. By capturing `stateRef.current` in a variable,
-    // we satisfy the linter's dependency rule while ensuring the cleanup
-    // function correctly accesses the latest `timeoutId` on the ref object.
-    return () => clearTimeout(currentRef.timeoutId);
-  }, [type]);
-
-  return (
-    <span className="text-[#fefefe]/60 text-sm font-medium tracking-wide">
-      {currentText}
-      <span className="animate-pulse ml-0.5 text-[#ffbd59]">|</span>
-    </span>
-  );
-});
 
 const UserIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -107,8 +96,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const [tags, setTags] = useState([]);
   const [pfpUrl, setPfpUrl] = useState(null);
   const [processingRequests, setProcessingRequests] = useState(new Set());
-
-
+  
   // Debug logging for notification counts
   useEffect(() => {
     console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
@@ -483,7 +471,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           </p> */}
           <div className="mb-8 text-left">
             <div className="mb-2 ml-1 h-6 flex items-center">
-               <Typewriter texts={["recent movies you watched", "recent tv show you are binge watching"]} />
+               <FadeRotateHint />
             </div>
             <TagInput tags={tags} onTagsChange={setTags} />
           </div>
