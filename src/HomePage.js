@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { api } from './api';
 import TagInput from './TagInput';
 import './TagInput.css';
@@ -21,30 +21,54 @@ function AnimatedDots() {
   return <span>{dots}</span>;
 }
 
-const Typewriter = ({ texts }) => {
+const Typewriter = memo(({ texts }) => {
   const [currentText, setCurrentText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Using refs to hold state that doesn't need to trigger re-renders itself
+  const stateRef = useRef({
+    textIndex: 0,
+    charIndex: 0,
+    isDeleting: false,
+    timeoutId: null,
+  });
 
-  useEffect(() => {
-    const fullText = texts[currentIndex];
-    let timeout;
+  const type = useCallback(() => {
+    const state = stateRef.current;
+    const fullText = texts[state.textIndex];
+    let newText;
+    let typingSpeed = state.isDeleting ? 20 : 50;
 
-    if (!isDeleting && currentText === fullText) {
-      timeout = setTimeout(() => setIsDeleting(true), 900);
-    } else if (isDeleting && currentText === '') {
-      setIsDeleting(false);
-      setCurrentIndex((prev) => (prev + 1) % texts.length);
+    if (state.isDeleting) {
+      newText = fullText.substring(0, state.charIndex - 1);
+      state.charIndex--;
     } else {
-      timeout = setTimeout(() => {
-        setCurrentText(prev => 
-          isDeleting ? prev.slice(0, -1) : fullText.slice(0, prev.length + 1)
-        );
-      }, isDeleting ? 20 : 50);
+      newText = fullText.substring(0, state.charIndex + 1);
+      state.charIndex++;
     }
 
-    return () => clearTimeout(timeout);
-  }, [currentText, isDeleting, currentIndex, texts]);
+    setCurrentText(newText);
+
+    if (!state.isDeleting && state.charIndex === fullText.length) {
+      typingSpeed = 900; // Pause at end
+      state.isDeleting = true;
+    } else if (state.isDeleting && state.charIndex === 0) {
+      state.isDeleting = false;
+      state.textIndex = (state.textIndex + 1) % texts.length;
+    }
+
+    state.timeoutId = setTimeout(type, typingSpeed);
+  }, [texts]);
+
+  useEffect(() => {
+    const currentRef = stateRef.current;
+    // Start the animation
+    currentRef.timeoutId = setTimeout(type, 100);
+    
+    // Cleanup on unmount. By capturing `stateRef.current` in a variable,
+    // we satisfy the linter's dependency rule while ensuring the cleanup
+    // function correctly accesses the latest `timeoutId` on the ref object.
+    return () => clearTimeout(currentRef.timeoutId);
+  }, [type]);
 
   return (
     <span className="text-[#fefefe]/60 text-sm font-medium tracking-wide">
@@ -52,7 +76,7 @@ const Typewriter = ({ texts }) => {
       <span className="animate-pulse ml-0.5 text-[#ffbd59]">|</span>
     </span>
   );
-};
+});
 
 const UserIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
