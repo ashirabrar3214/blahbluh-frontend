@@ -84,11 +84,11 @@ function SignupForm({ onComplete, loading = false }) {
       if (err.code === 'auth/internal-error') {
         console.warn(
           "Possible CSP issue detected. Ensure your Content-Security-Policy includes:\n" +
-          "  script-src: https://apis.google.com https://www.gstatic.com\n" +
-          "  frame-src: https://accounts.google.com\n" +
-          "  connect-src: https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
+          "  script-src: 'self' https://apis.google.com https://www.gstatic.com\n" +
+          "  frame-src: 'self' https://accounts.google.com\n" +
+          "  connect-src: 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
         );
-        setError('Authentication failed (Internal Error). Check console for CSP/network issues.');
+        setError('Google Sign-In blocked. Please check Content Security Policy (CSP) settings.');
       } else {
         setError('Google authentication failed. Please try again.');
       }
