@@ -82,6 +82,12 @@ function SignupForm({ onComplete, loading = false }) {
     } catch (err) {
       console.error(err);
       if (err.code === 'auth/internal-error') {
+        console.warn(
+          "Possible CSP issue detected. Ensure your Content-Security-Policy includes:\n" +
+          "  script-src: https://apis.google.com https://www.gstatic.com\n" +
+          "  frame-src: https://accounts.google.com\n" +
+          "  connect-src: https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
+        );
         setError('Authentication failed (Internal Error). Check console for CSP/network issues.');
       } else {
         setError('Google authentication failed. Please try again.');
