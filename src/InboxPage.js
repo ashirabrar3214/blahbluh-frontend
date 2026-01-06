@@ -160,7 +160,12 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket 
                 className="flex items-center gap-3 p-4 hover:bg-zinc-900/50 rounded-2xl cursor-pointer transition-colors border-b border-zinc-800/50 last:border-b-0"
               >
                 {/* Avatar */}
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div 
+                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${
+                    friend.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                  }`}
+                  style={friend.pfp_background ? { backgroundImage: `url(${friend.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                >
                   {friend.pfp ? (
                     <img src={friend.pfp} alt={`${friend.username}'s avatar`} className="w-full h-full object-contain" />
                   ) : (

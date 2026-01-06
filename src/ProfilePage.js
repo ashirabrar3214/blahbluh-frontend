@@ -3,6 +3,8 @@ import StarRating from './components/StarRating';
 import { api } from './api';
 import PfpSelect from './components/PfpSelect';
 import LoadingScreen from './components/LoadingScreen';
+import TagInput from './TagInput';
+import './TagInput.css';
 
 const EditIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -22,8 +24,9 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
   const [profile, setProfile] = useState({
     username: currentUsername || '',
     gender: '',
+    age: '',
     country: '',
-    interests: '',
+    interests: [],
     pfp: '',
     pfp_background: '',
   });
@@ -49,17 +52,18 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
       setRatingLoading(true);
       try {
         // Fetch full profile and rating data from the backend
-        const [userProfile, ratingData, pfpData, friendsData] = await Promise.all([
+        const [userProfile, ratingData, pfpData, friendsData, interestsData] = await Promise.all([
           api.getUser(currentUserId),
           api.getUserRating(currentUserId),
           api.getUserPfp(currentUserId).catch(() => null),
           api.getFriends(currentUserId).catch(() => []),
+          api.getUserInterests(currentUserId).catch(() => []),
         ]);
 
         if (!ignore) {
           const pfpUrl = pfpData?.pfp || pfpData?.pfpLink || userProfile.pfp;
           const pfpBg = pfpData?.pfp_background || userProfile.pfp_background || '';
-          const newProfile = { ...profile, ...userProfile, pfp: pfpUrl, username: userProfile.username || currentUsername, pfp_background: pfpBg };
+          const newProfile = { ...profile, ...userProfile, pfp: pfpUrl, username: userProfile.username || currentUsername, pfp_background: pfpBg, interests: interestsData };
           setProfile(newProfile);
           setEditedProfile(newProfile);
 
@@ -108,11 +112,18 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
     // Save to backend so others can see it
     try {
       const promises = [];
+      if (oldProfile.gender !== editedProfile.gender || oldProfile.country !== editedProfile.country || oldProfile.age !== editedProfile.age) {
+        promises.push(api.updateUserDemographics(currentUserId, {
+          gender: editedProfile.gender,
+          country: editedProfile.country,
+          age: editedProfile.age
+        }));
+      }
       if (oldProfile.pfp !== editedProfile.pfp || oldProfile.pfp_background !== editedProfile.pfp_background) {
         promises.push(api.updateUserPfp(currentUserId, editedProfile.pfp, editedProfile.pfp_background));
       }
-      if (oldProfile.interests !== editedProfile.interests) {
-        promises.push(api.updateUser(currentUserId, { interests: editedProfile.interests }));
+      if (JSON.stringify(oldProfile.interests) !== JSON.stringify(editedProfile.interests)) {
+        promises.push(api.sendUserInterests(currentUserId, editedProfile.interests));
       }
       await Promise.all(promises);
     } catch (error) {
@@ -230,16 +241,47 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
           {/* Profile Fields */}
           <div className="space-y-4">
             
-            {/* Grid for Gender & Country */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Grid for Age, Gender & Country */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
+                <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Age</label>
+                {isEditing ? (
+                  <input 
+                    type="number" 
+                    value={editedProfile.age || ''} 
+                    onChange={(e) => setEditedProfile({...editedProfile, age: e.target.value})}
+                    className="w-full bg-transparent text-lg font-medium text-[#fefefe] focus:outline-none border-b border-[#fefefe]/20 focus:border-[#ffbd59] p-0"
+                  />
+                ) : (
+                  <p className="text-lg font-medium text-[#fefefe]">{profile.age || 'N/A'}</p>
+                )}
+              </div>
+
               <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
                 <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Gender</label>
-                <p className="text-lg font-medium text-[#fefefe] capitalize">{profile.gender || 'N/A'}</p>
+                {isEditing ? (
+                  <select 
+                    value={editedProfile.gender || ''} 
+                    onChange={(e) => setEditedProfile({...editedProfile, gender: e.target.value})}
+                    className="w-full bg-transparent text-lg font-medium text-[#fefefe] focus:outline-none border-b border-[#fefefe]/20 focus:border-[#ffbd59] p-0 [&>option]:text-black"
+                  >
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                ) : (
+                  <p className="text-lg font-medium text-[#fefefe] capitalize">{profile.gender || 'N/A'}</p>
+                )}
               </div>
 
               <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
                 <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Country</label>
-                <p className="text-lg font-medium text-[#fefefe] truncate">{profile.country || 'N/A'}</p>
+                {isEditing ? (
+                  <input type="text" value={editedProfile.country || ''} onChange={(e) => setEditedProfile({...editedProfile, country: e.target.value})} className="w-full bg-transparent text-lg font-medium text-[#fefefe] focus:outline-none border-b border-[#fefefe]/20 focus:border-[#ffbd59] p-0" />
+                ) : (
+                  <p className="text-lg font-medium text-[#fefefe] truncate">{profile.country || 'N/A'}</p>
+                )}
               </div>
             </div>
 
@@ -247,17 +289,20 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
             <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-6 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
               <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-3">Interests</label>
               {isEditing ? (
-                <textarea
-                  value={editedProfile.interests}
-                  onChange={(e) => setEditedProfile({...editedProfile, interests: e.target.value})}
-                  placeholder="What are you into? (e.g. Gaming, Music, Tech)"
-                  rows={3}
-                  className="w-full bg-black/20 text-[#fefefe] rounded-xl px-4 py-3 border border-[#fefefe]/10 focus:border-[#ffbd59]/50 focus:ring-1 focus:ring-[#ffbd59]/50 focus:outline-none resize-none placeholder-[#fefefe]/40 text-sm"
+                <TagInput
+                  tags={editedProfile.interests}
+                  onTagsChange={(newTags) => setEditedProfile({...editedProfile, interests: newTags})}
                 />
+              ) : profile.interests && profile.interests.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {profile.interests.map((interest, index) => (
+                    <span key={index} className="px-3 py-1.5 bg-[#fefefe]/10 text-[#fefefe] text-xs font-medium rounded-full">
+                      {interest}
+                    </span>
+                  ))}
+                </div>
               ) : (
-                <p className="text-[#fefefe]/80 leading-relaxed text-sm">
-                  {profile.interests || <span className="text-[#fefefe]/40 italic">No interests added yet.</span>}
-                </p>
+                <p className="text-[#fefefe]/40 text-sm italic">No interests added yet.</p>
               )}
             </div>
 

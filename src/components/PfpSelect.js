@@ -63,6 +63,9 @@ function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
 
   // Scroll to initial PFP on mount
   useEffect(() => {
+    setPreviewPfp(currentPfp || pfpUrls[0]);
+    setPreviewBg(currentBg || '');
+
     const container = pfpScrollRef.current;
     if (container && currentPfp) {
       const elementToScrollTo = container.querySelector(`[data-pfp-url="${currentPfp}"]`);

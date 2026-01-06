@@ -81,7 +81,7 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic }) {
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
   const [notification, setNotification] = useState(externalNotification || null);
@@ -93,7 +93,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const [showNotifications, setShowNotifications] = useState(false);
   const [bannerMessage, setBannerMessage] = useState(null);
   const bellNotifications = notifications.filter(n => n.id !== 'partner-disconnected');
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState(initialTags);
   const [pfpUrl, setPfpUrl] = useState(null);
   const [processingRequests, setProcessingRequests] = useState(new Set());
   
@@ -152,18 +152,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
     return () => clearTimeout(t);
   }, [notification, onNotificationChange]);
-
-  useEffect(() => {
-    const loadInterests = async () => {
-      if (currentUserId) {
-        const storedTags = await api.getUserInterests(currentUserId);
-        if (Array.isArray(storedTags)) {
-          setTags(storedTags);
-        }
-      }
-    };
-    loadInterests();
-  }, [currentUserId]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -447,19 +435,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-20 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
 
-        <div className="max-w-lg w-full text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 backdrop-blur-md mb-8">
-            <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-[#ffbd59] shadow-[0_0_10px_rgba(255,189,89,0.5)]' : 'bg-[#ff907c] animate-pulse'}`}></span>
-            <span className="text-xs font-medium text-[#fefefe]/80 uppercase tracking-wider">
-              {socket?.connected ? 'System Online' : 'Connecting...'}
-            </span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
+        <div className="max-w-lg w-full text-center relative z-10 my-auto">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
             Yap with <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">
               Randos.
@@ -483,7 +464,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
 
 
           {inQueue ? (
-            <div className="w-full bg-[#000000]/80 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] shadow-2xl">
+            <div className="w-full bg-[#000000]/80 backdrop-blur-xl border border-[#fefefe]/10 p-6 md:p-8 rounded-[32px] shadow-2xl">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-16 h-16 rounded-full border-2 border-t-[#ffbd59] border-[#fefefe]/10 animate-spin"></div>
                 <div className="text-center">

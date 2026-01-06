@@ -43,6 +43,14 @@ const TagInput = ({ tags, onTagsChange }) => {
   };
 
   /**
+   * Handles blur events to add the current input as a tag.
+   */
+  const handleBlur = () => {
+    addTag(inputValue);
+    setInputValue('');
+  };
+
+  /**
    * Removes a tag from the tags array by its index.
    */
   const removeTag = (indexToRemove) => {
@@ -64,6 +72,7 @@ const TagInput = ({ tags, onTagsChange }) => {
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           placeholder="What would you like yap about?"
           autoFocus
         />

@@ -35,14 +35,16 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
       
       if (friends && friends.length > 0) {
         const friendChats = await Promise.all(friends.map(async (friend) => {
-          const friendId = friend.userId;
+          const friendId = friend.userId || friend.id;
           const friendName = friend.username;
           const chatId = makeFriendChatId(currentUserId, friendId);
           
           let pfp = friend.pfp;
+          let pfpBg = friend.pfp_background || '';
           try {
             const pfpData = await api.getUserPfp(friendId);
             pfp = pfpData.pfp || pfpData.pfpLink || friend.pfp;
+            pfpBg = pfpData.pfp_background || pfpBg;
           } catch (error) {
             console.warn('Failed to load PFP for friend:', friendId);
           }
@@ -52,6 +54,7 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
             friendId: friendId,
             friendName: friendName,
             pfp,
+            pfpBg,
             lastMessage: 'Start a conversation...',
             lastMessageTime: null,
             isOnline: false
@@ -197,7 +200,12 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
         </button>
         {selectedChat ? (
           <>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div 
+              className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
+                selectedChat.pfpBg ? 'bg-black' : 'bg-gradient-to-br from-blue-500 to-purple-600'
+              }`}
+              style={selectedChat.pfpBg ? { backgroundImage: `url(${selectedChat.pfpBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+            >
               {selectedChat.pfp ? (
                 <img src={selectedChat.pfp} alt={`${selectedChat.friendName}'s avatar`} className="w-full h-full object-contain" />
               ) : (
@@ -253,7 +261,12 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
+                    <div 
+                      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold overflow-hidden flex-shrink-0 ${
+                        chat.pfpBg ? 'bg-black' : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                      }`}
+                      style={chat.pfpBg ? { backgroundImage: `url(${chat.pfpBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                    >
                       {chat.pfp ? (
                         <img src={chat.pfp} alt={`${chat.friendName}'s avatar`} className="w-full h-full object-contain" />
                       ) : (

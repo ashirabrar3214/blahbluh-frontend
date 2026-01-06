@@ -1,11 +1,18 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 export const api = {
-  async generateUserId() {
-    console.log('🆔 Generating random user ID...');
-    const response = await fetch(`${API_BASE_URL}/api/generate-user-id`);
+  async generateUserId(firebaseUid, username) {
+    console.log('🆔 Ensuring Supabase user exists for Firebase UID:', firebaseUid);
+
+    const params = new URLSearchParams();
+    if (firebaseUid) params.set('firebaseUid', firebaseUid);
+    if (username) params.set('username', username);
+
+    const url = `${API_BASE_URL}/api/generate-user-id?${params.toString()}`;
+    const response = await fetch(url);
     const data = await response.json();
-    console.log('✅ Generated user ID:', data.userId);
+
+    console.log('✅ Supabase userId (UUID):', data.userId);
     return data;
   },
 
@@ -25,8 +32,22 @@ export const api = {
       body: JSON.stringify(updates)
     });
     const data = await response.json();
+
+    // Also update PFP and Interests if they are present in the updates object
+    if (updates.pfp || updates.pfp_background) {
+      await this.updateUserPfp(userId, updates.pfp, updates.pfp_background);
+    }
+    if (updates.interests) {
+      await this.sendUserInterests(userId, updates.interests);
+    }
+
     console.log(`API: updateUser response for ${userId}:`, data);
     return data;
+  },
+
+  async updateUserDemographics(userId, { gender, country, age }) {
+    console.log(`API: updateUserDemographics called for userId: ${userId}`);
+    return this.updateUser(userId, { gender, country, age });
   },
 
   async updateUserPfp(userId, pfpLink, pfpBackground) {
@@ -62,6 +83,24 @@ export const api = {
     });
     const data = await response.json();
     console.log(`API: reportUser response for ${userId}:`, data);
+    return data;
+  },
+
+  async submitReport(reportData) {
+    console.log('API: submitReport called with data:', reportData);
+    const response = await fetch(`${API_BASE_URL}/api/submit-report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reportData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error submitting report:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    console.log('API: submitReport response:', data);
     return data;
   },
 

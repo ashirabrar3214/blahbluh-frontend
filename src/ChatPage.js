@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from './api';
 import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
+import ReportPopup from './ReportPopup';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -92,6 +93,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [promptAnswer, setPromptAnswer] = useState('');
   const [isRequeuing, setIsRequeuing] = useState(false);
   const [isAddingFriend, setIsAddingFriend] = useState(false);
+  const [showReportPopup, setShowReportPopup] = useState(false);
+  const [reportContext, setReportContext] = useState(null); // { type: 'user' | 'message', data: ... }
+  const [isReporting, setIsReporting] = useState(false);
 
   // --- SWIPE STATE ---
   const [swipeY, setSwipeY] = useState(0);
@@ -177,12 +181,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         const pfpData = await api.getUserPfp(partnerId).catch(() => null);
         if (!ignore && pfpData) {
           const pfpUrl = pfpData.pfp || pfpData.pfpLink;
-          if (pfpUrl) {
+          const pfpBg = pfpData.pfp_background;
+          if (pfpUrl || pfpBg) {
             setChatPartner(prev => {
               const prevId = prev?.userId || prev?.id;
               // Only update if it's the same user and PFP is different
-              if (prevId === partnerId && prev.pfp !== pfpUrl) {
-                return { ...prev, pfp: pfpUrl };
+              if (prevId === partnerId && (prev.pfp !== pfpUrl || prev.pfp_background !== pfpBg)) {
+                return { ...prev, pfp: pfpUrl || prev.pfp, pfp_background: pfpBg || prev.pfp_background };
               }
               return prev;
             });
@@ -871,16 +876,60 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   };
 
   const handleReportUser = () => {
-    console.log("Reporting user:", chatPartner);
-    setActionToast(`User ${chatPartner?.username} reported.`);
     setShowBlockPopup(false);
+    setReportContext({ type: 'user', data: chatPartner });
+    setShowReportPopup(true);
   };
 
   const handleReport = (message) => {
-    // In a real app, you'd open a modal and send a report to the server.
-    console.log("Reporting message:", message);
-    setActionToast(`Message from ${message.username} reported.`);
     setActiveActionMenu(null);
+    setReportContext({ type: 'message', data: message });
+    setShowReportPopup(true);
+  };
+
+  const handleReportSubmit = async (selectedReason) => {
+    if (!reportContext || !currentUserId) return;
+    
+    // Map Title Case reasons to mixed case to match likely DB constraints
+    const reasonMapping = {
+      "Hate Speech": "hate_speech",
+      "Racism": "racism",
+      "Violence": "violence",
+      "Inappropriate Behavior": "inappropriate_behavior",
+      "Nude Selling": "nude_selling",
+      "Asking Personal Info": "asking_personal_info",
+      "Others": "other"
+    };
+    const dbReason = reasonMapping[selectedReason] || "other";
+
+    setIsReporting(true);
+    try {
+      const reportedUser = reportContext.type === 'user' ? reportContext.data : { userId: reportContext.data.userId, username: reportContext.data.username };
+      
+      // Send the last 10 messages (approx 5 pairs) to provide context
+      const lastMessages = messages.slice(-10); 
+
+      const reportData = {
+        reporter_user_id: currentUserId,
+        reporter_username: currentUsername,
+        reported_user_id: reportedUser.userId || reportedUser.id,
+        reported_username: reportedUser.username,
+        reason: dbReason,
+        last_message_json: lastMessages,
+        created_at: new Date().toISOString()
+      };
+
+      console.log('Submitting report with data:', reportData);
+      await api.submitReport(reportData);
+      setActionToast('Report submitted. Thank you.');
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+      setActionToast('Failed to submit report.');
+    } finally {
+      setIsReporting(false);
+      setShowReportPopup(false);
+      setReportContext(null);
+    }
   };
 
   // --- RENDER: CHAT UI ---
@@ -916,7 +965,12 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
           {/* Center: Profile Info */}
           <div className="justify-self-center flex flex-col items-center">
-             <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner overflow-hidden">
+             <div 
+               className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-inner overflow-hidden ${
+                 chatPartner?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+               }`}
+               style={chatPartner?.pfp_background ? { backgroundImage: `url(${chatPartner.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+             >
                 {chatPartner?.pfp ? (
                   <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
                 ) : (
@@ -1194,7 +1248,12 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             >
               <div className="w-12 h-1.5 bg-zinc-700/50 rounded-full mx-auto mb-4 md:hidden" />
               <div className="flex flex-col items-center mb-3 md:mb-5">
-                <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg mb-2 overflow-hidden">
+                <div 
+                  className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-lg mb-2 overflow-hidden ${
+                    chatPartner?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                  }`}
+                  style={chatPartner?.pfp_background ? { backgroundImage: `url(${chatPartner.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                >
                   {chatPartner?.pfp ? (
                     <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
                   ) : (
@@ -1277,6 +1336,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             onBlock={confirmBlockUser}
             onCancel={() => setShowBlockPopup(false)}
             onReport={handleReportUser}
+          />
+        )}
+
+        {/* Report Popup */}
+        {showReportPopup && (
+          <ReportPopup
+            onCancel={() => {
+              setShowReportPopup(false);
+              setReportContext(null);
+            }}
+            onSubmit={handleReportSubmit}
+            isSubmitting={isReporting}
           />
         )}
 

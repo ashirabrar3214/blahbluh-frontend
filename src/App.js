@@ -11,7 +11,7 @@ import LoadingScreen from './components/LoadingScreen';
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState('signup');
+  const [currentPage, setCurrentPage] = useState('loading');
   const [inboxKey, setInboxKey] = useState(0);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [chatData, setChatData] = useState(null);
@@ -24,6 +24,31 @@ function App() {
   const currentPageRef = useRef(currentPage);
   const chatExitRef = useRef(false);
 
+  useEffect(() => {
+    const restoreUser = async () => {
+      const userId = localStorage.getItem('blahbluh_userId');
+      if (userId) {
+        try {
+          const user = await api.getUser(userId);
+          if (user && user.id) {
+            setCurrentUser(user);
+            setCurrentPage('home');
+          } else {
+            localStorage.removeItem('blahbluh_userId');
+            setCurrentPage('signup');
+          }
+        } catch (error) {
+          console.error('Failed to restore user, going to signup', error);
+          localStorage.removeItem('blahbluh_userId');
+          setCurrentPage('signup');
+        }
+      } else {
+        setCurrentPage('signup');
+      }
+    };
+
+    restoreUser();
+  }, []);
 
   useEffect(() => {
     currentPageRef.current = currentPage;
@@ -188,16 +213,27 @@ useEffect(() => {
     };
   }, [currentUser]);
 
-  const handleSignupComplete = async (signupData) => {
-    console.log('App: handleSignupComplete called with data:', signupData);
+  const handleSignupComplete = async (data) => {
+    console.log('App: handleSignupComplete called with data:', data);
     setLoading(true);
     try {
-      console.log('App: Calling api.generateUserId...');
-      const gen = await api.generateUserId();
-      console.log('App: Generated user ID:', gen.userId);
-      console.log('App: Calling api.updateUser...');
-      const user = await api.updateUser(gen.userId, signupData);
-      console.log('App: Signup complete, created user:', user);
+      let user;
+      
+      if (data.isLogin) {
+        // Login flow: Fetch existing user
+        if (api.getUser) {
+          user = await api.getUser(data.uid);
+        } else {
+          // Fallback
+          user = await api.updateUser(data.uid, {}); 
+        }
+      } else {
+        // Signup flow: Create/Update user
+        // Use Firebase UID as the user ID
+        const userId = data.uid;
+        user = await api.updateUser(userId, data);
+        localStorage.setItem('blahbluh_userId', userId);
+      }
 
       setCurrentUser(user);
       setCurrentPage('home');
@@ -208,6 +244,10 @@ useEffect(() => {
   };
 
   // 🔥 GLOBAL SIGNUP GATE
+  if (currentPage === 'loading') {
+    return <LoadingScreen message="Loading..." />;
+  }
+
   if (!currentUser) {
     return (
       <>
@@ -227,6 +267,7 @@ useEffect(() => {
         socket={globalSocketRef.current}
         currentUserId={currentUser.id}
         currentUsername={currentUser.username}
+        initialTags={currentUser.interests || []}
         globalNotifications={globalNotifications}
         globalFriendRequests={globalFriendRequests}
         setGlobalNotifications={setGlobalNotifications}

@@ -31,6 +31,7 @@ function PfpBackgroundSelect({ onSelect, onClose, currentBg }) {
 
   // Scroll to initial BG on mount
   useEffect(() => {
+    setPreviewBg(currentBg || '');
     const container = scrollContainerRef.current;
     if (container && currentBg) {
       const elementToScrollTo = container.querySelector(`[data-bg-url="${currentBg}"]`);
