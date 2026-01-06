@@ -68,7 +68,7 @@ function SignupForm({ onComplete, loading = false }) {
         setFormData(prev => ({
           ...prev,
           email: user.email,
-          username: user.displayName || generateRandomUsername(),
+          username: generateRandomUsername(),
           uid: user.uid,
           authMethod: 'google'
         }));
@@ -76,7 +76,7 @@ function SignupForm({ onComplete, loading = false }) {
         setStep(1);
       } else {
         // Existing user: login directly
-        const { userId } = await api.generateUserId(user.uid, user.displayName || '');
+        const { userId } = await api.generateUserId(user.uid);
         onComplete({ uid: user.uid, userId, isLogin: true });
       }
     } catch (err) {
