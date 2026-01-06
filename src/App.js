@@ -218,27 +218,28 @@ useEffect(() => {
     setLoading(true);
     try {
       let user;
-      
-      if (data.isLogin) {
-        // Login flow: Fetch existing user
-        if (api.getUser) {
-          user = await api.getUser(data.uid);
-        } else {
-          // Fallback
-          user = await api.updateUser(data.uid, {}); 
-        }
-      } else {
-        // Signup flow: Create/Update user
-        // Use Firebase UID as the user ID
-        const userId = data.uid;
-        user = await api.updateUser(userId, data);
-        localStorage.setItem('blahbluh_userId', userId);
+      const { userId } = data; // This is the Supabase UUID
+
+      if (!userId) {
+        throw new Error('Login/Signup failed: Supabase user ID not generated.');
       }
 
+      if (data.isLogin) {
+        // Login flow: Fetch existing user
+        user = await api.getUser(userId);
+      } else {
+        // Signup flow: Create/Update user
+        user = await api.updateUser(userId, data);
+      }
+
+      // On any successful auth, store the Supabase ID and set the user
+      localStorage.setItem('blahbluh_userId', userId);
       setCurrentUser(user);
       setCurrentPage('home');
     } catch (e) {
-      console.error(e);
+      console.error('Failed to complete signup/login:', e);
+      localStorage.removeItem('blahbluh_userId');
+      setCurrentPage('signup');
     }
     setLoading(false);
   };

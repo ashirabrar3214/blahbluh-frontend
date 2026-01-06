@@ -259,29 +259,12 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
 
               <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
                 <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Gender</label>
-                {isEditing ? (
-                  <select 
-                    value={editedProfile.gender || ''} 
-                    onChange={(e) => setEditedProfile({...editedProfile, gender: e.target.value})}
-                    className="w-full bg-transparent text-lg font-medium text-[#fefefe] focus:outline-none border-b border-[#fefefe]/20 focus:border-[#ffbd59] p-0 [&>option]:text-black"
-                  >
-                    <option value="">Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                ) : (
-                  <p className="text-lg font-medium text-[#fefefe] capitalize">{profile.gender || 'N/A'}</p>
-                )}
+                <p className="text-lg font-medium text-[#fefefe] capitalize">{profile.gender || 'N/A'}</p>
               </div>
 
               <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
                 <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Country</label>
-                {isEditing ? (
-                  <input type="text" value={editedProfile.country || ''} onChange={(e) => setEditedProfile({...editedProfile, country: e.target.value})} className="w-full bg-transparent text-lg font-medium text-[#fefefe] focus:outline-none border-b border-[#fefefe]/20 focus:border-[#ffbd59] p-0" />
-                ) : (
-                  <p className="text-lg font-medium text-[#fefefe] truncate">{profile.country || 'N/A'}</p>
-                )}
+                <p className="text-lg font-medium text-[#fefefe] truncate">{profile.country || 'N/A'}</p>
               </div>
             </div>
 
