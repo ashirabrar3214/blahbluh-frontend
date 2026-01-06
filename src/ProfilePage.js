@@ -157,6 +157,13 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
     }
   };
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      localStorage.removeItem('blahbluh_userId');
+      window.location.reload();
+    }
+  };
+
   if (pageLoading) {
     return <LoadingScreen message="Loading profile..." />;
   }
@@ -364,6 +371,18 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
               )}
             </div>
           </div>
+
+          {/* Logout Button */}
+          {!isEditing && (
+            <div className="mt-6">
+              <button
+                onClick={handleLogout}
+                className="w-full py-3.5 rounded-2xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500/20 transition-all text-sm border border-red-500/20"
+              >
+                Log Out
+              </button>
+            </div>
+          )}
 
           {/* Action Buttons */}
           {isEditing && (
