@@ -870,6 +870,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setShowBlockPopup(false);
       // Block implies leave, but we skip the review popup.
       finishLeavingChat();
+      
+      if (chatId?.startsWith('friend_')) {
+        onInboxOpen ? onInboxOpen() : onGoHome?.();
+      } else {
+        // Block implies leave, but we skip the review popup.
+        finishLeavingChat();
+      }
     } catch (err) {
       console.error('handleBlockUser failed:', err);
     }
