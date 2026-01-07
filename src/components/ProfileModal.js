@@ -16,14 +16,14 @@ function ProfileModal({ user, onClose }) {
           </div>
           
           <div className="flex justify-center mb-6">
-            <div className="relative w-32 h-32 rounded-full shadow-2xl">
+            <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-2xl isolate [-webkit-mask-image:-webkit-radial-gradient(white,black)]">
               {/* Background Layer */}
               <div className={`absolute inset-0 rounded-full overflow-hidden ${user?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={user?.pfp_background ? { backgroundImage: `url(${user.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
               
               {/* PFP Layer */}
-              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+              <div className="absolute inset-0 flex items-center justify-center">
                 {user?.pfp ? (
-                  <img src={user.pfp} alt="Profile" className="w-full h-full object-contain" />
+                  <img src={user.pfp} alt="Profile" className="w-full h-full object-contain object-center block" />
                 ) : (
                   <span className="text-4xl font-bold text-[#fefefe]">{user?.username?.charAt(0).toUpperCase() || '?'}</span>
                 )}

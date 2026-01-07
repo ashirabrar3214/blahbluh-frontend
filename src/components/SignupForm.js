@@ -292,14 +292,14 @@ function SignupForm({ onComplete, loading = false }) {
           <div className="text-center animate-in fade-in duration-300">
             <label className="block text-xs font-bold text-[#fefefe]/60 uppercase tracking-wider mb-4">Choose your Avatar</label>
             <div className="flex justify-center mb-6">
-              <div className="relative w-32 h-32 rounded-full shadow-2xl">
+              <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-2xl isolate [-webkit-mask-image:-webkit-radial-gradient(white,black)]">
                 {/* Background Layer */}
                 <div className={`absolute inset-0 rounded-full overflow-hidden ${formData.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={formData.pfp_background ? { backgroundImage: `url(${formData.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
                 
                 {/* PFP Layer */}
-                <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+                <div className="absolute inset-0 flex items-center justify-center">
                   {formData.pfp ? (
-                    <img src={formData.pfp} alt="Profile" className="w-full h-full object-contain" />
+                    <img src={formData.pfp} alt="Profile" className="w-full h-full object-contain object-center block" />
                   ) : (
                     <span className="text-4xl font-bold text-[#fefefe]">{getInitials(formData.username)}</span>
                   )}
