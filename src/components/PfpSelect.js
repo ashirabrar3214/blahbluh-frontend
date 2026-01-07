@@ -165,24 +165,43 @@ function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
         </div>
         
         {/* Main Preview */}
-        <div className="flex-1 flex items-center justify-center mb-10 min-h-0 relative z-10">
-          <div className="relative group">
-            {/* Glow effect behind preview */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#ffbd59] to-[#ff907c] rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-            <div className="relative w-48 h-48 rounded-full shadow-2xl">
-              {/* Background Layer */}
-              <div className={`absolute inset-0 rounded-full overflow-hidden ${previewBg ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={previewBg ? { backgroundImage: `url(${previewBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
-              
-              {/* PFP Layer */}
-              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
-                <img src={previewPfp} alt="Selected Avatar" className="w-full h-full object-contain drop-shadow-lg" />
-              </div>
+          <div className="flex-1 flex items-center justify-center mb-10 min-h-0 relative z-10">
+            <div className="relative group">
+              {/* Glow effect behind preview */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#ffbd59] to-[#ff907c] rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
 
-              {/* Border Layer (Top most) */}
-              <div className="absolute inset-0 rounded-full border-4 border-black/50 ring-1 ring-[#fefefe]/10 pointer-events-none" />
+              {/* Preview Circle (clip happens here) */}
+              <div className="relative w-48 h-48 rounded-full overflow-hidden shadow-2xl isolate [-webkit-mask-image:-webkit-radial-gradient(white,black)]">
+                {/* Background Layer */}
+                <div
+                  className={`absolute inset-0 ${previewBg ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`}
+                  style={
+                    previewBg
+                      ? {
+                          backgroundImage: `url(${previewBg})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }
+                      : {}
+                  }
+                />
+
+                {/* PFP Layer */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <img
+                    src={previewPfp}
+                    alt="Selected Avatar"
+                    className="w-full h-full object-contain object-center block"
+                    draggable={false}
+                  />
+                </div>
+
+                {/* Border Layer (Top most) */}
+                <div className="absolute inset-0 rounded-full border-4 border-black/50 ring-1 ring-[#fefefe]/10 pointer-events-none" />
+              </div>
             </div>
           </div>
-        </div>
+
 
         {/* Avatar Carousel */}
         <div className="mb-8 relative z-10">
