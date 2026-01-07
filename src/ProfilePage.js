@@ -112,9 +112,9 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
     // Save to backend so others can see it
     try {
       const promises = [];
-      if (oldProfile.gender !== editedProfile.gender || oldProfile.country !== editedProfile.country || oldProfile.age !== editedProfile.age) {
+      if (oldProfile.country !== editedProfile.country || oldProfile.age !== editedProfile.age) {
         promises.push(api.updateUserDemographics(currentUserId, {
-          gender: editedProfile.gender,
+          gender: profile.gender,
           country: editedProfile.country,
           age: editedProfile.age
         }));

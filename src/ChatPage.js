@@ -3,6 +3,7 @@ import { api } from './api';
 import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
 import ReportPopup from './ReportPopup';
+import PublicProfile from './components/PublicProfile';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -59,6 +60,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(propUserId ?? null);
   const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
+  const [showPublicProfile, setShowPublicProfile] = useState(false);
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
@@ -971,7 +973,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           </div>
 
           {/* Center: Profile Info */}
-          <div className="justify-self-center flex flex-col items-center">
+          <div 
+            className="justify-self-center flex flex-col items-center cursor-pointer"
+            onClick={() => chatPartner && setShowPublicProfile(true)}
+          >
              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full shadow-inner">
                 {/* Background Layer */}
                 <div 
@@ -1394,6 +1399,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               // we treat it as skipping without a rating. This ensures the skip flow completes.
               handleReviewSubmit({});
             }}
+          />
+        )}
+
+        {/* Public Profile Popup */}
+        {showPublicProfile && chatPartner && (
+          <PublicProfile
+            targetUserId={chatPartner.userId || chatPartner.id}
+            currentUserId={currentUserId}
+            currentUsername={currentUsername}
+            onBack={() => setShowPublicProfile(false)}
           />
         )}
       </>
