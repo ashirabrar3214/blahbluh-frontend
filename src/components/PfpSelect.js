@@ -174,7 +174,7 @@ function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
               <div className={`absolute inset-0 rounded-full overflow-hidden ${previewBg ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={previewBg ? { backgroundImage: `url(${previewBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
               
               {/* PFP Layer */}
-              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
                 <img src={previewPfp} alt="Selected Avatar" className="w-full h-full object-contain drop-shadow-lg" />
               </div>
 
