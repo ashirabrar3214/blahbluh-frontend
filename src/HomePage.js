@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from './api';
 import TagInput from './TagInput';
 import './TagInput.css';
@@ -97,6 +97,22 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const [pfpUrl, setPfpUrl] = useState(null);
   const [processingRequests, setProcessingRequests] = useState(new Set());
   
+  // Ref to track queue state for unmount cleanup
+  const inQueueRef = useRef(inQueue);
+
+  useEffect(() => {
+    inQueueRef.current = inQueue;
+  }, [inQueue]);
+
+  useEffect(() => {
+    return () => {
+      if (inQueueRef.current && currentUserId) {
+        console.log('HomePage unmounting: leaving queue');
+        api.leaveQueue(currentUserId).catch(err => console.error('Error leaving queue on unmount:', err));
+      }
+    };
+  }, [currentUserId]);
+
   // Debug logging for notification counts
   useEffect(() => {
     console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
