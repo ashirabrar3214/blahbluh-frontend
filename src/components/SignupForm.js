@@ -297,7 +297,7 @@ function SignupForm({ onComplete, loading = false }) {
                 <div className={`absolute inset-0 rounded-full overflow-hidden ${formData.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={formData.pfp_background ? { backgroundImage: `url(${formData.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
                 
                 {/* PFP Layer */}
-                <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
                   {formData.pfp ? (
                     <img src={formData.pfp} alt="Profile" className="w-full h-full object-contain" />
                   ) : (

@@ -204,31 +204,36 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
           <div className="flex flex-col items-center mb-10"> 
             <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-[#ffbd59] to-[#ff907c] rounded-full opacity-50 blur group-hover:opacity-75 transition duration-500"></div>
-            <div 
-              className={`relative w-32 h-32 rounded-full flex items-center justify-center shadow-2xl overflow-hidden border-4 border-black ${
-                (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
-                  ? 'bg-black' 
-                  : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'
-              }`}
-              style={
-                (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
-                  ? { backgroundImage: `url(${isEditing ? editedProfile.pfp_background : profile.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                  : {}
-              }
-            >
-              {(isEditing ? editedProfile.pfp : profile.pfp) ? (
-                <img 
-                  src={isEditing ? editedProfile.pfp : profile.pfp} 
-                  alt="Profile" 
-                  className="w-full h-full object-contain rounded-full z-10"
-                />
-              ) : (
-                <span className="text-4xl font-bold text-[#fefefe] z-10">
-                  {getInitials(profile.username)}
-                </span>
-              )}
+            <div className="relative w-32 h-32 rounded-full shadow-2xl">
+              {/* Background Layer */}
+              <div 
+                className={`absolute inset-0 rounded-full overflow-hidden ${
+                  (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
+                    ? 'bg-black' 
+                    : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'
+                }`}
+                style={
+                  (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
+                    ? { backgroundImage: `url(${isEditing ? editedProfile.pfp_background : profile.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                    : {}
+                }
+              />
+
+              {/* PFP Layer */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+                {(isEditing ? editedProfile.pfp : profile.pfp) ? (
+                  <img src={isEditing ? editedProfile.pfp : profile.pfp} alt="Profile" className="w-full h-full object-contain" />
+                ) : (
+                  <span className="text-4xl font-bold text-[#fefefe]">{getInitials(profile.username)}</span>
+                )}
+              </div>
+
+              {/* Border Layer */}
+              <div className="absolute inset-0 rounded-full border-4 border-black pointer-events-none" />
+
+              {/* Edit Overlay */}
               {isEditing && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 rounded-full">
                   <button 
                     onClick={() => setShowPfpSelect(true)}
                     className="text-sm bg-[#fefefe]/20 hover:bg-[#fefefe]/30 px-4 py-2 rounded-lg text-[#fefefe] backdrop-blur-sm font-semibold"

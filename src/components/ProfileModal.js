@@ -21,7 +21,7 @@ function ProfileModal({ user, onClose }) {
               <div className={`absolute inset-0 rounded-full overflow-hidden ${user?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={user?.pfp_background ? { backgroundImage: `url(${user.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
               
               {/* PFP Layer */}
-              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
                 {user?.pfp ? (
                   <img src={user.pfp} alt="Profile" className="w-full h-full object-contain" />
                 ) : (
