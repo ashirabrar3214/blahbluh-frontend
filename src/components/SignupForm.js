@@ -292,17 +292,21 @@ function SignupForm({ onComplete, loading = false }) {
           <div className="text-center animate-in fade-in duration-300">
             <label className="block text-xs font-bold text-[#fefefe]/60 uppercase tracking-wider mb-4">Choose your Avatar</label>
             <div className="flex justify-center mb-6">
-              <div 
-                className={`relative w-32 h-32 rounded-full flex items-center justify-center shadow-2xl overflow-hidden border-4 border-black ${
-                  formData.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'
-                }`}
-                style={formData.pfp_background ? { backgroundImage: `url(${formData.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-              >
-                {formData.pfp ? (
-                  <img src={formData.pfp} alt="Profile" className="w-full h-full object-contain" />
-                ) : (
-                  <span className="text-4xl font-bold text-[#fefefe]">{getInitials(formData.username)}</span>
-                )}
+              <div className="relative w-32 h-32 rounded-full shadow-2xl">
+                {/* Background Layer */}
+                <div className={`absolute inset-0 rounded-full overflow-hidden ${formData.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={formData.pfp_background ? { backgroundImage: `url(${formData.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
+                
+                {/* PFP Layer */}
+                <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden">
+                  {formData.pfp ? (
+                    <img src={formData.pfp} alt="Profile" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-4xl font-bold text-[#fefefe]">{getInitials(formData.username)}</span>
+                  )}
+                </div>
+
+                {/* Circle/Border Layer (Top most) */}
+                <div className="absolute inset-0 rounded-full border-4 border-black pointer-events-none" />
               </div>
             </div>
             <button onClick={() => setShowPfpSelect(true)} className="w-full py-3 mb-4 rounded-xl bg-[#fefefe]/10 text-[#fefefe] font-medium hover:bg-[#fefefe]/20 transition-all">
