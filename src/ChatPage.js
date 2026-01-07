@@ -972,19 +972,26 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
           {/* Center: Profile Info */}
           <div className="justify-self-center flex flex-col items-center">
-             <div 
-               className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-inner overflow-hidden ${
-                 chatPartner?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
-               }`}
-               style={chatPartner?.pfp_background ? { backgroundImage: `url(${chatPartner.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-             >
-                {chatPartner?.pfp ? (
-                  <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
-                ) : (
-                  <span className="text-xs md:text-sm font-bold text-white tracking-wide">
-                    {chatPartner?.username?.[0]?.toUpperCase() || '?'}
-                  </span>
-                )}
+             <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full shadow-inner">
+                {/* Background Layer */}
+                <div 
+                  className={`absolute inset-0 rounded-full overflow-hidden ${
+                    chatPartner?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                  }`}
+                  style={chatPartner?.pfp_background ? { backgroundImage: `url(${chatPartner.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                />
+                {/* PFP Layer */}
+                <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+                  {chatPartner?.pfp ? (
+                    <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-xs md:text-sm font-bold text-white tracking-wide">
+                      {chatPartner?.username?.[0]?.toUpperCase() || '?'}
+                    </span>
+                  )}
+                </div>
+                {/* Border Layer */}
+                <div className="absolute inset-0 rounded-full border-2 border-black/20 pointer-events-none" />
              </div>
              <span className="text-[10px] md:text-sm font-semibold text-gray-100 leading-tight mt-0.5 md:mt-1.5 max-w-[100px] truncate text-center">
                 {chatPartner?.username || 'Stranger'}
@@ -1255,19 +1262,26 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             >
               <div className="w-12 h-1.5 bg-zinc-700/50 rounded-full mx-auto mb-4 md:hidden" />
               <div className="flex flex-col items-center mb-3 md:mb-5">
-                <div 
-                  className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-lg mb-2 overflow-hidden ${
-                    chatPartner?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
-                  }`}
-                  style={chatPartner?.pfp_background ? { backgroundImage: `url(${chatPartner.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-                >
-                  {chatPartner?.pfp ? (
-                    <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
-                  ) : (
-                    <span className="text-base md:text-lg font-bold text-white tracking-wide">
-                      {chatPartner?.username?.[0]?.toUpperCase() || '?'}
-                    </span>
-                  )}
+                <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-full shadow-lg mb-2">
+                  {/* Background Layer */}
+                  <div 
+                    className={`absolute inset-0 rounded-full overflow-hidden ${
+                      chatPartner?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                    }`}
+                    style={chatPartner?.pfp_background ? { backgroundImage: `url(${chatPartner.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                  />
+                  {/* PFP Layer */}
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+                    {chatPartner?.pfp ? (
+                      <img src={chatPartner.pfp} alt={`${chatPartner.username}'s avatar`} className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-base md:text-lg font-bold text-white tracking-wide">
+                        {chatPartner?.username?.[0]?.toUpperCase() || '?'}
+                      </span>
+                    )}
+                  </div>
+                  {/* Border Layer */}
+                  <div className="absolute inset-0 rounded-full border-2 border-black/20 pointer-events-none" />
                 </div>
                 <span className="text-sm md:text-base font-semibold text-gray-100 leading-tight">
                   {chatPartner?.username || 'Stranger'}

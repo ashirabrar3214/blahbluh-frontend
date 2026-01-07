@@ -56,14 +56,21 @@ export default function ReviewPopup({
       <div className="w-[92%] max-w-md rounded-2xl bg-zinc-900 border border-white/10 p-5 md:p-6 shadow-2xl">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-inner flex-shrink-0 overflow-hidden">
-              {partner?.pfp ? (
-                <img src={partner.pfp} alt={`${partner?.username || 'Partner'}'s avatar`} className="w-full h-full object-contain" />
-              ) : (
-                <span className="text-base md:text-lg font-bold text-white tracking-wide">
-                  {getInitials(partner?.username)}
-                </span>
-              )}
+            <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full shadow-inner flex-shrink-0">
+              {/* Background Layer */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600" />
+              {/* PFP Layer */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+                {partner?.pfp ? (
+                  <img src={partner.pfp} alt={`${partner?.username || 'Partner'}'s avatar`} className="w-full h-full object-contain" />
+                ) : (
+                  <span className="text-base md:text-lg font-bold text-white tracking-wide">
+                    {getInitials(partner?.username)}
+                  </span>
+                )}
+              </div>
+              {/* Border Layer */}
+              <div className="absolute inset-0 rounded-full border-2 border-black/20 pointer-events-none" />
             </div>
             <div>
               <h2 className="text-base md:text-lg font-bold text-white">Rate {partner?.username || 'Stranger'}</h2>

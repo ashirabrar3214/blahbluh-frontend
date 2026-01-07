@@ -200,17 +200,24 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
         </button>
         {selectedChat ? (
           <>
-            <div 
-              className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
-                selectedChat.pfpBg ? 'bg-black' : 'bg-gradient-to-br from-blue-500 to-purple-600'
-              }`}
-              style={selectedChat.pfpBg ? { backgroundImage: `url(${selectedChat.pfpBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-            >
-              {selectedChat.pfp ? (
-                <img src={selectedChat.pfp} alt={`${selectedChat.friendName}'s avatar`} className="w-full h-full object-contain" />
-              ) : (
-                <span className="font-bold text-sm">{selectedChat.friendName[0].toUpperCase()}</span>
-              )}
+            <div className="relative w-10 h-10 rounded-full flex-shrink-0">
+              {/* Background Layer */}
+              <div 
+                className={`absolute inset-0 rounded-full overflow-hidden ${
+                  selectedChat.pfpBg ? 'bg-black' : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                }`}
+                style={selectedChat.pfpBg ? { backgroundImage: `url(${selectedChat.pfpBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+              />
+              {/* PFP Layer */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+                {selectedChat.pfp ? (
+                  <img src={selectedChat.pfp} alt={`${selectedChat.friendName}'s avatar`} className="w-full h-full object-contain" />
+                ) : (
+                  <span className="font-bold text-sm">{selectedChat.friendName[0].toUpperCase()}</span>
+                )}
+              </div>
+              {/* Border Layer */}
+              <div className="absolute inset-0 rounded-full border-2 border-black/20 pointer-events-none" />
             </div>
             <div>
               <h1 className="text-lg font-bold">{selectedChat.friendName}</h1>
@@ -261,17 +268,24 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div 
-                      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold overflow-hidden flex-shrink-0 ${
-                        chat.pfpBg ? 'bg-black' : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                      }`}
-                      style={chat.pfpBg ? { backgroundImage: `url(${chat.pfpBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-                    >
-                      {chat.pfp ? (
-                        <img src={chat.pfp} alt={`${chat.friendName}'s avatar`} className="w-full h-full object-contain" />
-                      ) : (
-                        chat.friendName[0].toUpperCase()
-                      )}
+                    <div className="relative w-12 h-12 rounded-full flex-shrink-0">
+                      {/* Background Layer */}
+                      <div 
+                        className={`absolute inset-0 rounded-full overflow-hidden ${
+                          chat.pfpBg ? 'bg-black' : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                        }`}
+                        style={chat.pfpBg ? { backgroundImage: `url(${chat.pfpBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                      />
+                      {/* PFP Layer */}
+                      <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden transform-gpu">
+                        {chat.pfp ? (
+                          <img src={chat.pfp} alt={`${chat.friendName}'s avatar`} className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="font-bold">{chat.friendName[0].toUpperCase()}</span>
+                        )}
+                      </div>
+                      {/* Border Layer */}
+                      <div className="absolute inset-0 rounded-full border-2 border-black/20 pointer-events-none" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
