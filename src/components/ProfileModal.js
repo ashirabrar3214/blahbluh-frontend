@@ -15,6 +15,25 @@ function ProfileModal({ user, onClose }) {
             </button>
           </div>
           
+          <div className="flex justify-center mb-6">
+            <div className="relative w-32 h-32 rounded-full shadow-2xl">
+              {/* Background Layer */}
+              <div className={`absolute inset-0 rounded-full overflow-hidden ${user?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'}`} style={user?.pfp_background ? { backgroundImage: `url(${user.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}} />
+              
+              {/* PFP Layer */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden">
+                {user?.pfp ? (
+                  <img src={user.pfp} alt="Profile" className="w-full h-full object-contain" />
+                ) : (
+                  <span className="text-4xl font-bold text-[#fefefe]">{user?.username?.charAt(0).toUpperCase() || '?'}</span>
+                )}
+              </div>
+
+              {/* Circle/Border Layer (Top most) */}
+              <div className="absolute inset-0 rounded-full border-4 border-black pointer-events-none" />
+            </div>
+          </div>
+          
           <div className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-[#fefefe]/60 uppercase tracking-wider mb-1.5">Username</label>
