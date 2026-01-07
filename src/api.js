@@ -431,13 +431,20 @@ export const api = {
     return data;
   },
 
-  async getFriendChatMessages(chatId) {
-    console.log(`API: getFriendChatMessages called for chatId: ${chatId}`);
-    const response = await fetch(`${API_BASE_URL}/api/friend-chat-messages/${chatId}`);
+  async getFriendChatMessages(chatId, before) {
+    console.log(`API: getFriendChatMessages called for chatId: ${chatId}, before: ${before}`);
+
+    const url =
+      `${API_BASE_URL}/api/friend-chat-messages/${chatId}` +
+      (before ? `?before=${encodeURIComponent(before)}` : '');
+
+    const response = await fetch(url);
+
     if (!response.ok) {
       console.error(`API: getFriendChatMessages error for chatId: ${chatId}, status: ${response.status}`);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     const data = await response.json();
     console.log(`API: getFriendChatMessages response for ${chatId}:`, data);
     return data;
