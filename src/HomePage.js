@@ -4,8 +4,12 @@ import TagInput from './TagInput';
 import './TagInput.css';
 
 const INTEREST_HINTS = [
-  "recent movies you watched",
-  "recent tv show you are binge watching",
+  "the best tv show in mankind's history is ... ",
+  "what thought keeps you awake at 3am?",
+  "a weird fact about me is ... ",
+  "democarcy is ... ",
+  "make a confession to a stranger ... ",
+  "worst picku line you've ever heard ... ",
 ];
 
 // Super light: only re-renders every couple seconds, no per-letter updates
@@ -454,6 +458,15 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-20 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
+
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <img 
+            src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/earthimage.png" 
+            alt="" 
+            className="w-[80%] max-w-[600px] object-contain opacity-40"
+            style={{ filter: 'invert(89%) sepia(16%) saturate(1684%) hue-rotate(328deg) brightness(103%) contrast(101%) drop-shadow(0 0 8px #ffbd59)' }}
+          />
+        </div>
 
         <div className="max-w-lg w-full text-center relative z-10 my-auto">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
