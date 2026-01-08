@@ -1378,8 +1378,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 <textarea
                   value={promptAnswer}
                   onChange={(e) => setPromptAnswer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handlePromptSubmit();
+                    }
+                  }}
                   placeholder="Your answer..."
-                  className="w-full h-20 md:h-24 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none text-xs md:text-sm"
+                  className="w-full h-20 md:h-24 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none text-[16px] md:text-sm"
                   autoFocus
                 />
                 <div className="flex flex-col gap-2 mt-1">
