@@ -459,7 +459,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
 
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+        <div className="absolute inset-0 flex items-start md:items-center justify-center pointer-events-none z-0 pt-24 md:pt-0">
           <img 
             src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/earthimage.png" 
             alt="" 
@@ -468,8 +468,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           />
         </div>
 
-        <div className="max-w-lg w-full text-center relative z-10 my-auto">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
+        <div className="max-w-lg w-full text-center relative z-10 mt-12 md:my-auto">
+          <h1 className="text-6xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
             Yap with <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">
               Randos.
