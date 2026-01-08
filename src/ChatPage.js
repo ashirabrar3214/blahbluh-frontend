@@ -1365,7 +1365,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                   {chatPartner?.username || 'Stranger'}
                 </span>
               </div>
-              <h2 className="text-base md:text-lg font-bold text-zinc-400 mb-2 md:mb-3">Icebreaker</h2>
               <div className="flex justify-center items-center min-h-[92px] md:min-h-[100px] mb-5 md:mb-6">
                 {icebreakerTopic ? (
                   <p className="text-xl md:text-3xl font-bold text-white leading-tight text-center">
