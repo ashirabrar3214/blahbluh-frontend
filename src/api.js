@@ -431,24 +431,23 @@ export const api = {
     return data;
   },
 
-  async getFriendChatMessages(chatId, before) {
-    console.log(`API: getFriendChatMessages called for chatId: ${chatId}, before: ${before}`);
+  async getFriendChatMessages(chatId, before = null, limit = 50) {
+  console.log(`API: getFriendChatMessages called for chatId: ${chatId}, before: ${before}, limit: ${limit}`);
 
-    const url =
-      `${API_BASE_URL}/api/friend-chat-messages/${chatId}` +
-      (before ? `?before=${encodeURIComponent(before)}` : '');
+  const url = new URL(`${API_BASE_URL}/api/friend-chat-messages/${chatId}`);
+  if (before) url.searchParams.set('before', before);
+  if (limit) url.searchParams.set('limit', limit);
 
-    const response = await fetch(url);
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    console.error(`API: getFriendChatMessages error for chatId: ${chatId}, status: ${response.status}`);
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
-    if (!response.ok) {
-      console.error(`API: getFriendChatMessages error for chatId: ${chatId}, status: ${response.status}`);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log(`API: getFriendChatMessages response for ${chatId}:`, data);
-    return data;
-  },
+  const data = await response.json();
+  console.log(`API: getFriendChatMessages response for ${chatId}:`, data);
+  return data;
+},
 
   async getUnreadCount(userId, friendId) {
     console.log(`API: getUnreadCount called for userId: ${userId} and friendId: ${friendId}`);

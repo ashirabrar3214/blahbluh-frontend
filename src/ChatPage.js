@@ -66,6 +66,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
   const topicChatIdRef = useRef(null);
 
+  // Pagination State
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const previousScrollHeightRef = useRef(0);
+  const isHistoryLoadRef = useRef(false);
+
+
   useEffect(() => {
     setCurrentUserId(propUserId ?? null);
     setCurrentUsername(propUsername ?? null);
@@ -228,12 +235,19 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   // Auto-scroll
   useEffect(() => {
-    if (messagesContainerRef.current && messagesEndRef.current) {
+    if (messagesContainerRef.current) {
       const container = messagesContainerRef.current;
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        container.scrollTop = container.scrollHeight;
-      }, 200);
+      
+      if (isHistoryLoadRef.current) {
+        // Restore scroll position after loading history
+        const newScrollHeight = container.scrollHeight;
+        container.scrollTop = newScrollHeight - previousScrollHeightRef.current;
+        isHistoryLoadRef.current = false;
+      } else {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 200);
+      }
     }
   }, [messages, chatId]);
 
@@ -478,6 +492,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setChatId(initialChatData.chatId);
         setChatPartner(partner);
         setMessages([]);
+        setHasMore(false);
         setSuggestedTopic(initialChatData.topic || null);
 
         // ✅ Prevent join-chat spam
@@ -502,7 +517,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       const loadMessages = async () => {
         try {
           console.log('Loading message history for:', targetFriend.chatId);
-          const history = await api.getFriendChatMessages(targetFriend.chatId);
+          const history = await api.getFriendChatMessages(targetFriend.chatId, null, 50);
           console.log('Loaded messages:', history);
           
           const formattedMessages = history.map(msg => ({
@@ -517,9 +532,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           
           console.log('Formatted messages:', formattedMessages);
           setMessages(formattedMessages);
+          setHasMore(history.length >= 50);
         } catch (error) {
           console.error('Error loading message history:', error);
           setMessages([]);
+          setHasMore(false);
         }
       };
       loadMessages();
@@ -530,6 +547,56 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       }
     }
   }, [initialChatData, targetFriend, currentUserId, currentUsername, socket, setSuggestedTopic]);
+
+  const loadMoreMessages = async () => {
+    if (loadingMore || !hasMore || !chatId) return;
+    
+    setLoadingMore(true);
+    isHistoryLoadRef.current = true;
+    
+    if (messagesContainerRef.current) {
+      previousScrollHeightRef.current = messagesContainerRef.current.scrollHeight;
+    }
+
+    try {
+      const oldestMsg = messages[0];
+      if (!oldestMsg) {
+        setHasMore(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      const history = await api.getFriendChatMessages(chatId, oldestMsg.timestamp, 50);
+      
+      if (history.length < 50) {
+        setHasMore(false);
+      }
+
+      const formattedMessages = history.map(msg => ({
+        id: msg.id,
+        chatId: msg.chat_id,
+        message: msg.message,
+        userId: msg.sender_id,
+        username: msg.sender_id === currentUserId ? currentUsername : (chatPartner?.username || 'Partner'),
+        timestamp: msg.created_at,
+        reactions: {}
+      }));
+
+      setMessages(prev => [...formattedMessages, ...prev]);
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+      isHistoryLoadRef.current = false;
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (e) => {
+    const { scrollTop } = e.target;
+    if (scrollTop === 0 && hasMore && !loadingMore) {
+      loadMoreMessages();
+    }
+  };
 
   const handlePromptSubmit = () => {
     if (!promptAnswer.trim() || !chatId || !currentUserId) return;
@@ -1051,8 +1118,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           {/* Messages */}
           <div 
             ref={messagesContainerRef}
+            onScroll={handleScroll}
             className="flex-1 overflow-y-auto px-4 pt-12 pb-4 space-y-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full"
           >
+            {loadingMore && (
+              <div className="flex justify-center py-2">
+                <div className="w-5 h-5 border-2 border-t-blue-500 border-zinc-700 rounded-full animate-spin"></div>
+              </div>
+            )}
             {messages.map((msg, index) => {
               const isOwn = msg.userId === currentUserId;
 
