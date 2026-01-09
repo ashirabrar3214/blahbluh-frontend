@@ -36,6 +36,12 @@ const EmojiIcon = () => (
 const HourglassIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
 );
+const PhoneIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+);
+const PhoneOffIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+);
 
 const IcebreakerLoader = () => (
   <div className="flex flex-col items-center justify-center gap-4">
@@ -131,6 +137,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [reportContext, setReportContext] = useState(null); // { type: 'user' | 'message', data: ... }
   const [isReporting, setIsReporting] = useState(false);
 
+  // --- WebRTC STATE ---
+  const [callStatus, setCallStatus] = useState('idle'); // 'idle', 'calling', 'incoming', 'connected'
+  const [incomingOffer, setIncomingOffer] = useState(null);
+  const localStreamRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+
   // --- SWIPE STATE ---
   const [swipeY, setSwipeY] = useState(0);
   const [swipeX, setSwipeX] = useState(0);
@@ -154,6 +167,117 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const hardExitRef = useRef(false);
 
   //const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // --- WebRTC FUNCTIONS ---
+  const cleanupCall = useCallback(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = null;
+    }
+    setCallStatus('idle');
+    setIncomingOffer(null);
+  }, []);
+
+  const startCall = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', { chatId, candidate: event.candidate });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      peerConnectionRef.current = pc;
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      socket.emit('call-offer', { chatId, offer });
+      setCallStatus('calling');
+    } catch (err) {
+      console.error('Error starting call:', err);
+      cleanupCall();
+    }
+  };
+
+  const acceptCall = async () => {
+    if (!incomingOffer) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', { chatId, candidate: event.candidate });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      peerConnectionRef.current = pc;
+
+      await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      socket.emit('call-answer', { chatId, answer });
+      setCallStatus('connected');
+    } catch (err) {
+      console.error('Error accepting call:', err);
+      cleanupCall();
+    }
+  };
+
+  const hangupCall = () => {
+    socket.emit('call-hangup', { chatId });
+    cleanupCall();
+  };
+
+  // Cleanup call on unmount or chat change
+  useEffect(() => {
+    return () => {
+      cleanupCall();
+    };
+  }, [cleanupCall, chatId]);
+
+  // Handle exit to home with call cleanup
+  const handleExitToHomeWithCleanup = (requeue) => {
+    if (callStatus !== 'idle') {
+      hangupCall();
+    }
+    handleExitToHome(requeue);
+  };
 
   // --- FUNCTIONS ---
   const loadFriendRequests = useCallback(async () => {
@@ -468,14 +592,61 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       return;
     };
 
+    // WebRTC Listeners
+    const handleCallOffer = async ({ offer, fromUserId }) => {
+      if (!chatId?.startsWith('friend_')) return;
+      if (callStatus !== 'idle') {
+        console.log('Busy, ignoring offer');
+        return;
+      }
+      console.log('Incoming call offer');
+      setIncomingOffer(offer);
+      setCallStatus('incoming');
+    };
+
+    const handleCallAnswer = async ({ answer }) => {
+      if (!chatId?.startsWith('friend_')) return;
+      console.log('Received call answer');
+      if (peerConnectionRef.current) {
+        try {
+          await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+          setCallStatus('connected');
+        } catch (err) {
+          console.error('Error setting remote description:', err);
+        }
+      }
+    };
+
+    const handleIceCandidate = async ({ candidate }) => {
+      if (!chatId?.startsWith('friend_')) return;
+      if (peerConnectionRef.current) {
+        try {
+          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.error('Error adding ice candidate:', err);
+        }
+      }
+    };
+
+    const handleCallHangup = () => {
+      if (!chatId?.startsWith('friend_')) return;
+      console.log('Call hung up by peer');
+      cleanupCall();
+    };
+
     const handleFriendRequestReceived = () => loadFriendRequests();
-    // Removed - now handled by App.js
 
     socket.on('chat-paired', handleChatPaired);
     socket.on('new-message', handleNewMessage);
     socket.on('message-reaction', handleMessageReaction);
     socket.on('partner-disconnected', handlePartnerDisconnected);
     socket.on('friend-request-received', handleFriendRequestReceived);
+
+    // WebRTC events
+    socket.on('call-offer', handleCallOffer);
+    socket.on('call-answer', handleCallAnswer);
+    socket.on('ice-candidate', handleIceCandidate);
+    socket.on('call-hangup', handleCallHangup);
     
     // Listen for friend messages even when not in chat
     socket.on('friend-message-received', (messageData) => {
@@ -496,8 +667,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('partner-disconnected', handlePartnerDisconnected);
       socket.off('friend-request-received', handleFriendRequestReceived);
       socket.off('friend-message-received');
+
+      socket.off('call-offer', handleCallOffer);
+      socket.off('call-answer', handleCallAnswer);
+      socket.off('ice-candidate', handleIceCandidate);
+      socket.off('call-hangup', handleCallHangup);
     };
-  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
+  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic, callStatus, cleanupCall]);
   // Notify server when user leaves chat via navigation (Home button)
   useEffect(() => {
       // Reset flag when entering a new chat
@@ -1086,7 +1262,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         <header className="absolute top-0 left-0 right-0 z-20 px-3 py-2 md:px-4 md:py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
           {/* Left: Exit Button */}
           <div className="justify-self-start">
-            <button onClick={() => handleExitToHome(!chatId?.startsWith('friend_'))} className="flex items-center gap-1.5 md:gap-2 text-zinc-400 hover:text-white transition-colors px-1.5 py-1 md:px-2 md:py-1 rounded-full hover:bg-zinc-800">
+            <button onClick={() => handleExitToHomeWithCleanup(!chatId?.startsWith('friend_'))} className="flex items-center gap-1.5 md:gap-2 text-zinc-400 hover:text-white transition-colors px-1.5 py-1 md:px-2 md:py-1 rounded-full hover:bg-zinc-800">
               <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain rounded-[15%]" />
               <span className="text-[10px] md:text-xs font-medium">Leave Chat</span>
             </button>
@@ -1128,6 +1304,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             {chatId?.startsWith('friend_') ? (
               // Friend chat header - simple: block only
               <>
+                <button 
+                  onClick={callStatus === 'idle' ? startCall : hangupCall}
+                  className={`w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-all active:scale-95 ${
+                    callStatus === 'idle' 
+                      ? 'bg-zinc-800 text-zinc-400 hover:bg-green-900/30 hover:text-green-400' 
+                      : 'bg-red-600 text-white animate-pulse'
+                  }`}
+                >
+                  {callStatus === 'idle' ? <PhoneIcon /> : <PhoneOffIcon />}
+                </button>
                 <button onClick={handleBlockUser} className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all active:scale-95">
                   <BlockIcon />
                 </button>
@@ -1565,6 +1751,54 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             onBack={() => setShowPublicProfile(false)}
           />
         )}
+
+        {/* Incoming Call Modal */}
+        {callStatus === 'incoming' && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-zinc-900 border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 w-80">
+              <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce">
+                <PhoneIcon />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-white">{chatPartner?.username}</h3>
+                <p className="text-zinc-400">Incoming call...</p>
+              </div>
+              <div className="flex gap-4 w-full mt-2">
+                <button 
+                  onClick={hangupCall}
+                  className="flex-1 py-3 rounded-full bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+                >
+                  Decline
+                </button>
+                <button 
+                  onClick={acceptCall}
+                  className="flex-1 py-3 rounded-full bg-green-600 text-white font-bold hover:bg-green-700 transition-colors"
+                >
+                  Accept
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Active Call Overlay (Mini) */}
+        {(callStatus === 'connected' || callStatus === 'calling') && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 bg-zinc-900/90 backdrop-blur border border-green-500/30 px-4 py-2 rounded-full flex items-center gap-3 shadow-xl animate-in slide-in-from-top-4">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-sm font-medium text-white">
+              {callStatus === 'calling' ? 'Calling...' : 'Connected'}
+            </span>
+            <button 
+              onClick={hangupCall}
+              className="p-1.5 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500 hover:text-white transition-colors"
+            >
+              <PhoneOffIcon />
+            </button>
+          </div>
+        )}
+
+        {/* Hidden Audio Element */}
+        <audio ref={remoteAudioRef} autoPlay />
       </>
     );
   }
