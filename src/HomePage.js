@@ -9,7 +9,7 @@ const INTEREST_HINTS = [
   "a weird fact about me is ... ",
   "democarcy is ... ",
   "make a confession to a stranger ... ",
-  "worst picku line you've ever heard ... ",
+  "worst pickup line you've ever heard ... ",
 ];
 
 // Super light: only re-renders every couple seconds, no per-letter updates

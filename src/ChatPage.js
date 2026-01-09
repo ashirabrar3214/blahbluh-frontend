@@ -52,6 +52,30 @@ const IcebreakerLoader = () => (
   </div>
 );
 
+const formatIcebreaker = (raw = "") => {
+  let s = String(raw || "").trim();
+
+  // Only do "option formatting" if it actually looks like options
+  // (2+ option markers = likely MCQ/list)
+  const optionCount = (s.match(/\b([A-D]|[1-6])[)\].:-]\s*/g) || []).length;
+
+  if (optionCount >= 2) {
+    s = s
+      // after punctuation like "?A)" or ".A)"
+      .replace(/([?.!])\s*([A-D][)\].:-]\s*)/g, "$1\n$2")
+      .replace(/([?.!])\s*([1-6][)\].:-]\s*)/g, "$1\n$2")
+      // after comma/semicolon like ",A)"
+      .replace(/[,;]\s*([A-D][)\].:-]\s*)/g, "\n$1")
+      .replace(/[,;]\s*([1-6][)\].:-]\s*)/g, "\n$1")
+      // fallback: any whitespace before the marker
+      .replace(/\s+([A-D][)\].:-]\s*)/g, "\n$1")
+      .replace(/\s+([1-6][)\].:-]\s*)/g, "\n$1")
+      .replace(/^\n+/, "");
+  }
+
+  return s;
+};
+
 function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic }) {
   // --- STATE ---
   const [chatId, setChatId] = useState(null);
@@ -64,6 +88,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
+  const [icebreakerPrompt, setIcebreakerPrompt] = useState(null);
   const topicChatIdRef = useRef(null);
 
   // Pagination State
@@ -277,6 +302,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     if (chatId.startsWith('friend_')) {
       setIcebreakerOpen(false);
       setIcebreakerTopic(null);
+      setIcebreakerPrompt(null);
       return;
     }
   
@@ -288,15 +314,30 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setIcebreakerOpen(true);
     setPromptAnswer('');
     setIcebreakerTopic(null);
+    setIcebreakerPrompt(null);
   
     api.suggestTopic(currentUserId)
       .then((data) => {
         if (topicChatIdRef.current !== chatId) return; // stale guard
-        setIcebreakerTopic(data?.suggestion || "What's on your mind?");
+        
+        const raw = data?.prompt ?? data?.suggestion ?? data;
+        const promptObj =
+          typeof raw === "string"
+            ? { kind: "text", text: raw, options: [] }
+            : {
+                kind: raw.kind === "mcq" ? "mcq" : "text",
+                text: raw.text || "",
+                options: Array.isArray(raw.options) ? raw.options : []
+              };
+
+        setIcebreakerPrompt(promptObj);
+        setIcebreakerTopic(promptObj.text || "What's on your mind?");
+        setPromptAnswer("");
       })
       .catch(() => {
         if (topicChatIdRef.current !== chatId) return;
         setIcebreakerTopic("What's on your mind?");
+        setIcebreakerPrompt({ kind: "text", text: "What's on your mind?", options: [] });
       });
   }, [chatId, currentUserId, setSuggestedTopic]);
 
@@ -598,18 +639,28 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   };
 
-  const handlePromptSubmit = () => {
-    if (!promptAnswer.trim() || !chatId || !currentUserId) return;
+  const handlePromptSubmit = (answerOverride = null) => {
+    if (!chatId || !currentUserId) return;
+
+    const answer = (typeof answerOverride === 'string' ? answerOverride : promptAnswer).trim();
+    if (!answer) return;
     
     if (!socket?.connected) {
         setActionToast('Connection lost');
         return;
     }
 
+    let messageContent = answer;
+    if (icebreakerPrompt?.kind === 'mcq' && icebreakerPrompt.options?.length) {
+      messageContent = icebreakerPrompt.options
+        .map(opt => (opt === answer ? `● ${opt}` : `○ ${opt}`))
+        .join('\n');
+    }
+
     const messageData = {
       id: Date.now(),
       chatId,
-      message: promptAnswer.trim(),
+      message: messageContent,
       prompt: icebreakerTopic,
       userId: currentUserId,
       username: currentUsername,
@@ -626,6 +677,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     // Clear prompt and answer
     setIcebreakerOpen(false);
     setIcebreakerTopic(null);
+    setIcebreakerPrompt(null);
     setSuggestedTopic?.(null); // optional, harmless
     setPromptAnswer('');
   };
@@ -759,6 +811,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setPromptAnswer('');
     setIcebreakerOpen(false);
     setIcebreakerTopic(null);
+    setIcebreakerPrompt(null);
     topicChatIdRef.current = null;
 
     // Instead of going home, show a "searching" state until the next match.
@@ -1136,10 +1189,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                       <div
                         className={`px-4 py-3 rounded-2xl border ${isOwn ? 'border-blue-500/30 bg-blue-900/20' : 'border-zinc-700 bg-zinc-900/50'}`}
                       >
-                        <p className="text-sm text-zinc-400 mb-2 font-medium italic">
-                          "{msg.prompt}"
+                        <p className="text-sm text-zinc-400 mb-2 font-medium italic whitespace-pre-line">
+                          "{formatIcebreaker(msg.prompt)}"
                         </p>
-                        <p className="text-white text-[15px] leading-relaxed">
+                        <p className="text-white text-[15px] leading-relaxed whitespace-pre-wrap">
                           {msg.message}
                         </p>
                       </div>
@@ -1367,43 +1420,66 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               </div>
               <div className="flex justify-center items-center min-h-[92px] md:min-h-[100px] mb-5 md:mb-6">
                 {icebreakerTopic ? (
-                  <p className="text-xl md:text-3xl font-bold text-white leading-tight text-center">
-                    {icebreakerTopic}
+                  <p className="text-lg md:text-2xl font-medium text-white leading-snug text-left whitespace-pre-line">
+                    {icebreakerPrompt?.text ? icebreakerPrompt.text : formatIcebreaker(icebreakerTopic)}
                   </p>
                 ) : (
                   <IcebreakerLoader />
                 )}
               </div>
-              <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-2 md:gap-3">
-                <textarea
-                  value={promptAnswer}
-                  onChange={(e) => setPromptAnswer(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handlePromptSubmit();
-                    }
-                  }}
-                  placeholder="Your answer..."
-                  className="w-full h-20 md:h-24 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none text-[16px] md:text-sm"
-                  autoFocus
-                />
-                <div className="flex flex-col gap-2 mt-1">
-                  <button
-                    type="submit"                    disabled={!icebreakerTopic || !promptAnswer.trim()}
-                    className="w-full py-2.5 md:py-3 rounded-full bg-blue-600 text-white font-bold text-xs md:text-sm hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
-                  >
-                    Unlock Chat & Send
-                  </button>
+              {icebreakerPrompt?.kind === "mcq" && icebreakerPrompt.options?.length ? (
+                <div className="flex flex-col gap-2">
+                  {icebreakerPrompt.options.map((opt, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handlePromptSubmit(opt)}
+                      className="w-full py-3 rounded-2xl bg-zinc-800 text-white font-semibold text-sm hover:bg-zinc-700 transition-colors"
+                    >
+                      {opt}
+                    </button>
+                  ))}
                   <button
                     type="button"
                     onClick={confirmLeaveChat}
-                    className="w-full py-2 md:py-2.5 rounded-full text-zinc-400 text-[10px] md:text-xs font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
+                    className="w-full py-2 rounded-full text-zinc-400 text-[10px] md:text-xs font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
                   >
                     Skip
                   </button>
                 </div>
-              </form>
+              ) : (
+                <form onSubmit={(e) => { e.preventDefault(); handlePromptSubmit(); }} className="relative flex flex-col gap-2 md:gap-3">
+                  <textarea
+                    value={promptAnswer}
+                    onChange={(e) => setPromptAnswer(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handlePromptSubmit();
+                      }
+                    }}
+                    placeholder="Your answer..."
+                    className="w-full h-20 md:h-24 bg-zinc-900 border border-zinc-700 rounded-2xl text-white placeholder-zinc-500 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none text-[16px] md:text-sm"
+                    autoFocus
+                  />
+                  <div className="flex flex-col gap-2 mt-1">
+                    <button
+                      type="submit"
+                      disabled={!icebreakerTopic || !promptAnswer.trim()}
+                      className="w-full py-2.5 md:py-3 rounded-full bg-blue-600 text-white font-bold text-xs md:text-sm hover:bg-blue-700 disabled:bg-zinc-800 disabled:text-zinc-500 transition-all duration-200"
+                    >
+                      Unlock Chat & Send
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmLeaveChat}
+                      className="w-full py-2 md:py-2.5 rounded-full text-zinc-400 text-[10px] md:text-xs font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
             <div className={`absolute bottom-10 text-zinc-500 text-sm font-medium transition-opacity duration-300 md:hidden ${isSwiping || swipeY < 0 ? 'opacity-0' : 'opacity-100'}`}>
               Swipe up to skip
