@@ -4,7 +4,6 @@ import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
 import ReportPopup from './ReportPopup';
 import PublicProfile from './components/PublicProfile';
-import CallPopup from './components/CallPopup';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -83,7 +82,7 @@ const formatIcebreaker = (raw = "") => {
   return s;
 };
 
-function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic }) {
+function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: propUsername, initialChatData, targetFriend, onGoHome, onInboxOpen, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, suggestedTopic, setSuggestedTopic, callStatus, onStartCall, onHangupCall, children }) {
   // --- STATE ---
   const [chatId, setChatId] = useState(null);
   const [chatPartner, setChatPartner] = useState(null);
@@ -138,14 +137,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [reportContext, setReportContext] = useState(null); // { type: 'user' | 'message', data: ... }
   const [isReporting, setIsReporting] = useState(false);
 
-  // --- WebRTC STATE ---
-  const [callStatus, setCallStatus] = useState('idle'); // 'idle', 'calling', 'incoming', 'connected'
-  const [incomingOffer, setIncomingOffer] = useState(null);
-  const localStreamRef = useRef(null);
-  const [isMuted, setIsMuted] = useState(false);
-  const peerConnectionRef = useRef(null);
-  const remoteAudioRef = useRef(null);
-
   // --- SWIPE STATE ---
   const [swipeY, setSwipeY] = useState(0);
   const [swipeX, setSwipeX] = useState(0);
@@ -170,134 +161,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   //const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // --- WebRTC FUNCTIONS ---
-  const cleanupCall = useCallback(() => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
-    }
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.srcObject = null;
-    }
-    setIsMuted(false);
-    setCallStatus('idle');
-    setIncomingOffer(null);
-  }, []);
-
-  const startCall = async () => {
-    setCallStatus('calling');
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Microphone not accessible");
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current = stream;
-
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit('ice-candidate', { chatId, candidate: event.candidate });
-        }
-      };
-
-      pc.ontrack = (event) => {
-        if (remoteAudioRef.current) {
-          remoteAudioRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      peerConnectionRef.current = pc;
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      socket.emit('call-offer', { chatId, offer });
-    } catch (err) {
-      console.error('Error starting call:', err);
-      setActionToast('Call failed: Check microphone permissions');
-      cleanupCall();
-    }
-  };
-
-  const acceptCall = async () => {
-    if (!incomingOffer) return;
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Microphone not accessible");
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current = stream;
-
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit('ice-candidate', { chatId, candidate: event.candidate });
-        }
-      };
-
-      pc.ontrack = (event) => {
-        if (remoteAudioRef.current) {
-          remoteAudioRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      peerConnectionRef.current = pc;
-
-      await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socket.emit('call-answer', { chatId, answer });
-      setCallStatus('connected');
-    } catch (err) {
-      console.error('Error accepting call:', err);
-      setActionToast('Call failed: Check microphone permissions');
-      cleanupCall();
-    }
-  };
-
-  const hangupCall = () => {
-    socket.emit('call-hangup', { chatId });
-    cleanupCall();
-  };
-
-  const toggleMute = () => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-      }
-    }
-  };
-
-  // Cleanup call on unmount or chat change
-  useEffect(() => {
-    return () => {
-      cleanupCall();
-    };
-  }, [cleanupCall, chatId]);
-
   // Handle exit to home with call cleanup
   const handleExitToHomeWithCleanup = (requeue) => {
-    if (callStatus !== 'idle') {
-      hangupCall();
+    // We no longer hang up friend calls on exit, as they are global.
+    // For random chats, we might want to hang up, but the socket 'leave-chat' will likely handle it or the partner will disconnect.
+    // If it's a random chat, we should probably hang up explicitly if we are the one leaving.
+    if (!chatId?.startsWith('friend_') && callStatus !== 'idle') {
+       onHangupCall();
     }
     handleExitToHome(requeue);
   };
@@ -615,47 +485,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       return;
     };
 
-    // WebRTC Listeners
-    const handleCallOffer = async ({ offer, fromUserId }) => {
-      if (!chatId?.startsWith('friend_')) return;
-      if (callStatus !== 'idle') {
-        console.log('Busy, ignoring offer');
-        return;
-      }
-      console.log('Incoming call offer');
-      setIncomingOffer(offer);
-      setCallStatus('incoming');
-    };
-
-    const handleCallAnswer = async ({ answer }) => {
-      if (!chatId?.startsWith('friend_')) return;
-      console.log('Received call answer');
-      if (peerConnectionRef.current) {
-        try {
-          await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-          setCallStatus('connected');
-        } catch (err) {
-          console.error('Error setting remote description:', err);
-        }
-      }
-    };
-
-    const handleIceCandidate = async ({ candidate }) => {
-      if (!chatId?.startsWith('friend_')) return;
-      if (peerConnectionRef.current) {
-        try {
-          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-          console.error('Error adding ice candidate:', err);
-        }
-      }
-    };
-
-    const handleCallHangup = () => {
-      if (!chatId?.startsWith('friend_')) return;
-      console.log('Call hung up by peer');
-      cleanupCall();
-    };
 
     const handleFriendRequestReceived = () => loadFriendRequests();
 
@@ -665,11 +494,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     socket.on('partner-disconnected', handlePartnerDisconnected);
     socket.on('friend-request-received', handleFriendRequestReceived);
 
-    // WebRTC events
-    socket.on('call-offer', handleCallOffer);
-    socket.on('call-answer', handleCallAnswer);
-    socket.on('ice-candidate', handleIceCandidate);
-    socket.on('call-hangup', handleCallHangup);
     
     // Listen for friend messages even when not in chat
     socket.on('friend-message-received', (messageData) => {
@@ -690,13 +514,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('partner-disconnected', handlePartnerDisconnected);
       socket.off('friend-request-received', handleFriendRequestReceived);
       socket.off('friend-message-received');
-
-      socket.off('call-offer', handleCallOffer);
-      socket.off('call-answer', handleCallAnswer);
-      socket.off('ice-candidate', handleIceCandidate);
-      socket.off('call-hangup', handleCallHangup);
     };
-  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic, callStatus, cleanupCall]);
+  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
   // Notify server when user leaves chat via navigation (Home button)
   useEffect(() => {
       // Reset flag when entering a new chat
@@ -1328,7 +1147,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               // Friend chat header - simple: block only
               <>
                 <button 
-                  onClick={callStatus === 'idle' ? startCall : hangupCall}
+                  onClick={callStatus === 'idle' ? () => onStartCall(chatId, chatPartner) : onHangupCall}
                   className={`w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-all active:scale-95 ${
                     callStatus === 'idle' 
                       ? 'bg-zinc-800 text-zinc-400 hover:bg-green-900/30 hover:text-green-400' 
@@ -1775,50 +1594,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           />
         )}
 
-        {/* Incoming Call Modal */}
-        {callStatus === 'incoming' && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-zinc-900 border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 w-80">
-              <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce">
-                <PhoneIcon />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-white">{chatPartner?.username}</h3>
-                <p className="text-zinc-400">Incoming call...</p>
-              </div>
-              <div className="flex gap-4 w-full mt-2">
-                <button 
-                  onClick={hangupCall}
-                  className="flex-1 py-3 rounded-full bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
-                >
-                  Decline
-                </button>
-                <button 
-                  onClick={acceptCall}
-                  className="flex-1 py-3 rounded-full bg-green-600 text-white font-bold hover:bg-green-700 transition-colors"
-                >
-                  Accept
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Active Call Popup */}
-        {(callStatus === 'connected' || callStatus === 'calling') && (
-          <CallPopup
-            partner={chatPartner}
-            status={callStatus}
-            onHangup={hangupCall}
-            isMuted={isMuted}
-            onToggleMute={toggleMute}
-            onBlock={handleBlockUser}
-            onReport={handleReportUser}
-          />
-        )}
-
-        {/* Hidden Audio Element */}
-        <audio ref={remoteAudioRef} autoPlay />
+        {/* Render global call UI passed from App.js */}
+        {children}
       </>
     );
   }

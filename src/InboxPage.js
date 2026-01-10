@@ -15,7 +15,7 @@ const MessageIcon = () => (
   </svg>
 );
 
-function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket }) {
+function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket, children }) {
   const [friends, setFriends] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
   const [pfpUrl, setPfpUrl] = useState(null);
@@ -208,6 +208,9 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket 
           </div>
         )}
       </div>
+
+      {/* Global Call UI */}
+      {children}
     </div>
   );
 }

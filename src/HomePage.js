@@ -85,7 +85,7 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic }) {
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, children }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
   const [notification, setNotification] = useState(externalNotification || null);
@@ -532,6 +532,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
       <div className="py-6 text-center text-[#fefefe]/40 text-xs font-medium">
         &copy; 2025 blahbluh. Crafted for anonymity.
       </div>
+
+      {/* Global Call UI */}
+      {children}
     </div>
   );
 }

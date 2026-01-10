@@ -20,7 +20,7 @@ const BackIcon = () => (
   </svg>
 );
 
-function ProfilePage({ currentUsername, currentUserId, onBack }) {
+function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
   const [profile, setProfile] = useState({
     username: currentUsername || '',
     gender: '',
@@ -418,6 +418,9 @@ function ProfilePage({ currentUsername, currentUserId, onBack }) {
           currentBg={editedProfile.pfp_background}
         />
       )}
+
+      {/* Global Call UI */}
+      {children}
     </div>
   );
 }
