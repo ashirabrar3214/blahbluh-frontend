@@ -88,8 +88,8 @@ const CallPopup = ({
       <div className="flex flex-col items-center gap-8 w-full max-w-sm px-6">
         {/* Secondary Actions Row */}
         <div className="flex items-center justify-center gap-4 md:gap-6 w-full">
-           {/* Speaker (Desktop/Mobile) */}
-           <button className="p-3 md:p-4 rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all">
+           {/* Speaker (Mobile Only) */}
+           <button className="p-3 md:p-4 rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all md:hidden">
             <Volume2Icon />
           </button>
           
