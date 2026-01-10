@@ -4,6 +4,7 @@ import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
 import ReportPopup from './ReportPopup';
 import PublicProfile from './components/PublicProfile';
+import CallPopup from './components/CallPopup';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -141,6 +142,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [callStatus, setCallStatus] = useState('idle'); // 'idle', 'calling', 'incoming', 'connected'
   const [incomingOffer, setIncomingOffer] = useState(null);
   const localStreamRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(false);
   const peerConnectionRef = useRef(null);
   const remoteAudioRef = useRef(null);
 
@@ -181,6 +183,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = null;
     }
+    setIsMuted(false);
     setCallStatus('idle');
     setIncomingOffer(null);
   }, []);
@@ -262,6 +265,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const hangupCall = () => {
     socket.emit('call-hangup', { chatId });
     cleanupCall();
+  };
+
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
+    }
   };
 
   // Cleanup call on unmount or chat change
@@ -1781,20 +1794,17 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           </div>
         )}
 
-        {/* Active Call Overlay (Mini) */}
+        {/* Active Call Popup */}
         {(callStatus === 'connected' || callStatus === 'calling') && (
-          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 bg-zinc-900/90 backdrop-blur border border-green-500/30 px-4 py-2 rounded-full flex items-center gap-3 shadow-xl animate-in slide-in-from-top-4">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-white">
-              {callStatus === 'calling' ? 'Calling...' : 'Connected'}
-            </span>
-            <button 
-              onClick={hangupCall}
-              className="p-1.5 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500 hover:text-white transition-colors"
-            >
-              <PhoneOffIcon />
-            </button>
-          </div>
+          <CallPopup
+            partner={chatPartner}
+            status={callStatus}
+            onHangup={hangupCall}
+            isMuted={isMuted}
+            onToggleMute={toggleMute}
+            onBlock={handleBlockUser}
+            onReport={handleReportUser}
+          />
         )}
 
         {/* Hidden Audio Element */}
