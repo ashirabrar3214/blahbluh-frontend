@@ -189,7 +189,12 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   }, []);
 
   const startCall = async () => {
+    setCallStatus('calling');
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Microphone not accessible");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
 
@@ -217,9 +222,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       await pc.setLocalDescription(offer);
 
       socket.emit('call-offer', { chatId, offer });
-      setCallStatus('calling');
     } catch (err) {
       console.error('Error starting call:', err);
+      setActionToast('Call failed: Check microphone permissions');
       cleanupCall();
     }
   };
@@ -227,6 +232,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const acceptCall = async () => {
     if (!incomingOffer) return;
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Microphone not accessible");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
 
@@ -258,6 +267,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setCallStatus('connected');
     } catch (err) {
       console.error('Error accepting call:', err);
+      setActionToast('Call failed: Check microphone permissions');
       cleanupCall();
     }
   };
