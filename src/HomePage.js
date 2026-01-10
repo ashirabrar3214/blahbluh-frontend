@@ -371,7 +371,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
               )}
             </button>
             {showNotifications && (friendRequests.length > 0 || bellNotifications.length > 0) && (
-              <div className="absolute top-10 right-0 w-80 bg-[#000000]/95 backdrop-blur-md border border-[#fefefe]/10 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
+              <div className="fixed right-4 left-4 top-16 md:absolute md:top-10 md:right-0 md:left-auto md:w-80 bg-[#000000]/95 backdrop-blur-md border border-[#fefefe]/10 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
                 {friendRequests.length > 0 && (
                   <>
                     <h3 className="text-[#fefefe] font-bold mb-3 flex items-center gap-2">
