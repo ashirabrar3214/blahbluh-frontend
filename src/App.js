@@ -536,8 +536,26 @@ useEffect(() => {
       {callStatus === 'incoming' && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-zinc-900 border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 w-80">
-            <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center animate-bounce">
-              <PhoneIcon />
+            <div className="relative w-24 h-24 rounded-full shadow-xl mb-2 animate-bounce">
+               {/* Background Layer */}
+               <div 
+                  className={`absolute inset-0 rounded-full overflow-hidden ${
+                    callPartner?.pfp_background ? 'bg-black' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                  }`}
+                  style={callPartner?.pfp_background ? { backgroundImage: `url(${callPartner.pfp_background})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                />
+                {/* PFP Layer */}
+                <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden">
+                  {callPartner?.pfp ? (
+                    <img src={callPartner.pfp} alt={callPartner.username} className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-3xl font-bold text-white">
+                      {callPartner?.username?.[0]?.toUpperCase() || <PhoneIcon />}
+                    </span>
+                  )}
+                </div>
+                {/* Border Layer */}
+                <div className="absolute inset-0 rounded-full border-2 border-white/10 pointer-events-none" />
             </div>
             <div className="text-center">
               <h3 className="text-xl font-bold text-white">{callPartner?.username || 'Unknown'}</h3>
