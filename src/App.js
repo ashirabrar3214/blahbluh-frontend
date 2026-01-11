@@ -50,6 +50,7 @@ function App() {
   const peerConnectionRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const activeChatIdRef = useRef(null); // Track which chat the call belongs to
+  const iceCandidatesBuffer = useRef([]); // ✅ Buffer for early ICE candidates
 
   useEffect(() => {
     const restoreUser = async () => {
@@ -133,6 +134,7 @@ useEffect(() => {
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = null;
     }
+    iceCandidatesBuffer.current = []; // ✅ Clear buffer
     setIsMuted(false);
     setCallStatus('idle');
     setIncomingOffer(null);
@@ -145,6 +147,7 @@ useEffect(() => {
     setCallStatus('calling');
     setCallPartner(partner);
     activeChatIdRef.current = normChatId;
+    iceCandidatesBuffer.current = []; // ✅ Clear buffer on start
     
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -231,6 +234,17 @@ useEffect(() => {
       await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+
+      // ✅ Replay buffered candidates
+      while (iceCandidatesBuffer.current.length > 0) {
+        const candidate = iceCandidatesBuffer.current.shift();
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log('Added buffered ICE candidate');
+        } catch (e) {
+          console.error('Error adding buffered ICE candidate:', e);
+        }
+      }
 
       globalSocketRef.current?.emit('call-answer', { chatId, answer });
       setCallStatus('connected');
@@ -387,34 +401,50 @@ useEffect(() => {
     });
 
     // --- Global WebRTC Listeners ---
-    globalSocketRef.current.on('call-offer', async ({ offer, fromUserId, chatId }) => {
+    
+    // ✅ Updated call-offer to be non-blocking
+    globalSocketRef.current.on('call-offer', ({ offer, fromUserId, chatId }) => {
       if (callStatus !== 'idle') {
         console.log('Busy, rejecting offer');
-        globalSocketRef.current?.emit('call-hangup', { chatId }); // ✅ tell caller to cleanup UI
+        globalSocketRef.current?.emit('call-hangup', { chatId }); 
         return;
       }
       console.log('Incoming call offer from:', fromUserId);
       
-      // Try to find caller info from friends list or fetch it
-      let caller = null;
-      try {
-        caller = await api.getUser(fromUserId);
-        // Also try to get PFP
-        const pfpData = await api.getUserPfp(fromUserId).catch(() => null);
-        if (caller && pfpData) {
-           caller.pfp = pfpData.pfp || pfpData.pfpLink;
-           caller.pfp_background = pfpData.pfp_background;
-        }
-      } catch (e) {
-        console.error('Failed to fetch caller info', e);
-        caller = { username: 'Unknown' };
-      }
-
-      setCallPartner(caller);
-      setIncomingOffer(offer);
       const normChatId = normalizeChatId(chatId);
       activeChatIdRef.current = normChatId;
+      setIncomingOffer(offer);
       setCallStatus('incoming');
+      iceCandidatesBuffer.current = []; // Reset buffer
+
+      // Initial placeholder to prevent blocking
+      setCallPartner({ username: 'Incoming...' });
+
+      // Fetch user details in background
+      api.getUser(fromUserId)
+        .then(async (caller) => {
+            if (caller) {
+              try {
+                const pfpData = await api.getUserPfp(fromUserId).catch(() => null);
+                if (pfpData) {
+                  caller.pfp = pfpData.pfp || pfpData.pfpLink;
+                  caller.pfp_background = pfpData.pfp_background;
+                }
+              } catch (e) {
+                console.warn('Failed to load PFP for caller', e);
+              }
+              // Only update if we are still ringing for this user
+              if (activeChatIdRef.current === normChatId) {
+                setCallPartner(caller);
+              }
+            }
+        })
+        .catch((e) => {
+          console.error('Failed to fetch caller info', e);
+          if (activeChatIdRef.current === normChatId) {
+            setCallPartner({ username: 'Unknown' });
+          }
+        });
     });
 
     globalSocketRef.current.on('call-answer', async ({ answer }) => {
@@ -425,9 +455,17 @@ useEffect(() => {
       }
     });
 
+    // ✅ Updated ice-candidate to buffer if PC is not ready
     globalSocketRef.current.on('ice-candidate', async ({ candidate }) => {
       if (peerConnectionRef.current) {
-        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        try {
+          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      } else {
+        console.log('Buffering ICE candidate (PC not ready)');
+        iceCandidatesBuffer.current.push(candidate);
       }
     });
 
