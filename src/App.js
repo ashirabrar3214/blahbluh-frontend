@@ -13,6 +13,18 @@ const PhoneIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
 );
 
+const normalizeChatId = (id) => {
+  if (!id) return id;
+  if (!id.startsWith('friend_')) return id;
+
+  const parts = id.split('_'); // ["friend", id1, id2]
+  if (parts.length < 3) return id;
+
+  const a = parts[1];
+  const b = parts[2];
+  return `friend_${[a, b].sort().join('_')}`;
+};
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -129,9 +141,10 @@ useEffect(() => {
   }, []);
 
   const startCall = async (chatId, partner) => {
+    const normChatId = normalizeChatId(chatId);
     setCallStatus('calling');
     setCallPartner(partner);
-    activeChatIdRef.current = chatId;
+    activeChatIdRef.current = normChatId;
     
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -149,13 +162,17 @@ useEffect(() => {
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          globalSocketRef.current?.emit('ice-candidate', { chatId, candidate: event.candidate });
+          globalSocketRef.current?.emit('ice-candidate', { chatId: normChatId, candidate: event.candidate });
         }
       };
 
       pc.ontrack = (event) => {
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = event.streams[0];
+
+          // ✅ Some browsers won't autoplay without an explicit play()
+          const p = remoteAudioRef.current.play?.();
+          if (p && typeof p.catch === "function") p.catch(() => {});
         }
       };
 
@@ -164,7 +181,11 @@ useEffect(() => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      globalSocketRef.current?.emit('call-offer', { chatId, offer });
+      globalSocketRef.current?.emit('call-offer', {
+        chatId: normChatId,
+        offer,
+        fromUserId: currentUser?.id, // ✅ prevents Unknown caller UI
+      });
     } catch (err) {
       console.error('Error starting call:', err);
       cleanupCall();
@@ -173,7 +194,7 @@ useEffect(() => {
 
   const acceptCall = async () => {
     if (!incomingOffer || !activeChatIdRef.current) return;
-    const chatId = activeChatIdRef.current;
+    const chatId = normalizeChatId(activeChatIdRef.current);
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -198,6 +219,10 @@ useEffect(() => {
       pc.ontrack = (event) => {
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = event.streams[0];
+
+          // ✅ Some browsers won't autoplay without an explicit play()
+          const p = remoteAudioRef.current.play?.();
+          if (p && typeof p.catch === "function") p.catch(() => {});
         }
       };
 
@@ -217,7 +242,8 @@ useEffect(() => {
 
   const hangupCall = () => {
     if (activeChatIdRef.current) {
-      globalSocketRef.current?.emit('call-hangup', { chatId: activeChatIdRef.current });
+      const chatId = normalizeChatId(activeChatIdRef.current);
+      globalSocketRef.current?.emit('call-hangup', { chatId });
     }
     cleanupCall();
   };
@@ -257,30 +283,6 @@ useEffect(() => {
     }
   );
 
-    globalSocketRef.current.on('connect', () => {
-      console.log('Global socket connected');
-      console.log('App: Emitting "register-user" for user:', currentUser.id);
-      globalSocketRef.current.emit('register-user', { userId: currentUser.id });
-      // Fetch unread messages on connect
-      console.log('App: Emitting "fetch-unread-messages" for user:', currentUser.id);
-      globalSocketRef.current.emit('fetch-unread-messages', { userId: currentUser.id });
-    });
-
-    // Listen for chat pairing
-    globalSocketRef.current.on('chat-paired', (data) => {
-      console.log('Chat paired globally:', data);
-
-      // If we just explicitly exited, ignore ONE match event only,
-      // then immediately re-enable matching.
-      if (chatExitRef.current) {
-        console.log('Ignoring chat-paired due to explicit exit (one-shot)');
-        chatExitRef.current = false;
-        return;
-      }
-
-      setChatData(data);
-    });
-
     // Background presence for friend chats
     const setupFriendPresence = async () => {
       console.log('App: Setting up friend presence for user:', currentUser.id);
@@ -300,6 +302,33 @@ useEffect(() => {
         console.error('Error setting up friend presence:', error);
       }
     };
+
+    globalSocketRef.current.on('connect', () => {
+      console.log('Global socket connected');
+      console.log('App: Emitting "register-user" for user:', currentUser.id);
+      globalSocketRef.current.emit('register-user', { userId: currentUser.id });
+      // Fetch unread messages on connect
+      console.log('App: Emitting "fetch-unread-messages" for user:', currentUser.id);
+      globalSocketRef.current.emit('fetch-unread-messages', { userId: currentUser.id });
+      
+      // Re-join friend rooms on reconnect
+      setupFriendPresence();
+    });
+
+    // Listen for chat pairing
+    globalSocketRef.current.on('chat-paired', (data) => {
+      console.log('Chat paired globally:', data);
+
+      // If we just explicitly exited, ignore ONE match event only,
+      // then immediately re-enable matching.
+      if (chatExitRef.current) {
+        console.log('Ignoring chat-paired due to explicit exit (one-shot)');
+        chatExitRef.current = false;
+        return;
+      }
+
+      setChatData(data);
+    });
 
     setupFriendPresence();
 
@@ -360,7 +389,8 @@ useEffect(() => {
     // --- Global WebRTC Listeners ---
     globalSocketRef.current.on('call-offer', async ({ offer, fromUserId, chatId }) => {
       if (callStatus !== 'idle') {
-        console.log('Busy, ignoring offer');
+        console.log('Busy, rejecting offer');
+        globalSocketRef.current?.emit('call-hangup', { chatId }); // ✅ tell caller to cleanup UI
         return;
       }
       console.log('Incoming call offer from:', fromUserId);
@@ -382,7 +412,8 @@ useEffect(() => {
 
       setCallPartner(caller);
       setIncomingOffer(offer);
-      activeChatIdRef.current = chatId;
+      const normChatId = normalizeChatId(chatId);
+      activeChatIdRef.current = normChatId;
       setCallStatus('incoming');
     });
 
