@@ -303,10 +303,18 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       setQueuePosition(data.queuePosition || 1); 
     };
 
+    const handleBanned = (data) => {
+      console.log('User is banned:', data);
+      setInQueue(false);
+      setBannerMessage(`You are banned until ${new Date(data.bannedUntil).toLocaleString()}. Reason: ${data.reason}`);
+    };
+
     socket.on('queue-joined', handleQueueJoined);
+    socket.on('banned', handleBanned);
 
     return () => {
       socket.off('queue-joined', handleQueueJoined);
+      socket.off('banned', handleBanned);
     };
   }, [socket]);
 

@@ -541,7 +541,7 @@ export const api = {
 
   async getReportedUsers(limit = 50) {
     console.log(`API: getReportedUsers called with limit ${limit}`);
-    const response = await fetch(`${API_BASE_URL}/api/reported?limit=${limit}`);
+    const response = await fetch(`${API_BASE_URL}/api/moderation/reported?limit=${limit}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch reported users: ${response.status}`);
     }
@@ -551,7 +551,7 @@ export const api = {
 
   async banUser(userId, reason, durationHours = 24) {
     console.log(`API: banUser called for ${userId} (${durationHours}h)`);
-    const response = await fetch(`${API_BASE_URL}/api/ban`, {
+    const response = await fetch(`${API_BASE_URL}/api/moderation/ban`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, reason, durationHours })
@@ -566,7 +566,7 @@ export const api = {
 
   async unbanUser(userId) {
     console.log(`API: unbanUser called for ${userId}`);
-    const response = await fetch(`${API_BASE_URL}/api/unban`, {
+    const response = await fetch(`${API_BASE_URL}/api/moderation/unban`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })

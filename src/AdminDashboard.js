@@ -45,7 +45,7 @@ function AdminDashboard({ onBack }) {
       alert('User unbanned successfully');
       loadData(); // Refresh list
     } catch (err) {
-      alert('Failed to unban user');
+      alert('Failed to unban user: ' + err.message);
     }
   };
 
@@ -103,14 +103,14 @@ function AdminDashboard({ onBack }) {
                     {user.status === 'banned' ? (
                       <button 
                         onClick={() => handleUnban(user.id)}
-                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-sm font-bold"
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-sm font-bold text-white transition-colors"
                       >
                         Unban
                       </button>
                     ) : (
                       <button 
                         onClick={() => handleBan(user.id)}
-                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm font-bold"
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-sm font-bold text-white transition-colors"
                       >
                         Ban
                       </button>
