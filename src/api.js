@@ -96,7 +96,7 @@ export const api = {
 
   async submitReport(reportData) {
     console.log('API: submitReport called with data:', reportData);
-    const response = await fetch(`${API_BASE_URL}/api/submit-report`, {
+    const response = await fetch(`${API_BASE_URL}/api/moderation/submit-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reportData)
@@ -522,7 +522,7 @@ export const api = {
   async checkIsAdmin(email) {
     console.log('API: Checking admin status for email:', email);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/check-admin`, {
+      const response = await fetch(`${API_BASE_URL}/api/moderation/check-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
