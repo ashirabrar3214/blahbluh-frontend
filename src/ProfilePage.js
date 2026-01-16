@@ -38,6 +38,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
   const [showPfpSelect, setShowPfpSelect] = useState(false);
   const [friends, setFriends] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
+  const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -66,6 +67,10 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
           const newProfile = { ...profile, ...userProfile, pfp: pfpUrl, username: userProfile.username || currentUsername, pfp_background: pfpBg, interests: interestsData };
           setProfile(newProfile);
           setEditedProfile(newProfile);
+
+          if (userProfile.banned_until && new Date(userProfile.banned_until) > new Date()) {
+            setIsBanned(true);
+          }
 
           setRatingSummary({
             average: ratingData.averageRating,
@@ -381,10 +386,16 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
           {!isEditing && (
             <div className="mt-6">
               <button
-                onClick={handleLogout}
-                className="w-full py-3.5 rounded-2xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500/20 transition-all text-sm border border-red-500/20"
+                onClick={() => {
+                  if (isBanned) return;
+                  handleLogout();
+                }}
+                disabled={isBanned}
+                className={`w-full py-3.5 rounded-2xl font-bold transition-all text-sm border ${
+                  isBanned ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed' : 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20'
+                }`}
               >
-                Log Out
+                {isBanned ? 'Logout Disabled (Banned)' : 'Log Out'}
               </button>
             </div>
           )}

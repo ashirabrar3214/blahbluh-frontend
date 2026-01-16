@@ -120,6 +120,17 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
     };
   }, [currentUserId]);
 
+  useEffect(() => {
+    if (currentUserId) {
+      api.getUser(currentUserId).then(user => {
+        if (user.banned_until && new Date(user.banned_until) > new Date()) {
+          setIsBanned(true);
+          setBannerMessage(`You are banned until ${new Date(user.banned_until).toLocaleString()}. Reason: ${user.reason || 'Violating community guidelines'}`);
+        }
+      }).catch(err => console.error("Failed to check ban status", err));
+    }
+  }, [currentUserId]);
+
   // Debug logging for notification counts
   useEffect(() => {
     console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
@@ -475,17 +486,11 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
             )}
           </div>
           <button
-            onClick={() => {
-              if (isBanned) {
-                setBannerMessage("You cannot access inbox while banned.");
-                return;
-              }
-              onInboxOpen();
-            }}
-            className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full border transition-colors relative ${isBanned ? 'bg-red-500/10 border-red-500/20 text-red-500/50 cursor-not-allowed' : 'bg-[#fefefe]/5 border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe]'}`}
+            onClick={onInboxOpen}
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors relative"
           >
             <InboxIcon />
-            {!isBanned && unreadCount > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff907c] text-black text-xs rounded-full flex items-center justify-center shadow-lg animate-pulse">
                 {unreadCount}
               </span>
@@ -570,8 +575,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
               
               <button 
                 onClick={joinQueue} 
-                disabled={tags.length === 0}
-                className={`group relative w-full py-4 md:py-5 rounded-full bg-[#ffbd59] text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,189,89,0.3)] ${tags.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                disabled={tags.length === 0 || isBanned}
+                className={`group relative w-full py-4 md:py-5 rounded-full bg-[#ffbd59] text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,189,89,0.3)] ${(tags.length === 0 || isBanned) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
               >
                 Start Chatting
                 <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
