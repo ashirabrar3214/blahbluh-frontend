@@ -5,6 +5,9 @@ function AdminDashboard({ onBack }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Function to load data
   const loadData = async () => {
@@ -46,6 +49,21 @@ function AdminDashboard({ onBack }) {
       loadData(); // Refresh list
     } catch (err) {
       alert('Failed to unban user: ' + err.message);
+    }
+  };
+
+  const handleViewDetails = async (user) => {
+    setSelectedUser(user);
+    setLoadingDetails(true);
+    setUserDetails(null);
+    try {
+      const data = await api.getUserReports(user.id);
+      setUserDetails(data);
+    } catch (err) {
+      console.error("Failed to load details", err);
+      alert("Failed to load user details: " + err.message);
+    } finally {
+      setLoadingDetails(false);
     }
   };
 
@@ -100,6 +118,12 @@ function AdminDashboard({ onBack }) {
                     )}
                   </td>
                   <td className="p-4 text-right gap-2 flex justify-end">
+                    <button 
+                      onClick={() => handleViewDetails(user)}
+                      className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-sm font-medium text-white transition-colors mr-2"
+                    >
+                      View
+                    </button>
                     {user.status === 'banned' ? (
                       <button 
                         onClick={() => handleUnban(user.id)}
@@ -124,6 +148,83 @@ function AdminDashboard({ onBack }) {
             <div className="p-8 text-center text-zinc-500">No reported users found. Good job!</div>
           )}
         </div>
+
+        {/* User Details Modal */}
+        {selectedUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+              <div className="p-6 border-b border-white/10 flex justify-between items-center bg-zinc-800/50">
+                <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                  {selectedUser.pfp && <img src={selectedUser.pfp} className="w-8 h-8 rounded-full object-cover" alt="" />}
+                  Report History: {selectedUser.username}
+                </h2>
+                <button onClick={() => setSelectedUser(null)} className="text-zinc-400 hover:text-white text-2xl leading-none">&times;</button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                {loadingDetails ? (
+                    <div className="text-center py-10 text-zinc-500">Loading details...</div>
+                ) : userDetails ? (
+                    <div className="space-y-8">
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <div className="text-zinc-400 text-xs uppercase font-bold">Total Reports</div>
+                            <div className="text-2xl font-bold text-white mt-1">{userDetails.stats?.totalReports || 0}</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <div className="text-zinc-400 text-xs uppercase font-bold">Unique Reporters</div>
+                            <div className="text-2xl font-bold text-white mt-1">{userDetails.stats?.uniqueReporters || 0}</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <div className="text-zinc-400 text-xs uppercase font-bold">Times Banned</div>
+                            <div className="text-2xl font-bold text-red-400 mt-1">{userDetails.stats?.banCount || 0}</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <div className="text-zinc-400 text-xs uppercase font-bold">Last Banned</div>
+                            <div className="text-sm font-medium text-white mt-2">
+                              {userDetails.stats?.lastBanDate ? new Date(userDetails.stats.lastBanDate).toLocaleDateString() : 'Never'}
+                            </div>
+                          </div>
+                      </div>
+
+                      {/* Reports List */}
+                      <div>
+                          <h3 className="text-lg font-bold text-white mb-4">Reports ({userDetails.reports?.length || 0})</h3>
+                          <div className="space-y-3">
+                            {userDetails.reports?.map((report, i) => (
+                                <div key={i} className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                  <div className="flex justify-between items-start mb-2">
+                                      <span className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs font-bold uppercase">
+                                        {report.reason}
+                                      </span>
+                                      <span className="text-zinc-500 text-xs">
+                                        {new Date(report.created_at).toLocaleString()}
+                                      </span>
+                                  </div>
+                                  <div className="text-sm text-zinc-300 mb-2">
+                                      <span className="text-zinc-500">Reported by:</span> {report.reporter_username || 'Anonymous'}
+                                  </div>
+                                  {report.message_context && (
+                                      <div className="bg-black/50 p-3 rounded-lg text-xs font-mono text-zinc-400 border border-white/5">
+                                        "{report.message_context}"
+                                      </div>
+                                  )}
+                                </div>
+                            ))}
+                            {(!userDetails.reports || userDetails.reports.length === 0) && (
+                                <div className="text-zinc-500 italic">No detailed reports found.</div>
+                            )}
+                          </div>
+                      </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-10 text-red-400">Failed to load data.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

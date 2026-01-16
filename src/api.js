@@ -550,6 +550,17 @@ export const api = {
     return data;
   },
 
+  async getUserReports(userId) {
+    console.log(`API: getUserReports called for userId: ${userId}`);
+    const response = await fetch(`${API_BASE_URL}/api/moderation/reports/${userId}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch user reports: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    return data;
+  },
+
   async banUser(userId, reason, durationHours = 24) {
     console.log(`API: banUser called for ${userId} (${durationHours}h)`);
     const response = await fetch(`${API_BASE_URL}/api/moderation/ban`, {
