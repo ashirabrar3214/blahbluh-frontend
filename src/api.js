@@ -553,6 +553,16 @@ export const api = {
     return data;
   },
 
+  async getAdminStats() {
+    console.log('API: getAdminStats called');
+    const response = await fetch(`${API_BASE_URL}/api/moderation/stats`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch admin stats: ${response.status} - ${errorText}`);
+    }
+    return await response.json();
+  },
+
   async getUserReports(userId) {
     console.log(`API: getUserReports called for userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/moderation/reports/${userId}`);

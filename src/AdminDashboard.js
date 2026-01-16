@@ -3,6 +3,7 @@ import { api } from './api';
 
 function AdminDashboard({ onBack }) {
   const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -12,9 +13,14 @@ function AdminDashboard({ onBack }) {
   // Function to load data
   const loadData = async () => {
     try {
-      setLoading(true);
-      const data = await api.getReportedUsers();
-      setUsers(data);
+      if (!users.length) setLoading(true);
+      
+      const [usersData, statsData] = await Promise.all([
+        api.getReportedUsers(),
+        api.getAdminStats()
+      ]);
+      setUsers(usersData);
+      setStats(statsData);
     } catch (err) {
       setError(err.message);
       console.error(err);
@@ -25,6 +31,8 @@ function AdminDashboard({ onBack }) {
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(loadData, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleBan = async (userId) => {
@@ -89,12 +97,35 @@ function AdminDashboard({ onBack }) {
 
         {error && <div className="bg-red-500/20 text-red-400 p-4 rounded-xl mb-6">{error}</div>}
 
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <StatCard label="Active Users" value={stats.activeUsers} color="text-green-400" />
+            <StatCard label="In Queue" value={stats.usersInQueue} color="text-yellow-400" />
+            <StatCard label="Paired (Chatting)" value={stats.pairedUsers} color="text-blue-400" />
+            <StatCard label="Idle / Browsing" value={stats.idleUsers} color="text-gray-400" />
+            
+            <StatCard label="Total Reports" value={stats.totalReported} color="text-red-400" />
+            <StatCard label="Total Blocks" value={stats.totalBlocks} color="text-orange-400" />
+            
+            <div className="bg-zinc-800 p-4 rounded-xl border border-white/5 col-span-2">
+              <div className="text-zinc-400 text-sm uppercase font-bold">Last Active User</div>
+              <div className="text-xl font-bold mt-1">
+                {stats.lastActiveUser ? stats.lastActiveUser.username : 'None'}
+              </div>
+              <div className="text-xs text-zinc-500">
+                {stats.lastActiveUser ? new Date(stats.lastActiveUser.time).toLocaleString() : '-'}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-black/50 border border-white/10 rounded-2xl overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead className="bg-white/5 text-zinc-400 uppercase text-xs">
               <tr>
                 <th className="p-4">User</th>
                 <th className="p-4">Reports (24h)</th>
+                <th className="p-4">Blocks Rx</th>
                 <th className="p-4">Last Reported</th>
                 <th className="p-4">Warnings</th>
                 <th className="p-4">Status</th>
@@ -114,6 +145,9 @@ function AdminDashboard({ onBack }) {
                     </div>
                   </td>
                   <td className="p-4 text-center">{user.uniqueReporters24h}</td>
+                  <td className="p-4 text-center text-red-300 font-mono">
+                    {user.blocksReceived || 0}
+                  </td>
                   <td className="p-4 text-zinc-400 text-sm">
                     {new Date(user.lastReportTime).toLocaleString()}
                   </td>
@@ -234,6 +268,15 @@ function AdminDashboard({ onBack }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, color }) {
+  return (
+    <div className="bg-zinc-800 p-4 rounded-xl border border-white/5">
+      <div className="text-zinc-400 text-sm uppercase font-bold">{label}</div>
+      <div className={`text-3xl font-bold mt-1 ${color}`}>{value}</div>
     </div>
   );
 }
