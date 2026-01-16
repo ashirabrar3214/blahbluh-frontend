@@ -67,6 +67,14 @@ function AdminDashboard({ onBack }) {
     }
   };
 
+  const renderMessageContext = (context) => {
+    if (!context) return null;
+    if (typeof context === 'object') {
+      return JSON.stringify(context, null, 2);
+    }
+    return context;
+  };
+
   if (loading) return <div className="text-white p-10">Loading Admin Panel...</div>;
 
   return (
@@ -206,8 +214,8 @@ function AdminDashboard({ onBack }) {
                                       <span className="text-zinc-500">Reported by:</span> {report.reporter_username || 'Anonymous'}
                                   </div>
                                   {report.message_context && (
-                                      <div className="bg-black/50 p-3 rounded-lg text-xs font-mono text-zinc-400 border border-white/5">
-                                        "{report.message_context}"
+                                      <div className="bg-black/50 p-3 rounded-lg text-xs font-mono text-zinc-400 border border-white/5 whitespace-pre-wrap">
+                                        {renderMessageContext(report.message_context)}
                                       </div>
                                   )}
                                 </div>
