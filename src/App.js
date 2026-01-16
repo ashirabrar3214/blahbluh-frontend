@@ -8,6 +8,7 @@ import SignupForm from './components/SignupForm';
 import { api } from './api';
 import LoadingScreen from './components/LoadingScreen';
 import CallPopup from './components/CallPopup';
+import AdminDashboard from './AdminDashboard';
 
 const PhoneIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -28,6 +29,7 @@ const normalizeChatId = (id) => {
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [bannedInfo, setBannedInfo] = useState(null);
   const [currentPage, setCurrentPage] = useState('loading');
   const [inboxKey, setInboxKey] = useState(0);
   const [selectedFriend, setSelectedFriend] = useState(null);
@@ -52,6 +54,15 @@ function App() {
   const activeChatIdRef = useRef(null); // Track which chat the call belongs to
   const iceCandidatesBuffer = useRef([]); // ✅ Buffer for early ICE candidates
 
+  const handleApiError = useCallback((error) => {
+    if (error?.message?.includes('403') || error?.message?.includes('suspended')) {
+      setBannedInfo({ reason: "Your account has been suspended." });
+      setCurrentPage('banned');
+      return true;
+    }
+    return false;
+  }, []);
+
   useEffect(() => {
     const restoreUser = async () => {
       const userId = localStorage.getItem('blahbluh_userId');
@@ -67,6 +78,7 @@ function App() {
           }
         } catch (error) {
           console.error('Failed to restore user, going to signup', error);
+          if (handleApiError(error)) return;
           localStorage.removeItem('blahbluh_userId');
           setCurrentPage('signup');
         }
@@ -76,7 +88,7 @@ function App() {
     };
 
     restoreUser();
-  }, []);
+  }, [handleApiError]);
 
   useEffect(() => {
     currentPageRef.current = currentPage;
@@ -506,6 +518,10 @@ useEffect(() => {
       setCurrentPage('home');
     } catch (e) {
       console.error('Failed to complete signup/login:', e);
+      if (handleApiError(e)) {
+        setLoading(false);
+        return;
+      }
       localStorage.removeItem('blahbluh_userId');
       setCurrentPage('signup');
     }
@@ -515,6 +531,23 @@ useEffect(() => {
   // 🔥 GLOBAL SIGNUP GATE
   if (currentPage === 'loading') {
     return <LoadingScreen message="Loading..." />;
+  }
+
+  if (currentPage === 'banned') {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center p-6 text-center font-sans">
+        <div className="bg-zinc-900 border border-red-500/50 p-8 rounded-2xl max-w-md w-full shadow-2xl shadow-red-900/20">
+          <h1 className="text-3xl font-bold text-red-500 mb-4">Account Suspended</h1>
+          <p className="text-zinc-300 mb-6">{bannedInfo?.reason || "You have been banned for violating community guidelines."}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-white font-bold transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!currentUser) {
@@ -576,6 +609,10 @@ useEffect(() => {
       <audio ref={remoteAudioRef} autoPlay />
     </>
   );
+
+  if (currentPage === 'admin') {
+    return <AdminDashboard onBack={() => setCurrentPage('home')} />;
+  }
 
   // ✅ App content only AFTER signup
   if (currentPage === 'home') {

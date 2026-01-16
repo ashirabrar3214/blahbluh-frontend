@@ -19,6 +19,10 @@ export const api = {
   async getUser(userId) {
     console.log(`API: getUser called with userId: ${userId}`);
     const response = await fetch(`${API_BASE_URL}/api/${userId}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
     const data = await response.json();
     console.log(`API: getUser response for ${userId}:`, data);
     return data;
@@ -31,6 +35,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
     const data = await response.json();
 
     // Also update PFP and Interests if they are present in the updates object
@@ -507,5 +515,67 @@ export const api = {
     const data = await response.json();
     console.log(`API: skipChat response:`, data);
     return data;
+  },
+
+  // --- Admin / Moderation API ---
+
+  async checkIsAdmin(email) {
+    console.log('API: Checking admin status for email:', email);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/check-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      // If the backend route isn't ready yet, fail gracefully
+      if (!response.ok) return false;
+      
+      const data = await response.json();
+      return data.isAdmin;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  },
+
+  async getReportedUsers(limit = 50) {
+    console.log(`API: getReportedUsers called with limit ${limit}`);
+    const response = await fetch(`${API_BASE_URL}/api/reported?limit=${limit}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch reported users: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  },
+
+  async banUser(userId, reason, durationHours = 24) {
+    console.log(`API: banUser called for ${userId} (${durationHours}h)`);
+    const response = await fetch(`${API_BASE_URL}/api/ban`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, reason, durationHours })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText);
+    }
+    return await response.json();
+  },
+
+  async unbanUser(userId) {
+    console.log(`API: unbanUser called for ${userId}`);
+    const response = await fetch(`${API_BASE_URL}/api/unban`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText);
+    }
+    return await response.json();
   }
 };
