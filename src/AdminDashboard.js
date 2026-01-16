@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from './api';
 
 function AdminDashboard({ onBack }) {
@@ -9,11 +9,12 @@ function AdminDashboard({ onBack }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const hasLoaded = useRef(false);
 
   // Function to load data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      if (!users.length) setLoading(true);
+      if (!hasLoaded.current) setLoading(true);
       
       const [usersData, statsData] = await Promise.all([
         api.getReportedUsers(),
@@ -21,19 +22,20 @@ function AdminDashboard({ onBack }) {
       ]);
       setUsers(usersData);
       setStats(statsData);
+      hasLoaded.current = true;
     } catch (err) {
       setError(err.message);
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadData]);
 
   const handleBan = async (userId) => {
     const reason = prompt("Enter ban reason:", "Violating Terms");
