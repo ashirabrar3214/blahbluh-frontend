@@ -486,11 +486,17 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
             )}
           </div>
           <button
-            onClick={onInboxOpen}
-            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors relative"
+            onClick={() => {
+              if (isBanned) {
+                setBannerMessage("You cannot access inbox while banned.");
+                return;
+              }
+              onInboxOpen();
+            }}
+            className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full border transition-colors relative ${isBanned ? 'bg-red-500/10 border-red-500/20 text-red-500/50 cursor-not-allowed' : 'bg-[#fefefe]/5 border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe]'}`}
           >
             <InboxIcon />
-            {unreadCount > 0 && (
+            {!isBanned && unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff907c] text-black text-xs rounded-full flex items-center justify-center shadow-lg animate-pulse">
                 {unreadCount}
               </span>
