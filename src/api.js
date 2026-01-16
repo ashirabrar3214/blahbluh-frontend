@@ -454,6 +454,9 @@ export const api = {
 
   const data = await response.json();
   console.log(`API: getFriendChatMessages response for ${chatId}:`, data);
+  if (data && !Array.isArray(data) && Array.isArray(data.messages)) {
+    return data.messages;
+  }
   return data;
 },
 
