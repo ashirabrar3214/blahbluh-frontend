@@ -338,6 +338,17 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       console.log('Tags:', tags);
       const result = await api.joinQueue(currentUserId, tags);
       console.log('✅ Queue join result:', result);
+
+      if (result.error) {
+        if (result.banned_until) {
+          setBannerMessage(`You are banned until ${new Date(result.banned_until).toLocaleString()}. Reason: ${result.reason}`);
+        } else {
+          setBannerMessage(result.message || result.error);
+        }
+        setInQueue(false);
+        return;
+      }
+
       setInQueue(true);
       setQueuePosition(result.queuePosition ?? 0);
       setNotification(null);
