@@ -543,7 +543,8 @@ export const api = {
     console.log(`API: getReportedUsers called with limit ${limit}`);
     const response = await fetch(`${API_BASE_URL}/api/moderation/reported?limit=${limit}`);
     if (!response.ok) {
-      throw new Error(`Failed to fetch reported users: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch reported users: ${response.status} - ${errorText}`);
     }
     const data = await response.json();
     return data;

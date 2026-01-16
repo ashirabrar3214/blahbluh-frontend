@@ -13,7 +13,7 @@ function AdminDashboard({ onBack }) {
       const data = await api.getReportedUsers();
       setUsers(data);
     } catch (err) {
-      setError('Failed to load reported users.');
+      setError(err.message);
       console.error(err);
     } finally {
       setLoading(false);
