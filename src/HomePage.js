@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getAuth } from 'firebase/auth';
 import { api } from './api';
 import TagInput from './TagInput';
 import './TagInput.css';
@@ -85,7 +86,7 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, children }) {
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, children }) {
   const [inQueue, setInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState(0);
   const [notification, setNotification] = useState(externalNotification || null);
@@ -98,6 +99,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   const [bannerMessage, setBannerMessage] = useState(null);
   const bellNotifications = notifications.filter(n => n.id !== 'partner-disconnected');
   const [tags, setTags] = useState(initialTags);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [pfpUrl, setPfpUrl] = useState(null);
   const [processingRequests, setProcessingRequests] = useState(new Set());
   
@@ -121,6 +123,20 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
   useEffect(() => {
     console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
   }, [friendRequests.length, notifications.length]);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (user && user.email) {
+        const isUserAdmin = await api.checkIsAdmin(user.email);
+        setIsAdmin(isUserAdmin);
+      }
+    };
+
+    checkAdmin();
+  }, []);
 
   useEffect(() => {
     if (externalNotification) {
@@ -355,6 +371,14 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, currentUser
           <span className="font-bold text-base md:text-lg tracking-tight text-[#fefefe]">blahbluh</span>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
+          {isAdmin && (
+            <button
+              onClick={onAdminOpen}
+              className="px-4 py-2 bg-red-600/20 text-red-400 border border-red-500/50 rounded-xl font-bold hover:bg-red-600/40 transition-all text-xs md:text-sm"
+            >
+              ADMIN PANEL
+            </button>
+          )}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}

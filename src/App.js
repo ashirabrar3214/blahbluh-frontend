@@ -636,6 +636,7 @@ useEffect(() => {
         }}
 
         onProfileOpen={() => setCurrentPage('profile')}
+        onAdminOpen={() => setCurrentPage('admin')}
         onInboxOpen={() => {
           console.log('App: Inbox opened. Resetting unread count and navigating to inbox page.');
           setUnreadCount(0);
