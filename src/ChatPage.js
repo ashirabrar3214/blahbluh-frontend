@@ -1261,6 +1261,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
               const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
+              const isGif = msg.type === 'gif' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i));
 
                 return (
                   <div key={msg.id || index} className={`group flex w-full items-center gap-2 ${isOwn ? 'justify-end' : 'flex-row-reverse justify-end'}`}>
@@ -1357,7 +1358,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
                     {/* Message bubble */}
                     <div className={`relative max-w-[80%] sm:max-w-[70%]`}>
-                      <div className={`relative px-4 py-2.5 shadow-sm transition-all duration-200 cursor-default ${isOwn ? 'bg-blue-600 text-white rounded-[20px] rounded-br-sm' : 'bg-zinc-800 text-gray-100 rounded-[20px] rounded-bl-sm'}`}>
+                      <div className={`relative transition-all duration-200 cursor-default ${
+                        isGif 
+                          ? 'bg-transparent' 
+                          : `px-4 py-2.5 shadow-sm ${isOwn ? 'bg-blue-600 text-white rounded-[20px] rounded-br-sm' : 'bg-zinc-800 text-gray-100 rounded-[20px] rounded-bl-sm'}`
+                      }`}>
                         {replyMsg && (
                           <div className={`mb-1 pl-2 py-0.5 border-l-2 text-[10px] mb-2 overflow-hidden ${isOwn ? 'border-white/30 text-white/80' : 'border-zinc-500 text-zinc-400'}`}>
                             <span className="font-bold block">{replyMsg.username}</span>
@@ -1365,8 +1370,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                           </div>
                         )}
                         <div className="text-[15px] leading-relaxed break-words font-normal">
-                          {msg.type === 'gif' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i)) ? (
-                            <img src={msg.message} alt="GIF" className="rounded-lg max-w-full h-auto mt-1" loading="lazy" />
+                          {isGif ? (
+                            <img src={msg.message} alt="GIF" className="rounded-lg max-w-full h-auto" loading="lazy" />
                           ) : (
                             msg.message
                           )}
