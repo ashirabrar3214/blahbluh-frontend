@@ -1365,7 +1365,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                           </div>
                         )}
                         <div className="text-[15px] leading-relaxed break-words font-normal">
-                          {msg.type === 'gif' ? (
+                          {msg.type === 'gif' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i)) ? (
                             <img src={msg.message} alt="GIF" className="rounded-lg max-w-full h-auto mt-1" loading="lazy" />
                           ) : (
                             msg.message
