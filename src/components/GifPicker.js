@@ -48,7 +48,7 @@ const GifPicker = ({ onSelect, onClose }) => {
   };
 
   return (
-    <div className="absolute bottom-16 left-4 right-4 md:left-auto md:w-80 h-96 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden">
+    <div className="absolute bottom-16 left-2 right-2 md:left-auto md:right-0 md:w-96 h-[45vh] min-h-[250px] md:h-96 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden transition-all">
       {/* Header */}
       <div className="p-3 border-b border-zinc-800 flex gap-2">
         <form onSubmit={handleSearch} className="flex-1 flex gap-2">
