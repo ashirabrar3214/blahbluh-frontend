@@ -4,6 +4,7 @@ import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
 import ReportPopup from './ReportPopup';
 import PublicProfile from './components/PublicProfile';
+import GifPicker from './components/GifPicker';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -41,6 +42,9 @@ const PhoneIcon = () => (
 );
 const PhoneOffIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+);
+const ImageIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
 );
 
 const IcebreakerLoader = () => (
@@ -91,6 +95,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [currentUserId, setCurrentUserId] = useState(propUserId ?? null);
   const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
   const [showPublicProfile, setShowPublicProfile] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
@@ -716,15 +721,35 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       }
     }
 
-    // Also tell the server to remove us from the queue, just in case.
-    // Removed to prevent "User not found in queue" logs on backend
-    // if (currentUserId) {
-    //   api.leaveQueue(currentUserId).catch(console.error);
-    // }
-
-    // Navigate home. The parent component will unmount this ChatPage,
-    // destroying its state. This is cleaner than manual state cleanup.
     onGoHome?.();
+  };
+
+  const handleSendGif = (url) => {
+    if (!chatId || !currentUserId) return;
+    
+    if (!socket?.connected) {
+        setActionToast('Connection lost');
+        return;
+    }
+
+    const messageData = {
+      id: Date.now(),
+      chatId,
+      message: url,
+      type: 'gif',
+      userId: currentUserId,
+      username: currentUsername,
+      timestamp: new Date().toISOString(),
+      replyTo: null,
+      reactions: {}
+    };
+
+    if (!chatId?.startsWith('friend_')) {
+      setMessages(prev => [...prev, messageData]);
+    }
+    
+    socket.emit('send-message', messageData);
+    setShowGifPicker(false);
   };
 
   const handleSendMessage = async () => {
@@ -948,11 +973,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   };
 
-  
-
-  // ===============================
   // ACTION HANDLERS (REQUIRED)
-  // ===============================
 
   const handleNextUser = () => {
     setActiveActionMenu(null);
@@ -1344,7 +1365,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                           </div>
                         )}
                         <div className="text-[15px] leading-relaxed break-words font-normal">
-                          {msg.message}
+                          {msg.type === 'gif' ? (
+                            <img src={msg.message} alt="GIF" className="rounded-lg max-w-full h-auto mt-1" loading="lazy" />
+                          ) : (
+                            msg.message
+                          )}
                         </div>
                       </div>
 
@@ -1366,7 +1391,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
           {/* Input Area */}
           <div className="w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent shrink-0 z-30">
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto relative">
+              {showGifPicker && (
+                <GifPicker onSelect={handleSendGif} onClose={() => setShowGifPicker(false)} />
+              )}
               {replyingTo && (
                 <div className="flex items-center justify-between px-4 py-2 mb-2 bg-zinc-800/80 backdrop-blur rounded-xl border border-white/5 text-xs text-zinc-300">
                   <div className="flex items-center gap-2 overflow-hidden">
@@ -1378,6 +1406,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               )}
               
               <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="relative flex items-end gap-2 bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 p-1.5 rounded-[28px] shadow-2xl">
+                <button
+                  type="button"
+                  onClick={() => setShowGifPicker(!showGifPicker)}
+                  className={`p-3 rounded-full transition-all duration-200 flex items-center justify-center ${showGifPicker ? 'text-blue-400 bg-blue-400/10' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                >
+                  <ImageIcon />
+                </button>
                 <input
                   ref={inputRef}
                   type="text"
@@ -1599,175 +1634,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       </>
     );
   }
-
-  // --- RENDER: LANDING / QUEUE UI ---
-  // return (
-  //   <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-blue-500/30">
-  //     <nav className="fixed top-0 w-full z-10 px-6 py-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
-  //       <div className="flex items-center gap-2.5">
-  //         <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-white to-zinc-400 text-black flex items-center justify-center font-bold text-lg shadow-lg shadow-white/10">
-  //           B
-  //         </div>
-  //         <span className="font-bold text-lg tracking-tight text-white">Exit Chat</span>
-  //       </div>
-  //       <div className="flex items-center gap-2">
-  //         <div className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">
-  //            {currentUsername || 'guest'}
-  //         </div>
-  //         <div className="relative">
-  //           <button
-  //             onClick={() => setShowNotifications(!showNotifications)}
-  //             className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors relative"
-  //           >
-  //             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-  //               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-  //               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-  //             </svg>
-  //             {(friendRequests.length > 0 || notifications.length > 0) && (
-  //               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
-  //                 {friendRequests.length + notifications.length}
-  //               </span>
-  //             )}
-  //           </button>
-  //           {showNotifications && (friendRequests.length > 0 || notifications.length > 0) && (
-  //             <div className="absolute top-10 right-0 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-600 rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
-  //               {friendRequests.length > 0 && (
-  //                 <>
-  //                   <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-  //                     <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-  //                     Friend Requests
-  //                   </h3>
-  //                   <div className="space-y-3 mb-4">
-  //                     {friendRequests.map(request => (
-  //                       <div key={request.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-blue-500">
-  //                         <div>
-  //                           <p className="text-white text-sm font-medium">{request.from_user.username} sent you a friend request</p>
-  //                           <p className="text-gray-400 text-xs">Click accept to add them as a friend</p>
-  //                         </div>
-  //                         <button
-  //                           onClick={() => handleAcceptFriend(request.id)}
-  //                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors shadow-lg"
-  //                         >
-  //                           Accept
-  //                         </button>
-  //                       </div>
-  //                     ))}
-  //                   </div>
-  //                 </>
-  //               )}
-  //               {notifications.length > 0 && (
-  //                 <>
-  //                   <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-  //                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-  //                     Notifications
-  //                   </h3>
-  //                   <div className="space-y-3">
-  //                     {notifications.map(notification => (
-  //                       <div key={notification.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg border-l-4 border-green-500">
-  //                         <div>
-  //                           <p className="text-white text-sm font-medium">🎉 {notification.message}</p>
-  //                           <p className="text-gray-400 text-xs">{new Date(notification.timestamp).toLocaleTimeString()}</p>
-  //                         </div>
-  //                         <button
-  //                           onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
-  //                           className="px-2 py-1 text-gray-400 hover:text-white text-xs transition-colors"
-  //                         >
-  //                           ✕
-  //                         </button>
-  //                       </div>
-  //                     ))}
-  //                   </div>
-  //                 </>
-  //               )}
-  //             </div>
-  //           )}
-  //         </div>
-  //         <button
-  //           onClick={() => setShowProfile(true)}
-  //           className="text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded-full hover:bg-zinc-800"
-  //         >
-  //           Profile
-  //         </button>
-  //         <button
-  //           className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
-  //         >
-  //           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-  //             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-  //             <polyline points="22,6 12,13 2,6"></polyline>
-  //           </svg>
-  //         </button>
-  //       </div>
-  //     </nav>
-
-  //     <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-  //       <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
-  //       <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px] pointer-events-none"></div>
-
-  //       <div className="max-w-lg w-full text-center relative z-10">
-  //         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/50 border border-zinc-800 backdrop-blur-md mb-8">
-  //           <span className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`}></span>
-  //           <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
-  //             {socket?.connected ? 'System Online' : 'Connecting...'}
-  //           </span>
-  //         </div>
-
-  //         <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6">
-  //           Chat with <br/>
-  //           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-  //             anyone.
-  //           </span>
-  //         </h1>
-          
-  //         <p className="text-lg text-zinc-400 mb-12 max-w-md mx-auto leading-relaxed">
-  //           Instant anonymous connections. No login required. Just pure conversation.
-  //         </p>
-
-  //         {notification === 'partner-disconnected' && (
-  //               <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
-  //                 Partner disconnected. ready to go again?
-  //               </div>
-  //             )}
-
-  //         {inQueue ? (
-  //           <div className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-8 rounded-[32px] shadow-2xl">
-  //             <div className="flex flex-col items-center gap-4">
-  //               <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
-  //               <div className="text-center">
-  //                  <h3 className="text-xl font-bold text-white mb-1">Finding a match<AnimatedDots /></h3>
-  //                  <p className="text-zinc-500 text-sm">Position in queue: <span className="text-white font-mono">{queuePosition}</span></p>
-  //               </div>
-  //               <button onClick={leaveQueue} className="mt-4 px-6 py-3 rounded-full bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 transition-colors">
-  //                 Cancel
-  //               </button>
-  //             </div>
-  //           </div>
-  //         ) : (
-  //           <div className="flex flex-col gap-4">    
-  //             <button 
-  //               onClick={joinQueue} 
-  //               className="group relative w-full py-5 rounded-full bg-white text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
-  //             >
-  //               Start Chatting
-  //               <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
-  //             </button>
-  //           </div>
-  //         )}
-  //       </div>
-  //     </div>
-      
-  //     <div className="py-6 text-center text-zinc-600 text-xs font-medium">
-  //       &copy; 2025 blahbluh. Crafted for anonymity.
-  //     </div>
-      
-  //     {/* Profile Modal */}
-  //     {showProfile && currentUser && (
-  //       <ProfileModal
-  //         user={currentUser}
-  //         onClose={() => setShowProfile(false)}
-  //       />
-  //     )}
-  //   </div>
-  // );
 }
 
 export default ChatPage;

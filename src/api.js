@@ -602,5 +602,15 @@ export const api = {
       throw new Error(errorText);
     }
     return await response.json();
+  },
+
+  async getTrendingGifs() {
+    const res = await fetch(`${API_BASE_URL}/api/gifs/trending`);
+    return res.json();
+  },
+
+  async searchGifs(term) {
+    const res = await fetch(`${API_BASE_URL}/api/gifs/search?q=${encodeURIComponent(term)}`);
+    return res.json();
   }
 };
