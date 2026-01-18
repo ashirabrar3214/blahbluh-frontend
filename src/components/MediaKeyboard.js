@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
 
 const TABS = [
@@ -14,20 +14,7 @@ const MediaKeyboard = ({ onSelect, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Debounce search slightly to avoid flickering while typing
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchTerm) {
-        performSearch(searchTerm);
-      } else {
-        loadTrending();
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, activeTab]);
-
-  const loadTrending = async () => {
+  const loadTrending = useCallback(async () => {
     setLoading(true);
     try {
       let data = [];
@@ -42,9 +29,9 @@ const MediaKeyboard = ({ onSelect, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
-  const performSearch = async (term) => {
+  const performSearch = useCallback(async (term) => {
     setLoading(true);
     try {
       let data = [];
@@ -59,7 +46,20 @@ const MediaKeyboard = ({ onSelect, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  // Debounce search slightly to avoid flickering while typing
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchTerm) {
+        performSearch(searchTerm);
+      } else {
+        loadTrending();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, activeTab, loadTrending, performSearch]);
 
   return (
     <div className="flex flex-col h-full w-full bg-zinc-900 border-t border-zinc-800 shadow-2xl">
