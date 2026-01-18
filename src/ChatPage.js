@@ -1447,7 +1447,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           
           {/* Keyboard Drawer */}
           {showMediaKeyboard && (
-            <div className="h-72 w-full bg-zinc-900 border-t border-zinc-700 z-40 animate-in slide-in-from-bottom-10 duration-200">
+            <div className="h-[60vh] w-full bg-zinc-900 border-t border-zinc-700 z-40 animate-in slide-in-from-bottom-10 duration-200">
                 <MediaKeyboard 
                    onSelect={handleSendMedia} 
                    onClose={() => setShowMediaKeyboard(false)} 
