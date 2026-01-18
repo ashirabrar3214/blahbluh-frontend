@@ -4,7 +4,7 @@ import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
 import ReportPopup from './ReportPopup';
 import PublicProfile from './components/PublicProfile';
-import GifPicker from './components/GifPicker';
+import MediaKeyboard from './components/MediaKeyboard';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -95,7 +95,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [currentUserId, setCurrentUserId] = useState(propUserId ?? null);
   const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
   const [showPublicProfile, setShowPublicProfile] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showMediaKeyboard, setShowMediaKeyboard] = useState(false);
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
@@ -724,7 +724,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     onGoHome?.();
   };
 
-  const handleSendGif = (url) => {
+  const handleSendMedia = (url, type = 'gif') => {
     if (!chatId || !currentUserId) return;
     
     if (!socket?.connected) {
@@ -736,7 +736,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       id: Date.now(),
       chatId,
       message: url,
-      type: 'gif',
+      type: type, // 'gif' or 'sticker'
       userId: currentUserId,
       username: currentUsername,
       timestamp: new Date().toISOString(),
@@ -749,7 +749,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
     
     socket.emit('send-message', messageData);
-    setShowGifPicker(false);
+    setShowMediaKeyboard(false);
   };
 
   const handleSendMessage = async () => {
@@ -1261,7 +1261,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
               const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
-              const isGif = msg.type === 'gif' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i));
+              const isMedia = msg.type === 'gif' || msg.type === 'sticker' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i));
 
                 return (
                   <div key={msg.id || index} className={`group flex w-full items-center gap-2 ${isOwn ? 'justify-end' : 'flex-row-reverse justify-end'}`}>
@@ -1359,7 +1359,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                     {/* Message bubble */}
                     <div className={`relative max-w-[80%] sm:max-w-[70%]`}>
                       <div className={`relative transition-all duration-200 cursor-default ${
-                        isGif 
+                        isMedia 
                           ? 'bg-transparent' 
                           : `px-4 py-2.5 shadow-sm ${isOwn ? 'bg-blue-600 text-white rounded-[20px] rounded-br-sm' : 'bg-zinc-800 text-gray-100 rounded-[20px] rounded-bl-sm'}`
                       }`}>
@@ -1370,8 +1370,17 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                           </div>
                         )}
                         <div className="text-[15px] leading-relaxed break-words font-normal">
-                          {isGif ? (
-                            <img src={msg.message} alt="GIF" className="rounded-lg max-w-full h-auto" loading="lazy" />
+                          {isMedia ? (
+                            <img 
+                              src={msg.message} 
+                              alt="media" 
+                              className={`mt-1 border border-white/10 ${
+                                msg.type === 'sticker' 
+                                  ? 'w-32 h-32 object-contain bg-transparent border-none shadow-none' 
+                                  : 'rounded-lg max-w-full h-auto' 
+                              }`} 
+                              loading="lazy" 
+                            />
                           ) : (
                             msg.message
                           )}
@@ -1397,9 +1406,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           {/* Input Area */}
           <div className="w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent shrink-0 z-30">
             <div className="max-w-2xl mx-auto relative">
-              {showGifPicker && (
-                <GifPicker onSelect={handleSendGif} onClose={() => setShowGifPicker(false)} />
-              )}
               {replyingTo && (
                 <div className="flex items-center justify-between px-4 py-2 mb-2 bg-zinc-800/80 backdrop-blur rounded-xl border border-white/5 text-xs text-zinc-300">
                   <div className="flex items-center gap-2 overflow-hidden">
@@ -1413,10 +1419,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="relative flex items-end gap-2 bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 p-1.5 rounded-[28px] shadow-2xl">
                 <button
                   type="button"
-                  onClick={() => setShowGifPicker(!showGifPicker)}
-                  className={`p-3 rounded-full transition-all duration-200 flex items-center justify-center ${showGifPicker ? 'text-blue-400 bg-blue-400/10' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                  onClick={() => setShowMediaKeyboard(!showMediaKeyboard)}
+                  className={`p-3 rounded-full transition-all duration-200 flex items-center justify-center ${showMediaKeyboard ? 'text-blue-400 bg-blue-400/10' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
                 >
-                  <ImageIcon />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 </button>
                 <input
                   ref={inputRef}
@@ -1441,6 +1447,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               </form>
             </div>
           </div>
+          
+          {/* Keyboard Drawer */}
+          {showMediaKeyboard && (
+            <div className="h-72 w-full bg-zinc-900 border-t border-zinc-700 z-40 animate-in slide-in-from-bottom-10 duration-200">
+                <MediaKeyboard 
+                   onSelect={handleSendMedia} 
+                   onClose={() => setShowMediaKeyboard(false)} 
+                />
+            </div>
+          )}
         </div>
 
         </div>

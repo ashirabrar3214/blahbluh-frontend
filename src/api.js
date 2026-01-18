@@ -612,5 +612,15 @@ export const api = {
   async searchGifs(term) {
     const res = await fetch(`${API_BASE_URL}/api/gifs/search?q=${encodeURIComponent(term)}`);
     return res.json();
+  },
+
+  async getTrendingStickers() {
+    const res = await fetch(`${API_BASE_URL}/api/gifs/stickers/trending`);
+    return res.json();
+  },
+
+  async searchStickers(term) {
+    const res = await fetch(`${API_BASE_URL}/api/gifs/stickers/search?q=${encodeURIComponent(term)}`);
+    return res.json();
   }
 };
