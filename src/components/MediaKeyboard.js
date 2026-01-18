@@ -92,10 +92,9 @@ const MediaKeyboard = ({ onSelect, onClose }) => {
         <input 
           type="text" 
           placeholder={`Search ${activeTab}...`} 
-          className="w-full bg-zinc-800 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-zinc-500"
+          className="w-full bg-zinc-800 text-white text-[16px] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-zinc-500"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          autoFocus
         />
         {/* Quick Tags Pills */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
