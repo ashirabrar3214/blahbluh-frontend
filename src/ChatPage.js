@@ -5,6 +5,7 @@ import BlockUserPopup from './BlockUserPopup';
 import ReportPopup from './ReportPopup';
 import PublicProfile from './components/PublicProfile';
 import MediaKeyboard from './components/MediaKeyboard';
+import ClipKeyboard from './components/ClipKeyboard';
 
 // --- SVGs ---
 const SendIcon = () => (
@@ -42,6 +43,12 @@ const PhoneIcon = () => (
 );
 const PhoneOffIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+);
+const ClipIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+);
+const GifIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
 );
 
 const IcebreakerLoader = () => (
@@ -92,7 +99,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [currentUserId, setCurrentUserId] = useState(propUserId ?? null);
   const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
   const [showPublicProfile, setShowPublicProfile] = useState(false);
-  const [showMediaKeyboard, setShowMediaKeyboard] = useState(false);
+  const [activeKeyboard, setActiveKeyboard] = useState(null); // 'media', 'clip', or null
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
@@ -746,7 +753,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
     
     socket.emit('send-message', messageData);
-    setShowMediaKeyboard(false);
+    setActiveKeyboard(null);
   };
 
   const handleSendMessage = async () => {
@@ -1258,7 +1265,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
               const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
-              const isMedia = msg.type === 'gif' || msg.type === 'sticker' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i));
+              const isMedia = msg.type === 'gif' || msg.type === 'sticker' || msg.type === 'clip' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i));
 
                 return (
                   <div key={msg.id || index} className={`group flex w-full items-center gap-2 ${isOwn ? 'justify-end' : 'flex-row-reverse justify-end'}`}>
@@ -1367,7 +1374,19 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                           </div>
                         )}
                         <div className="text-[15px] leading-relaxed break-words font-normal">
-                          {isMedia ? (
+                          {msg.type === 'clip' ? (
+                            <div className="mt-1">
+                                <a href={msg.message} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-zinc-900/50 p-3 rounded-xl border border-white/10 hover:bg-zinc-900 transition-colors group">
+                                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                                         <ClipIcon />
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <p className="text-xs text-zinc-400 font-bold uppercase truncate">{new URL(msg.message).hostname.replace('www.', '')}</p>
+                                        <p className="text-sm text-blue-400 truncate underline decoration-blue-400/30">View Clip</p>
+                                    </div>
+                                </a>
+                            </div>
+                          ) : isMedia ? (
                             <img 
                               src={msg.message} 
                               alt="media" 
@@ -1414,13 +1433,22 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               )}
               
               <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="relative flex items-end gap-2 bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 p-1.5 rounded-[28px] shadow-2xl">
-                <button
-                  type="button"
-                  onClick={() => setShowMediaKeyboard(!showMediaKeyboard)}
-                  className={`p-3 rounded-full transition-all duration-200 flex items-center justify-center ${showMediaKeyboard ? 'text-blue-400 bg-blue-400/10' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                </button>
+                <div className="flex items-center gap-1">
+                    <button 
+                       type="button" 
+                       onClick={() => setActiveKeyboard(activeKeyboard === 'media' ? null : 'media')}
+                       className={`p-2 rounded-full transition-colors ${activeKeyboard === 'media' ? 'text-blue-500 bg-blue-500/10' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                    >
+                       <GifIcon />
+                    </button>
+                    <button 
+                       type="button" 
+                       onClick={() => setActiveKeyboard(activeKeyboard === 'clip' ? null : 'clip')}
+                       className={`p-2 rounded-full transition-colors ${activeKeyboard === 'clip' ? 'text-purple-500 bg-purple-500/10' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                    >
+                       <ClipIcon />
+                    </button>
+                </div>
                 <input
                   ref={inputRef}
                   type="text"
@@ -1446,12 +1474,20 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           </div>
           
           {/* Keyboard Drawer */}
-          {showMediaKeyboard && (
+          {activeKeyboard && (
             <div className="h-[60vh] w-full bg-zinc-900 border-t border-zinc-700 z-40 animate-in slide-in-from-bottom-10 duration-200">
-                <MediaKeyboard 
-                   onSelect={handleSendMedia} 
-                   onClose={() => setShowMediaKeyboard(false)} 
-                />
+                {activeKeyboard === 'media' && (
+                    <MediaKeyboard 
+                       onSelect={(url, type) => handleSendMedia(url, type)} 
+                       onClose={() => setActiveKeyboard(null)} 
+                    />
+                )}
+                {activeKeyboard === 'clip' && (
+                    <ClipKeyboard 
+                       onSend={(url) => handleSendMedia(url, 'clip')} 
+                       onClose={() => setActiveKeyboard(null)} 
+                    />
+                )}
             </div>
           )}
         </div>
