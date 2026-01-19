@@ -8,9 +8,6 @@ import MediaKeyboard from './components/MediaKeyboard';
 import ClipKeyboard from './components/ClipKeyboard';
 
 // --- SVGs ---
-const SendIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-);
 const NextIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
 );
@@ -1433,7 +1430,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
               )}
               
               <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="relative flex items-end gap-2 bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 p-1.5 rounded-[28px] shadow-2xl">
-                <div className="flex items-center gap-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type something fun..."
+                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 focus:outline-none text-[16px]"
+                  autoComplete="off"
+                />
+                <div className="flex items-center gap-1 pb-1 pr-1">
                     <button 
                        type="button" 
                        onClick={() => setActiveKeyboard(activeKeyboard === 'media' ? null : 'media')}
@@ -1449,26 +1455,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                        <ClipIcon />
                     </button>
                 </div>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type something fun..."
-                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 px-4 py-3 focus:ring-0 focus:outline-none text-[16px]"
-                  autoComplete="off"
-                />
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className={`p-2.5 rounded-full transition-all duration-200 flex items-center justify-center
-                    ${newMessage.trim() 
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 rotate-0' 
-                      : 'bg-zinc-800 text-zinc-600 rotate-90 cursor-default'
-                    }`}
-                >
-                  <SendIcon />
-                </button>
               </form>
             </div>
           </div>
