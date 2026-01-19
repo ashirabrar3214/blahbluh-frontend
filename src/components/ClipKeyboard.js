@@ -3,25 +3,28 @@ import React, { useState } from 'react';
 const ClipKeyboard = ({ onSend, onClose }) => {
   const [status, setStatus] = useState('idle'); // idle, reading, success, error
   const [feedback, setFeedback] = useState('');
-  const [pressTimer, setPressTimer] = useState(null);
 
   // --- CLIPBOARD LOGIC ---
   const handlePaste = async () => {
+    // 1. Immediate UI feedback
     setStatus('reading');
+    
     try {
+      // 2. Read Clipboard (Must happen directly in this event loop)
       const text = await navigator.clipboard.readText();
+      
       if (!text) throw new Error('Clipboard is empty');
       
-      // Basic Frontend Check (Fast Feedback)
+      // 3. Basic Validation
       if (!text.startsWith('http')) {
          throw new Error('Not a valid link');
       }
 
-      // Success Animation Sequence
+      // 4. Success Sequence
       setStatus('success');
       setFeedback('Clip Sent!');
       
-      // Send to parent after short delay to show animation
+      // 5. Send to parent after animation
       setTimeout(() => {
         onSend(text);
       }, 800);
@@ -29,28 +32,18 @@ const ClipKeyboard = ({ onSend, onClose }) => {
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setFeedback(err.message === 'Not a valid link' ? 'Link required' : 'Permission denied');
+      // Friendly error messages
+      if (err.name === 'NotAllowedError' || err.message === 'Read permission denied.') {
+          setFeedback('Tap "Allow Paste"');
+      } else if (err.message === 'Not a valid link') {
+          setFeedback('Link required');
+      } else {
+          setFeedback('Empty Clipboard');
+      }
+      
+      // Reset after 2 seconds
       setTimeout(() => setStatus('idle'), 2000);
     }
-  };
-
-  // --- MOBILE PRESS-AND-HOLD ---
-  const handleTouchStart = () => {
-    const timer = setTimeout(() => {
-      handlePaste();
-    }, 600); // 600ms hold to trigger
-    setPressTimer(timer);
-  };
-
-  const handleTouchEnd = () => {
-    if (pressTimer) clearTimeout(pressTimer);
-  };
-
-  // --- PC CLICK ---
-  const handleClick = () => {
-    // Only trigger on click if not on mobile (or if user prefers click)
-    // We allow click everywhere for accessibility
-    handlePaste();
   };
 
   return (
@@ -61,7 +54,7 @@ const ClipKeyboard = ({ onSend, onClose }) => {
         <span className="text-sm font-bold uppercase tracking-wide text-purple-400">
            Clips
         </span>
-        <button onClick={onClose} className="text-zinc-500 hover:text-white">✕</button>
+        <button onClick={onClose} className="text-zinc-500 hover:text-white px-2">✕</button>
       </div>
 
       {/* Main Interaction Area */}
@@ -74,30 +67,31 @@ const ClipKeyboard = ({ onSend, onClose }) => {
              </div>
         )}
 
-        {/* The Button / Trigger Area */}
-        <div
+        {/* The Big Trigger Button */}
+        <button
           className={`
-            relative z-10 w-full max-w-xs aspect-video rounded-3xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center gap-3 cursor-pointer select-none touch-none
+            relative z-10 w-full max-w-xs aspect-video rounded-3xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center gap-3 cursor-pointer select-none touch-manipulation
             ${status === 'idle' ? 'border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 hover:border-zinc-500 active:scale-95' : ''}
             ${status === 'success' ? 'border-green-500 bg-green-900/20 scale-105' : ''}
             ${status === 'error' ? 'border-red-500 bg-red-900/20 shake' : ''}
           `}
-          // Events
-          onClick={handleClick}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          onMouseDown={handleTouchStart} // For PC long press feel
-          onMouseUp={handleTouchEnd}
+          onClick={handlePaste}
         >
             {status === 'idle' && (
                 <>
                     <svg className="w-10 h-10 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                     <div className="text-center">
-                        <p className="text-zinc-300 font-medium text-sm md:hidden">Press & Hold to Paste</p>
-                        <p className="text-zinc-300 font-medium text-sm hidden md:block">Click to Paste Link</p>
+                        <p className="text-zinc-300 font-bold text-base">Tap to Paste Link</p>
                         <p className="text-zinc-600 text-xs mt-1">TikTok • Insta • X • Snap</p>
                     </div>
                 </>
+            )}
+
+            {status === 'reading' && (
+               <div className="flex flex-col items-center animate-pulse">
+                  <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mb-2" />
+                  <span className="text-purple-400 text-sm font-medium">Reading...</span>
+               </div>
             )}
 
             {status === 'success' && (
@@ -114,17 +108,16 @@ const ClipKeyboard = ({ onSend, onClose }) => {
                     <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center mb-2">
                         <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </div>
-                    <span className="text-red-400 font-bold">{feedback}</span>
+                    <span className="text-red-400 font-bold text-sm">{feedback}</span>
                 </div>
             )}
-        </div>
+        </button>
       </div>
       
       {/* Footer Info */}
       <div className="px-6 pb-6 text-center">
-         <p className="text-xs text-zinc-600">
-            We only support valid links from whitelisted platforms. 
-            Broken or malicious links will be rejected.
+         <p className="text-[10px] text-zinc-600 leading-tight">
+            Links are validated securely. Only short-form content supported.
          </p>
       </div>
     </div>
