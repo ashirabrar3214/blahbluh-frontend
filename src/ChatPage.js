@@ -493,6 +493,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       return;
     };
 
+    const handleMessageError = (data) => {
+        console.error("Message failed:", data);
+        setActionToast(data.error || "Failed to send");
+        
+        // Optional: Remove the optimistic message from UI if it failed
+        setMessages(prev => prev.filter(msg => msg.id !== data.id));
+    };
+
 
     const handleFriendRequestReceived = () => loadFriendRequests();
 
@@ -501,6 +509,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     socket.on('message-reaction', handleMessageReaction);
     socket.on('partner-disconnected', handlePartnerDisconnected);
     socket.on('friend-request-received', handleFriendRequestReceived);
+    socket.on('message-error', handleMessageError);
 
     
     // Listen for friend messages even when not in chat
@@ -521,6 +530,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('message-reaction', handleMessageReaction);
       socket.off('partner-disconnected', handlePartnerDisconnected);
       socket.off('friend-request-received', handleFriendRequestReceived);
+      socket.off('message-error', handleMessageError);
       socket.off('friend-message-received');
     };
   }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
@@ -728,16 +738,20 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   };
 
   const handleSendMedia = (url, type = 'gif') => {
-    // 1. Close the keyboards
     setActiveKeyboard(null);
 
-    if (!chatId || !currentUserId) return;
+    // GUARD CLAUSE
+    if (!chatId || !currentUserId) {
+        console.error("Attempted to send media without chatId or userId");
+        setActionToast("Error: No active chat");
+        return;
+    }
 
     const messageData = {
       id: Date.now(),
-      chatId: chatId,
+      chatId: chatId,   // <--- VITAL
       message: url,
-      type: type,       // 'gif', 'sticker', or 'clip'
+      type: type,       
       userId: currentUserId,
       username: currentUsername,
       timestamp: new Date().toISOString(),
@@ -745,10 +759,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       reactions: {}
     };
 
-    // 2. Optimistic UI Update (Shows it immediately for you)
+    // Optimistic UI Update
     setMessages(prev => [...prev, messageData]);
 
-    // 3. Send to Backend
     if (socket && socket.connected) {
         socket.emit('send-message', messageData);
     } else {
