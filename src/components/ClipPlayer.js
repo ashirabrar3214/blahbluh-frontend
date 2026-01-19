@@ -26,7 +26,8 @@ const ClipPlayer = ({ url }) => {
     return () => observer.disconnect();
   }, []);
 
-  // --- FIX 1: Show a Link Card if embed fails (instead of invisible null) ---
+  // --- CRITICAL FIX: Fallback to a nice Link Card if embed fails ---
+  // If we don't have a valid config, show the card instead of returning null (invisible)
   if (!config) {
     return <FallbackCard url={url} />;
   }
@@ -34,8 +35,8 @@ const ClipPlayer = ({ url }) => {
   return (
     <div 
         ref={containerRef}
-        // --- FIX 2: Force aspect ratio via style (fixes 0px height issue) ---
-        style={{ aspectRatio: '9/16' }} 
+        // --- CRITICAL FIX: Inline style guarantees height matches width ---
+        style={{ aspectRatio: '9/16' }}
         className="mt-2 w-full max-w-[280px] sm:max-w-[300px] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group transform transition-all hover:scale-[1.01]"
     >
       {/* 1. LOADING SKELETON (Shows while waiting for Iframe) */}
@@ -46,7 +47,6 @@ const ClipPlayer = ({ url }) => {
              ${config.type === 'tiktok' ? 'bg-[#00f2ea]' : ''}
              ${config.type === 'snapchat' ? 'bg-yellow-400 text-black' : ''}
            `}>
-              {/* Play Triangle Icon */}
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-white">
                   <path d="M5 3l14 9-14 9V3z" /> 
               </svg>
@@ -75,7 +75,7 @@ const ClipPlayer = ({ url }) => {
 };
 
 // --- FALLBACK COMPONENT ---
-// Ensures users can still click the link if the video doesn't load
+// This ensures that even if the embed fails, the user sees a nice link button
 const FallbackCard = ({ url }) => {
   let hostname = "Link";
   try { hostname = new URL(url).hostname.replace('www.', ''); } catch(e){}
