@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { extractClipUrl, getEmbedConfig } from '../utils/embedUtils';
 
 const ClipKeyboard = ({ onSend, onClose }) => {
   const [status, setStatus] = useState('idle'); // idle, reading, success, error
@@ -15,9 +16,14 @@ const ClipKeyboard = ({ onSend, onClose }) => {
       
       if (!text) throw new Error('Clipboard is empty');
       
-      // 3. Basic Validation
-      if (!text.startsWith('http')) {
-         throw new Error('Not a valid link');
+      const extractedUrl = extractClipUrl(text);
+      if (!extractedUrl) {
+        throw new Error('Not a valid link');
+      }
+
+      const config = getEmbedConfig(extractedUrl);
+      if (!config) {
+        throw new Error('Unsupported link');
       }
 
       // 4. Success Sequence
@@ -26,7 +32,7 @@ const ClipKeyboard = ({ onSend, onClose }) => {
       
       // 5. Send to parent after animation
       setTimeout(() => {
-        onSend(text);
+        onSend(extractedUrl);
       }, 800);
 
     } catch (err) {
@@ -37,6 +43,8 @@ const ClipKeyboard = ({ onSend, onClose }) => {
           setFeedback('Tap "Allow Paste"');
       } else if (err.message === 'Not a valid link') {
           setFeedback('Link required');
+      } else if (err.message === 'Unsupported link') {
+          setFeedback('Unsupported link');
       } else {
           setFeedback('Empty Clipboard');
       }
