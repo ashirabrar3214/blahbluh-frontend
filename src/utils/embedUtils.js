@@ -8,12 +8,12 @@ export const getEmbedConfig = (url) => {
 
     // --- INSTAGRAM REELS/POSTS ---
     if (hostname.includes('instagram.com')) {
-      const match = cleanUrl.match(/\/(?:p|reel|reels)\/([\w-]+)/);
-      if (match && match[1]) {
+      const match = cleanUrl.match(/\/(p|reel|reels)\/([\w-]+)/);
+      if (match && match[2]) {
+        const kind = match[1] === 'p' ? 'p' : 'reel';
         return {
           type: 'instagram',
-          // 'captioned' is safer, but we hide it via CSS in the container if possible
-          src: `https://www.instagram.com/p/${match[1]}/embed/captioned/?cr=1&v=14&wp=540`
+          src: `https://www.instagram.com/${kind}/${match[2]}/embed/`
         };
       }
     }

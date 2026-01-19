@@ -7,6 +7,7 @@ import PublicProfile from './components/PublicProfile';
 import MediaKeyboard from './components/MediaKeyboard';
 import ClipKeyboard from './components/ClipKeyboard';
 import ClipPlayer from './components/ClipPlayer';
+import { getEmbedConfig } from './utils/embedUtils';
 
 
 // --- SVGs ---
@@ -1278,7 +1279,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
               const replyMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo.id) : null;
               const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
-              const isMedia = msg.type === 'gif' || msg.type === 'sticker' || msg.type === 'clip' || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i));
+              const clipConfig = typeof msg.message === 'string' ? getEmbedConfig(msg.message) : null;
+              const isClip = msg.type === 'clip' || !!clipConfig;
+              const isMedia = msg.type === 'gif' || msg.type === 'sticker' || isClip || (typeof msg.message === 'string' && msg.message.match(/^https?:\/\/.*\.(gif|webp)($|\?)/i));
 
                 return (
                   <div key={msg.id || index} className={`group flex w-full items-center gap-2 ${isOwn ? 'justify-end' : 'flex-row-reverse justify-end'}`}>
@@ -1386,7 +1389,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                             <span className="truncate block opacity-80">{replyMsg.message}</span>
                           </div>
                         )}
-                        {msg.type === 'clip' ? (
+                        {isClip ? (
                           <ClipPlayer url={msg.message} />
                         ) : isMedia ? (
                           <img 
