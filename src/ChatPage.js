@@ -728,18 +728,16 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   };
 
   const handleSendMedia = (url, type = 'gif') => {
+    // 1. Close the keyboards
+    setActiveKeyboard(null);
+
     if (!chatId || !currentUserId) return;
-    
-    if (!socket?.connected) {
-        setActionToast('Connection lost');
-        return;
-    }
 
     const messageData = {
       id: Date.now(),
-      chatId,
+      chatId: chatId,
       message: url,
-      type: type, // 'gif' or 'sticker'
+      type: type,       // 'gif', 'sticker', or 'clip'
       userId: currentUserId,
       username: currentUsername,
       timestamp: new Date().toISOString(),
@@ -747,12 +745,15 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       reactions: {}
     };
 
-    if (!chatId?.startsWith('friend_')) {
-      setMessages(prev => [...prev, messageData]);
+    // 2. Optimistic UI Update (Shows it immediately for you)
+    setMessages(prev => [...prev, messageData]);
+
+    // 3. Send to Backend
+    if (socket && socket.connected) {
+        socket.emit('send-message', messageData);
+    } else {
+        setActionToast('Connection lost');
     }
-    
-    socket.emit('send-message', messageData);
-    setActiveKeyboard(null);
   };
 
   const handleSendMessage = async () => {
