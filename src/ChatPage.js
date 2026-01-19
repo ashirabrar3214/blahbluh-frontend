@@ -6,6 +6,8 @@ import ReportPopup from './ReportPopup';
 import PublicProfile from './components/PublicProfile';
 import MediaKeyboard from './components/MediaKeyboard';
 import ClipKeyboard from './components/ClipKeyboard';
+import ClipPlayer from './components/ClipPlayer';import ClipPlayer from './components/ClipPlayer';
+
 
 // --- SVGs ---
 const NextIcon = () => (
@@ -1369,35 +1371,43 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                             <span className="font-bold block">{replyMsg.username}</span>
                             <span className="truncate block opacity-80">{replyMsg.message}</span>
                           </div>
+                        iv className="text-[15px] leading-relaxed break-words font-normal">
+                          sCePsssag001af  /a>
+                          </div>
+                          : isMedia ? (
+                            mg 
+                            src={msg.message} 
+                            alt="media" 
+                              assName={`mt-1 border border-white/10 ${
+                                g.type === 'sticker' 
+                                ? 'w-32 h-32 object-contain bg-transparent border-none shadow-none' 
+                                : 'rounded-lg max-w-full h-auto' 
+                            }`} 
+                            loading="lazy" 
+                          />
+                          <div)cla sNa="text-[15px] ledin-relaxed brak-words font-normal">
+                            {msg.message msg.message
+                            )}
                         )}
-                        <div className="text-[15px] leading-relaxed break-words font-normal">
-                          {msg.type === 'clip' ? (
-                            <div className="mt-1">
-                                <a href={msg.message} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-zinc-900/50 p-3 rounded-xl border border-white/10 hover:bg-zinc-900 transition-colors group">
-                                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
-                                         <ClipIcon />
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <p className="text-xs text-zinc-400 font-bold uppercase truncate">{new URL(msg.message).hostname.replace('www.', '')}</p>
-                                        <p className="text-sm text-blue-400 truncate underline decoration-blue-400/30">View Clip</p>
-                                    </div>
-                                </a>
-                            </div>
-                          ) : isMedia ? (
-                            <img 
-                              src={msg.message} 
-                              alt="media" 
-                              className={`mt-1 border border-white/10 ${
-                                msg.type === 'sticker' 
-                                  ? 'w-32 h-32 object-contain bg-transparent border-none shadow-none' 
-                                  : 'rounded-lg max-w-full h-auto' 
-                              }`} 
-                              loading="lazy" 
-                            />
-                          ) : (
-                            msg.message
-                          )}
                         </div>
+                        {msg.type === 'clip' ? (
+                          <ClipPlayer url={msg.message} />
+                        ) : isMedia ? (
+                          <img 
+                            src={msg.message} 
+                            alt="media" 
+                            className={`mt-1 border border-white/10 ${
+                              msg.type === 'sticker' 
+                                ? 'w-32 h-32 object-contain bg-transparent border-none shadow-none' 
+                                : 'rounded-lg max-w-full h-auto' 
+                            }`} 
+                            loading="lazy" 
+                          />
+                        ) : (
+                          <div className="text-[15px] leading-relaxed break-words font-normal">
+                            {msg.message}
+                          </div>
+                        )}
                       </div>
 
                       {hasReactions && (
