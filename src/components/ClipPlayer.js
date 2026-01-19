@@ -26,7 +26,7 @@ const ClipPlayer = ({ url }) => {
     return () => observer.disconnect();
   }, []);
 
-  // --- CRITICAL FIX: Fallback to a nice Link Card if embed fails ---
+  // --- FIX 1: Show a Link Card if embed fails (instead of invisible null) ---
   if (!config) {
     return <FallbackCard url={url} />;
   }
@@ -34,9 +34,9 @@ const ClipPlayer = ({ url }) => {
   return (
     <div 
         ref={containerRef}
-        // Force aspect ratio with style as backup for Tailwind
+        // --- FIX 2: Force aspect ratio via style (fixes 0px height issue) ---
         style={{ aspectRatio: '9/16' }} 
-        className="mt-2 w-full max-w-[280px] sm:max-w-[300px] aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group transform transition-all hover:scale-[1.01]"
+        className="mt-2 w-full max-w-[280px] sm:max-w-[300px] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group transform transition-all hover:scale-[1.01]"
     >
       {/* 1. LOADING SKELETON (Shows while waiting for Iframe) */}
       {!isLoaded && (
@@ -46,8 +46,9 @@ const ClipPlayer = ({ url }) => {
              ${config.type === 'tiktok' ? 'bg-[#00f2ea]' : ''}
              ${config.type === 'snapchat' ? 'bg-yellow-400 text-black' : ''}
            `}>
+              {/* Play Triangle Icon */}
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                  <path d="M5 3l14 9-14 9V3z" />
+                  <path d="M5 3l14 9-14 9V3z" /> 
               </svg>
            </div>
            <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
@@ -74,7 +75,7 @@ const ClipPlayer = ({ url }) => {
 };
 
 // --- FALLBACK COMPONENT ---
-// This ensures that even if the embed fails, the user sees a nice link button
+// Ensures users can still click the link if the video doesn't load
 const FallbackCard = ({ url }) => {
   let hostname = "Link";
   try { hostname = new URL(url).hostname.replace('www.', ''); } catch(e){}
@@ -83,6 +84,7 @@ const FallbackCard = ({ url }) => {
     <div className="mt-1 max-w-[280px]">
         <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-zinc-900 p-3 rounded-xl border border-zinc-700 hover:bg-zinc-800 transition-colors group">
             <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shrink-0">
+                 {/* Clip Icon */}
                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
             </div>
             <div className="flex-1 overflow-hidden min-w-0">
