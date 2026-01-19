@@ -6,7 +6,7 @@ import ReportPopup from './ReportPopup';
 import PublicProfile from './components/PublicProfile';
 import MediaKeyboard from './components/MediaKeyboard';
 import ClipKeyboard from './components/ClipKeyboard';
-import ClipPlayer from './components/ClipPlayer';import ClipPlayer from './components/ClipPlayer';
+import ClipPlayer from './components/ClipPlayer';
 
 
 // --- SVGs ---
@@ -1371,25 +1371,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                             <span className="font-bold block">{replyMsg.username}</span>
                             <span className="truncate block opacity-80">{replyMsg.message}</span>
                           </div>
-                        iv className="text-[15px] leading-relaxed break-words font-normal">
-                          sCePsssag001af  /a>
-                          </div>
-                          : isMedia ? (
-                            mg 
-                            src={msg.message} 
-                            alt="media" 
-                              assName={`mt-1 border border-white/10 ${
-                                g.type === 'sticker' 
-                                ? 'w-32 h-32 object-contain bg-transparent border-none shadow-none' 
-                                : 'rounded-lg max-w-full h-auto' 
-                            }`} 
-                            loading="lazy" 
-                          />
-                          <div)cla sNa="text-[15px] ledin-relaxed brak-words font-normal">
-                            {msg.message msg.message
-                            )}
                         )}
-                        </div>
                         {msg.type === 'clip' ? (
                           <ClipPlayer url={msg.message} />
                         ) : isMedia ? (
