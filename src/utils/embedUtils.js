@@ -1,8 +1,3 @@
-export const extractClipUrl = (text) => {
-  const match = text.match(/(https?:\/\/[^\s]+)/);
-  return match ? match[0] : null;
-};
-
 export const getEmbedConfig = (url) => {
   if (!url) return null;
   const cleanUrl = url.trim();
@@ -13,12 +8,16 @@ export const getEmbedConfig = (url) => {
 
     // --- INSTAGRAM REELS/POSTS ---
     if (hostname.includes('instagram.com')) {
-      const match = cleanUrl.match(/\/(p|reel|reels)\/([\w-]+)/);
-      if (match && match[2]) {
-        const kind = match[1] === 'p' ? 'p' : 'reel';
+      // FIX 1: Regex now allows dots/underscores ([\w-.]+) which were breaking some links
+      const match = cleanUrl.match(/\/(?:p|reel|reels)\/([\w-.]+)/);
+      if (match && match[1]) {
         return {
           type: 'instagram',
-          src: `https://www.instagram.com/${kind}/${match[2]}/embed/`
+          // FIX 2: Force use of '/p/' (Post) endpoint. 
+          // '/reel/' embed endpoints often redirect to the full page on some devices. 
+          // '/p/' is the universal embedder for both Posts and Reels.
+          // FIX 3: Added 'wp=540' to request a cleaner player size.
+          src: `https://www.instagram.com/p/${match[1]}/embed/?cr=1&v=14&wp=540`
         };
       }
     }
@@ -29,16 +28,13 @@ export const getEmbedConfig = (url) => {
       if (match && match[1]) {
         return {
           type: 'tiktok',
-          // The official TikTok Embed Player
           src: `https://www.tiktok.com/embed/v2/${match[1]}?lang=en-US`
         };
       }
     }
 
-    // --- SNAPCHAT SPOTLIGHT/STORIES ---
+    // --- SNAPCHAT ---
     if (hostname.includes('snapchat.com')) {
-        // Spotlight URLs usually look like: snapchat.com/spotlight/ID
-        // Embed URLs look like: story.snapchat.com/embed/ID
         const pathParts = urlObj.pathname.split('/');
         const idIndex = pathParts.findIndex(p => p === 'spotlight' || p === 'story' || p === 'add');
         
