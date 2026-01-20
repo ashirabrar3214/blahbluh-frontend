@@ -19,26 +19,25 @@ const VideoModal = ({ src, type, onClose }) => {
         className="relative w-full max-w-[350px] bg-black rounded-2xl overflow-hidden shadow-2xl border border-zinc-800"
         style={{ aspectRatio: '9/16' }}
       >
-        {/* BLOCKERS - Adjusted for Mobile
-            We reduced the bottom blocker height slightly and added pointer-events-auto
-            to ensure they actually block clicks, but you might want to remove them entirely 
-            if they block the 'Unmute' button on specific phones. 
+        {/* BLOCKERS 
+            1. Kept top at 60px.
+            2. Reduced bottom to 80px (was 100px) to reduce risk of covering play controls on small screens.
         */}
         {type === 'instagram' && (
           <>
             <div className="absolute top-0 left-0 w-full h-[60px] z-20 bg-transparent cursor-default" />
-            <div className="absolute bottom-0 left-0 w-full h-[80px] z-20 bg-transparent cursor-default" /> 
+            <div className="absolute bottom-0 left-0 w-full h-[80px] z-20 bg-transparent cursor-default" />
           </>
         )}
 
-        {/* IFRAME - Added 'allow' attribute */}
+        {/* IFRAME - FIXED */}
         <iframe
           src={src}
           className="absolute inset-0 w-full h-full z-10"
           frameBorder="0"
           scrolling="no"
           allowFullScreen
-          // CRITICAL FIX: Explicit permissions for mobile playback
+          // CRITICAL FIX: Explicit permissions are required for mobile playback
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           title="Clip Viewer"
         />
