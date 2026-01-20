@@ -34,15 +34,39 @@ const VideoModal = ({ src, url, type, onClose }) => {
 
         {/* IFRAME - FIXED */}
         {isIOS ? (
-          <div className="absolute inset-0 flex items-center justify-center p-6 bg-zinc-900 z-30">
-            <a
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full text-center p-3 rounded-xl bg-zinc-800 text-white font-bold border border-zinc-700 hover:bg-zinc-700 transition-colors"
-            >
-              Open Video
-            </a>
+          <div className="absolute inset-0 z-30 bg-zinc-900 relative overflow-hidden">
+            {/* Blurred Background Thumbnail */}
+            <div className="absolute inset-0 pointer-events-none opacity-60">
+               <iframe
+                 src={src}
+                 className="w-full h-full scale-110 blur-lg"
+                 frameBorder="0"
+                 scrolling="no"
+                 tabIndex="-1"
+                 title="Background"
+               />
+            </div>
+            
+            {/* Overlay */}
+            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center p-6 bg-black/20 backdrop-blur-[2px]">
+               <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-5 border border-white/20 shadow-2xl">
+                  <svg className="w-8 h-8 text-white ml-1" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+               </div>
+               
+               <h3 className="text-white font-bold text-xl mb-2">View in App</h3>
+               <p className="text-white/70 text-sm mb-6 text-center max-w-[240px]">
+                 Watch this video on {type === 'tiktok' ? 'TikTok' : type === 'instagram' ? 'Instagram' : 'Snapchat'}
+               </p>
+
+               <a
+                 href={url}
+                 target="_blank"
+                 rel="noreferrer"
+                 className="px-8 py-3.5 rounded-full bg-white text-black font-bold text-sm hover:bg-gray-100 transition-transform active:scale-95 shadow-lg"
+               >
+                 Open Video
+               </a>
+            </div>
           </div>
         ) : (
           <iframe
