@@ -19,20 +19,27 @@ const ClipPlayer = ({ url, onPlay }) => {
       onClick={() => onPlay(config)}
       className="mt-2 w-[240px] cursor-pointer group relative overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-all active:scale-95"
     >
-      {/* Platform Banner */}
-      <div className={`h-24 flex items-center justify-center 
-        ${config.type === 'instagram' ? 'bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-600' : ''}
-        ${config.type === 'tiktok' ? 'bg-[#000000]' : ''}
-        ${config.type === 'snapchat' ? 'bg-[#FFFC00]' : ''}
-      `}>
-        {/* Play Icon */}
-        <div className="w-12 h-12 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
-           <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5 3l14 9-14 9V3z" /></svg>
+      {/* Video Preview (Iframe) */}
+      <div className="relative w-full bg-black" style={{ aspectRatio: '9/16' }}>
+        <iframe
+          src={config.src}
+          className="absolute inset-0 w-full h-full pointer-events-none select-none"
+          frameBorder="0"
+          scrolling="no"
+          tabIndex="-1"
+          title="Clip Preview"
+        />
+        
+        {/* Click Overlay & Play Button */}
+        <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-colors flex items-center justify-center z-10">
+           <div className="w-12 h-12 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform shadow-xl">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5 3l14 9-14 9V3z" /></svg>
+           </div>
         </div>
       </div>
 
       {/* Meta Info */}
-      <div className="p-3 bg-zinc-900">
+      <div className="p-3 bg-zinc-900 relative z-20">
         <p className="text-white text-sm font-bold truncate">
           {config.type === 'instagram' ? 'Instagram Reel' : 
            config.type === 'tiktok' ? 'TikTok Video' : 'Snapchat Clip'}
