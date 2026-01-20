@@ -1686,6 +1686,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {viewingClip && (
           <VideoModal
             src={viewingClip.src}
+            url={viewingClip.url}
             type={viewingClip.type}
             onClose={() => setViewingClip(null)}
           />

@@ -1,7 +1,9 @@
 import React from 'react';
 
-const VideoModal = ({ src, type, onClose }) => {
+const VideoModal = ({ src, url, type, onClose }) => {
   if (!src) return null;
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
@@ -31,16 +33,29 @@ const VideoModal = ({ src, type, onClose }) => {
         )}
 
         {/* IFRAME - FIXED */}
-        <iframe
-          src={src}
-          className="absolute inset-0 w-full h-full z-10"
-          frameBorder="0"
-          scrolling="no"
-          allowFullScreen
-          // CRITICAL FIX: Explicit permissions are required for mobile playback
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          title="Clip Viewer"
-        />
+        {isIOS ? (
+          <div className="absolute inset-0 flex items-center justify-center p-6 bg-zinc-900 z-30">
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full text-center p-3 rounded-xl bg-zinc-800 text-white font-bold border border-zinc-700 hover:bg-zinc-700 transition-colors"
+            >
+              Open Video
+            </a>
+          </div>
+        ) : (
+          <iframe
+            src={src}
+            className="absolute inset-0 w-full h-full z-10"
+            frameBorder="0"
+            scrolling="no"
+            allowFullScreen
+            // CRITICAL FIX: Explicit permissions are required for mobile playback
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            title="Clip Viewer"
+          />
+        )}
       </div>
     </div>
   );

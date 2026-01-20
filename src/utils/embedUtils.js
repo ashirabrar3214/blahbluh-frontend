@@ -20,6 +20,7 @@ export const getEmbedConfig = (url) => {
       if (match && match[1]) {
         return {
           type: 'instagram',
+          url: cleanUrl,
           src: `https://www.instagram.com/p/${match[1]}/embed/captioned/`
         };
       }
@@ -31,6 +32,7 @@ export const getEmbedConfig = (url) => {
       if (match && match[1]) {
         return {
           type: 'tiktok',
+          url: cleanUrl,
           src: `https://www.tiktok.com/embed/v2/${match[1]}?lang=en-US`
         };
       }
@@ -43,6 +45,7 @@ export const getEmbedConfig = (url) => {
       if (idIndex !== -1 && pathParts[idIndex + 1]) {
         return {
           type: 'snapchat',
+          url: cleanUrl,
           src: `https://story.snapchat.com/embed/${pathParts[idIndex + 1]}`
         };
       }
