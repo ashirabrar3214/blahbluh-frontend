@@ -34,7 +34,7 @@ const VideoModal = ({ src, url, type, onClose }) => {
 
         {/* IFRAME - FIXED */}
         {isIOS ? (
-          <div className="absolute inset-0 z-30 bg-zinc-900 relative overflow-hidden">
+          <div className="absolute inset-0 z-30 bg-zinc-900 overflow-hidden">
             {/* Blurred Background Thumbnail */}
             <div className="absolute inset-0 pointer-events-none opacity-60">
                <iframe
