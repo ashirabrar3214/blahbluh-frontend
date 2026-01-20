@@ -1,97 +1,47 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { getEmbedConfig } from '../utils/embedUtils';
 
-const ClipPlayer = ({ url }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [inView, setInView] = useState(false);
-  const containerRef = useRef(null);
+const ClipPlayer = ({ url, onPlay }) => {
   const config = getEmbedConfig(url);
 
-  // LAZY LOADING: Only load the iframe when the user scrolls near it
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  // --- CRITICAL FIX: Fallback to a nice Link Card if embed fails ---
-  // If we don't have a valid config, show the card instead of returning null (invisible)
+  // If invalid, fallback to generic link
   if (!config) {
-    return <FallbackCard url={url} />;
+    return (
+      <div className="mt-1 p-3 bg-red-900/20 border border-red-500/30 rounded-xl text-red-200 text-xs">
+        Invalid Link
+      </div>
+    );
   }
 
+  // PREVIEW CARD (Thumbnail style)
   return (
     <div 
-        ref={containerRef}
-        // --- CRITICAL FIX: Inline style guarantees height matches width ---
-        style={{ aspectRatio: '9/16' }}
-        className="mt-2 w-full max-w-[280px] sm:max-w-[300px] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group transform transition-all hover:scale-[1.01]"
+      onClick={() => onPlay(config)}
+      className="mt-2 w-[240px] cursor-pointer group relative overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-all active:scale-95"
     >
-      {/* 1. LOADING SKELETON (Shows while waiting for Iframe) */}
-      {!isLoaded && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-10">
-           <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 animate-pulse
-             ${config.type === 'instagram' ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' : ''}
-             ${config.type === 'tiktok' ? 'bg-[#00f2ea]' : ''}
-             ${config.type === 'snapchat' ? 'bg-yellow-400 text-black' : ''}
-           `}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                  <path d="M5 3l14 9-14 9V3z" /> 
-              </svg>
-           </div>
-           <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
-             Loading {config.type}...
-           </span>
+      {/* Platform Banner */}
+      <div className={`h-24 flex items-center justify-center 
+        ${config.type === 'instagram' ? 'bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-600' : ''}
+        ${config.type === 'tiktok' ? 'bg-[#000000]' : ''}
+        ${config.type === 'snapchat' ? 'bg-[#FFFC00]' : ''}
+      `}>
+        {/* Play Icon */}
+        <div className="w-12 h-12 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
+           <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5 3l14 9-14 9V3z" /></svg>
         </div>
-      )}
+      </div>
 
-      {/* 2. THE IFRAME (Only renders if in view) */}
-      {inView && (
-          <iframe
-            src={config.src}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; encrypted-media; picture-in-picture"
-            scrolling="no"
-            onLoad={() => setIsLoaded(true)}
-            title={`${config.type} embed`}
-          />
-      )}
-    </div>
-  );
-};
-
-// --- FALLBACK COMPONENT ---
-// This ensures that even if the embed fails, the user sees a nice link button
-const FallbackCard = ({ url }) => {
-  let hostname = "Link";
-  try { hostname = new URL(url).hostname.replace('www.', ''); } catch(e){}
-
-  return (
-    <div className="mt-1 max-w-[280px]">
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-zinc-900 p-3 rounded-xl border border-zinc-700 hover:bg-zinc-800 transition-colors group">
-            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shrink-0">
-                 {/* Clip Icon */}
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-            </div>
-            <div className="flex-1 overflow-hidden min-w-0">
-                <p className="text-xs text-zinc-400 font-bold uppercase truncate">{hostname}</p>
-                <p className="text-sm text-blue-400 truncate underline decoration-blue-400/30">Open Link</p>
-            </div>
-        </a>
+      {/* Meta Info */}
+      <div className="p-3 bg-zinc-900">
+        <p className="text-white text-sm font-bold truncate">
+          {config.type === 'instagram' ? 'Instagram Reel' : 
+           config.type === 'tiktok' ? 'TikTok Video' : 'Snapchat Clip'}
+        </p>
+        <p className="text-zinc-500 text-xs mt-0.5 truncate">{url}</p>
+        <div className="mt-2 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+          Click to Watch
+        </div>
+      </div>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import PublicProfile from './components/PublicProfile';
 import MediaKeyboard from './components/MediaKeyboard';
 import ClipKeyboard from './components/ClipKeyboard';
 import ClipPlayer from './components/ClipPlayer';
+import VideoModal from './components/VideoModal';
 import { getEmbedConfig } from './utils/embedUtils';
 
 
@@ -100,6 +101,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [currentUsername, setCurrentUsername] = useState(propUsername ?? null);
   const [showPublicProfile, setShowPublicProfile] = useState(false);
   const [activeKeyboard, setActiveKeyboard] = useState(null); // 'media', 'clip', or null
+  const [viewingClip, setViewingClip] = useState(null);
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
@@ -1390,7 +1392,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                           </div>
                         )}
                         {isClip ? (
-                          <ClipPlayer url={msg.message} />
+                          <ClipPlayer 
+                            url={msg.message} 
+                            onPlay={(config) => setViewingClip(config)}
+                          />
                         ) : isMedia ? (
                           <img 
                             src={msg.message} 
@@ -1675,6 +1680,14 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             currentUserId={currentUserId}
             currentUsername={currentUsername}
             onBack={() => setShowPublicProfile(false)}
+          />
+        )}
+
+        {viewingClip && (
+          <VideoModal
+            src={viewingClip.src}
+            type={viewingClip.type}
+            onClose={() => setViewingClip(null)}
           />
         )}
 

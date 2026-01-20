@@ -1,9 +1,3 @@
-export const extractClipUrl = (text) => {
-  if (!text) return null;
-  const match = text.match(/(https?:\/\/[^\s]+)/);
-  return match ? match[0] : null;
-};
-
 export const getEmbedConfig = (url) => {
   if (!url) return null;
   const cleanUrl = url.trim();
@@ -12,17 +6,16 @@ export const getEmbedConfig = (url) => {
     const urlObj = new URL(cleanUrl);
     const hostname = urlObj.hostname;
 
-    // --- INSTAGRAM REELS/POSTS ---
+    // --- INSTAGRAM (Logic from test.html) ---
     if (hostname.includes('instagram.com')) {
-      // FIX 1: Regex now allows dots/underscores ([\w-.]+) which were breaking some links
-      const match = cleanUrl.match(/\/(?:p|reel|reels)\/([\w-.]+)/);
+      // Regex from test.html: matches /p/, /reel/, /reels/, /tv/ and captures the ID
+      const regex = /(?:instagram\.com\/(?:p|reel|reels|tv)\/)([\w-]+)/;
+      const match = cleanUrl.match(regex);
+
       if (match && match[1]) {
         return {
           type: 'instagram',
-          // FIX 2: Force use of '/p/' (Post) endpoint. 
-          // '/reel/' embed endpoints often redirect to the full page on some devices. 
-          // '/p/' is the universal embedder for both Posts and Reels.
-          // FIX 3: Added 'wp=540' to request a cleaner player size.
+          // URL construction from test.html
           src: `https://www.instagram.com/p/${match[1]}/embed/?cr=1&v=14&wp=540`
         };
       }
@@ -41,16 +34,14 @@ export const getEmbedConfig = (url) => {
 
     // --- SNAPCHAT ---
     if (hostname.includes('snapchat.com')) {
-        const pathParts = urlObj.pathname.split('/');
-        const idIndex = pathParts.findIndex(p => p === 'spotlight' || p === 'story' || p === 'add');
-        
-        if (idIndex !== -1 && pathParts[idIndex + 1]) {
-            const id = pathParts[idIndex + 1];
-            return {
-                type: 'snapchat',
-                src: `https://story.snapchat.com/embed/${id}`
-            };
-        }
+      const pathParts = urlObj.pathname.split('/');
+      const idIndex = pathParts.findIndex(p => p === 'spotlight' || p === 'story' || p === 'add');
+      if (idIndex !== -1 && pathParts[idIndex + 1]) {
+        return {
+          type: 'snapchat',
+          src: `https://story.snapchat.com/embed/${pathParts[idIndex + 1]}`
+        };
+      }
     }
 
     return null;
