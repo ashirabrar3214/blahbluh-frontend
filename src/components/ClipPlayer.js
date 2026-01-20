@@ -45,7 +45,6 @@ const ClipPlayer = ({ url, onPlay }) => {
         <iframe
           src={config.src}
           className="absolute inset-0 w-full h-full pointer-events-none select-none"
-          style={{ clipPath: 'inset(20px 0 50px 0)' }}
           frameBorder="0"
           scrolling="no"
           tabIndex="-1"

@@ -22,7 +22,7 @@ const VideoModal = ({ src, url, type, onClose }) => {
 
       {/* THE VIEWER */}
       <div 
-        className="relative w-full max-w-[350px] bg-black rounded-2xl overflow-hidden shadow-2xl border border-zinc-800"
+        className="relative w-full max-w-[350px] md:max-w-none md:w-auto md:h-full bg-black rounded-2xl overflow-hidden shadow-2xl border border-zinc-800"
         style={{ aspectRatio: '9/16' }}
       >
         {/* BLOCKERS 
@@ -43,7 +43,7 @@ const VideoModal = ({ src, url, type, onClose }) => {
             <div className="absolute inset-0 pointer-events-none opacity-60">
                <iframe
                  src={src}
-                 className="w-full h-full scale-110 blur"
+                 className="w-full h-full blur"
                  frameBorder="0"
                  scrolling="no"
                  tabIndex="-1"

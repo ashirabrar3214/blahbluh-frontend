@@ -1142,8 +1142,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         {/* Main Chat Page - Blurred when icebreaker is active */}
         <div className={`fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh] transition-all duration-300 ${isIcebreakerActive ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header - Different for friend vs random chat */}
-        <header className="absolute top-0 left-0 right-0 z-20 px-3 py-2 md:px-4 md:py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
-          {/* Left: Exit Button */}
+        <header className="absolute top-0 left-0 right-0 z-30 px-3 py-2 md:px-4 md:py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
           <div className="justify-self-start">
             <button onClick={() => handleExitToHomeWithCleanup(!chatId?.startsWith('friend_'))} className="flex items-center gap-1.5 md:gap-2 text-zinc-400 hover:text-white transition-colors px-1.5 py-1 md:px-2 md:py-1 rounded-full hover:bg-zinc-800">
               <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain rounded-[15%]" />
