@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
+import LoadingScreen from './LoadingScreen';
 
 const VideoModal = ({ src, url, type, onClose }) => {
   if (!src) return null;
 
+  const [loading, setLoading] = useState(true);
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
       
+      {loading && <LoadingScreen message="Loading video..." />}
+
       {/* Close Button */}
       <button 
         onClick={onClose}
-        className="absolute top-6 right-6 p-3 bg-zinc-800/50 hover:bg-zinc-700 rounded-full text-white transition-colors z-50"
+        className="absolute top-6 right-6 p-3 bg-zinc-800/50 hover:bg-zinc-700 rounded-full text-white transition-colors z-[110]"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
@@ -39,11 +43,12 @@ const VideoModal = ({ src, url, type, onClose }) => {
             <div className="absolute inset-0 pointer-events-none opacity-60">
                <iframe
                  src={src}
-                 className="w-full h-full scale-110 blur-lg"
+                 className="w-full h-full scale-110 blur"
                  frameBorder="0"
                  scrolling="no"
                  tabIndex="-1"
                  title="Background"
+                 onLoad={() => setLoading(false)}
                />
             </div>
             
@@ -78,6 +83,7 @@ const VideoModal = ({ src, url, type, onClose }) => {
             // CRITICAL FIX: Explicit permissions are required for mobile playback
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             title="Clip Viewer"
+            onLoad={() => setLoading(false)}
           />
         )}
       </div>
