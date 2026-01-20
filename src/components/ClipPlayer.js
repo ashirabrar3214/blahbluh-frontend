@@ -1,8 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getEmbedConfig } from '../utils/embedUtils';
 
 const ClipPlayer = ({ url, onPlay }) => {
-  const config = getEmbedConfig(url);
+  const config = useMemo(() => getEmbedConfig(url), [url]);
+  const [title, setTitle] = useState(null);
+
+  useEffect(() => {
+    if (!config) return;
+
+    const fetchTitle = async () => {
+      try {
+        // Attempt to fetch title via oEmbed
+        const provider = config.type === 'tiktok' 
+          ? `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`
+          : `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
+
+        const res = await fetch(provider);
+        const data = await res.json();
+        if (data && data.title) setTitle(data.title);
+      } catch (e) {
+        // Ignore errors, fallback to default text
+      }
+    };
+    fetchTitle();
+  }, [url, config]);
 
   // If invalid, fallback to generic link
   if (!config) {
@@ -41,8 +62,8 @@ const ClipPlayer = ({ url, onPlay }) => {
       {/* Meta Info */}
       <div className="p-3 bg-zinc-900 relative z-20">
         <p className="text-white text-sm font-bold truncate">
-          {config.type === 'instagram' ? 'Instagram Reel' : 
-           config.type === 'tiktok' ? 'TikTok Video' : 'Snapchat Clip'}
+          {title || (config.type === 'instagram' ? 'Instagram Reel' : 
+           config.type === 'tiktok' ? 'TikTok Video' : 'Snapchat Clip')}
         </p>
         <p className="text-zinc-500 text-xs mt-0.5 truncate">{url}</p>
         <div className="mt-2 text-blue-400 text-xs font-semibold uppercase tracking-wider">
