@@ -25,8 +25,8 @@ const VideoModal = ({ src, type, onClose }) => {
         */}
         {type === 'instagram' && (
           <>
-            <div className="absolute top-0 left-0 w-full h-[60px] z-20 bg-transparent cursor-default" />
-            <div className="absolute bottom-0 left-0 w-full h-[80px] z-20 bg-transparent cursor-default" />
+            <div className="absolute top-0 left-0 w-full h-[60px] z-20 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-full h-[80px] z-20 pointer-events-none" />
           </>
         )}
 

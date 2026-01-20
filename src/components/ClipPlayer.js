@@ -49,6 +49,7 @@ const ClipPlayer = ({ url, onPlay }) => {
           scrolling="no"
           tabIndex="-1"
           title="Clip Preview"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
         />
         
         {/* Click Overlay */}
