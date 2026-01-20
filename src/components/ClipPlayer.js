@@ -51,12 +51,8 @@ const ClipPlayer = ({ url, onPlay }) => {
           title="Clip Preview"
         />
         
-        {/* Click Overlay & Play Button */}
-        <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-colors flex items-center justify-center z-10">
-           <div className="w-12 h-12 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform shadow-xl">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5 3l14 9-14 9V3z" /></svg>
-           </div>
-        </div>
+        {/* Click Overlay */}
+        <div className="absolute inset-0 z-10" />
       </div>
 
       {/* Meta Info */}
