@@ -763,7 +763,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     };
 
     // Optimistic UI Update
-    setMessages(prev => [...prev, messageData]);
+    if (!chatId?.startsWith('friend_')) {
+      setMessages(prev => [...prev, messageData]);
+    }
 
     if (socket && socket.connected) {
         socket.emit('send-message', messageData);
