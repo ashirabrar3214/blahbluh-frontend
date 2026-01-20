@@ -60,7 +60,13 @@ const VideoModal = ({ src, url, type, onClose }) => {
             {/* Overlay */}
             <div className="absolute inset-0 z-40 flex flex-col items-center justify-center p-6 bg-black/20 backdrop-blur-[2px]">
                <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-5 border border-white/20 shadow-2xl">
-                  <svg className="w-8 h-8 text-white ml-1" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  {type === 'snapchat' ? (
+                    <svg className="w-9 h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12.03 2.01c-3.4 0-5.93 2.25-6.2 5.5l-.02.37c-.03.5-.2 1.03-.5 1.48-.32.47-.75.75-1.2.75-.3 0-.5.12-.5.37 0 .3.3.5.5.5.8 0 1.5.5 1.8 1.2.3.8.1 1.7-.5 2.4-.4.5-.6 1-.6 1.5 0 .4.3.8.7 1 .5.3 1 .8 1 1.5 0 .5-.2 1-.5 1.4-.2.3-.4.6-.4 1 0 .5.5.9 1.2 1 .5.1 1 .3 1.2.6.2.3.2.6.2.9 0 .4.4.7.9.7h.1c.4 0 .8-.2 1.1-.5.4-.4.9-.6 1.4-.6.5 0 1 .2 1.4.6.3.3.7.5 1.1.5h.1c.5 0 .9-.3.9-.7 0-.3 0-.6.2-.9.2-.3.7-.5 1.2-.6.7-.1 1.2-.5 1.2-1 0-.4-.2-.7-.4-1-.3-.4-.5-.9-.5-1.4 0-.7.5-1.2 1-1.5.4-.2.7-.6.7-1 0-.5-.2-1-.6-1.5-.6-.7-.8-1.6-.5-2.4.3-.7 1-1.2 1.8-1.2.2 0 .5-.2.5-.5 0-.2-.2-.37-.5-.37-.45 0-.88-.28-1.2-.75-.3-.45-.47-.98-.5-1.48l-.02-.37c-.27-3.25-2.8-5.5-6.2-5.5z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-white ml-1" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  )}
                </div>
                
                <h3 className="text-white font-bold text-xl mb-2">View in App</h3>
