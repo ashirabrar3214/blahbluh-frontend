@@ -1,3 +1,9 @@
+export const extractClipUrl = (text) => {
+  if (!text) return null;
+  const match = text.match(/(https?:\/\/[^\s]+)/);
+  return match ? match[0] : null;
+};
+
 export const getEmbedConfig = (url) => {
   if (!url) return null;
   const cleanUrl = url.trim();
