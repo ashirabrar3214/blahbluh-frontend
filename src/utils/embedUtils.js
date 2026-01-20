@@ -12,20 +12,15 @@ export const getEmbedConfig = (url) => {
     const urlObj = new URL(cleanUrl);
     const hostname = urlObj.hostname;
 
-    // --- INSTAGRAM ---
+    // --- INSTAGRAM (Logic from test.html) ---
     if (hostname.includes('instagram.com')) {
-      // capture both the type (p/reel/reels/tv) and the shortcode
-      const regex = /instagram\.com\/(p|reel|reels|tv)\/([\w-]+)/;
+      const regex = /(?:instagram\.com\/(?:p|reel|reels|tv)\/)([\w-]+)/;
       const match = cleanUrl.match(regex);
 
-      if (match && match[1] && match[2]) {
-        const kind = match[1];      // p | reel | reels | tv
-        const code = match[2];      // shortcode
-
+      if (match && match[1]) {
         return {
           type: 'instagram',
-          // IMPORTANT: use the same kind you detected (reel stays reel)
-          src: `https://www.instagram.com/${kind}/${code}/embed/`
+          src: `https://www.instagram.com/p/${match[1]}/embed/captioned/`
         };
       }
     }
