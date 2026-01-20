@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LoadingScreen from './LoadingScreen';
 
 const VideoModal = ({ src, url, type, onClose }) => {
   const [loading, setLoading] = useState(true);
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!src) return null;
 
@@ -37,7 +42,7 @@ const VideoModal = ({ src, url, type, onClose }) => {
         )}
 
         {/* IFRAME - FIXED */}
-        {isIOS ? (
+        {isIOS || type === 'snapchat' ? (
           <div className="absolute inset-0 z-30 bg-zinc-900 overflow-hidden">
             {/* Blurred Background Thumbnail */}
             <div className="absolute inset-0 pointer-events-none opacity-60">
