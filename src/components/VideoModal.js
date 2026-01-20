@@ -47,4 +47,4 @@ const VideoModal = ({ src, type, onClose }) => {
   );
 };
 
-export default VideoModal;s
+export default VideoModal;
