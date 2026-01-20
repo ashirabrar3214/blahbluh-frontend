@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 
 const VideoModal = ({ src, url, type, onClose }) => {
-  if (!src) return null;
-
   const [loading, setLoading] = useState(true);
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  if (!src) return null;
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
