@@ -54,6 +54,15 @@ const ClipPlayer = ({ url, onPlay }) => {
         
         {/* Click Overlay */}
         <div className="absolute inset-0 z-10" />
+
+        {/* Snapchat Logo Overlay */}
+        {config.type === 'snapchat' && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+             <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/240px-Snapchat_logo.svg.png" alt="Snapchat" className="w-7 h-7 object-contain" />
+             </div>
+          </div>
+        )}
       </div>
 
       {/* Meta Info */}

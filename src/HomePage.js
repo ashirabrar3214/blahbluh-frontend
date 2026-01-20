@@ -522,15 +522,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
 
-        <div className="absolute inset-0 flex items-start md:items-center justify-center pointer-events-none z-0 pt-24 md:pt-0">
-          <img 
-            src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/earthimage.png" 
-            alt="" 
-            className="w-[80%] max-w-[600px] object-contain opacity-40"
-            style={{ filter: 'invert(89%) sepia(16%) saturate(1684%) hue-rotate(328deg) brightness(103%) contrast(101%) drop-shadow(0 0 8px #ffbd59)' }}
-          />
-        </div>
-
         <div className="max-w-lg w-full text-center relative z-10 mt-12 md:my-auto">
           <h1 className="text-6xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
             Yap with <br/>

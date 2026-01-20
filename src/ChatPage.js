@@ -1096,6 +1096,13 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     try {
       const reportedUser = reportContext.type === 'user' ? reportContext.data : { userId: reportContext.data.userId, username: reportContext.data.username };
       
+      if ((reportedUser.userId || reportedUser.id) === currentUserId) {
+        setActionToast("You cannot report yourself.");
+        setIsReporting(false);
+        setShowReportPopup(false);
+        return;
+      }
+
       // Send the last 10 messages (approx 5 pairs) to provide context
       const lastMessages = messages.slice(-10); 
 
@@ -1365,14 +1372,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                                 <EmojiIcon />
                                 <span>React</span>
                               </button>
-                              <div className="h-px bg-white/10 my-1"></div>
-                              <button
-                                onClick={() => handleReport(msg)}
-                                className="flex items-center gap-3 w-full px-3 py-2 text-sm text-left text-red-400 hover:bg-zinc-700/70 transition-colors"
-                              >
-                                <ReportIcon />
-                                <span>Report</span>
-                              </button>
+                              {!isOwn && (
+                                <>
+                                  <div className="h-px bg-white/10 my-1"></div>
+                                  <button
+                                    onClick={() => handleReport(msg)}
+                                    className="flex items-center gap-3 w-full px-3 py-2 text-sm text-left text-red-400 hover:bg-zinc-700/70 transition-colors"
+                                  >
+                                    <ReportIcon />
+                                    <span>Report</span>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
