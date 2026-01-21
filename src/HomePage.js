@@ -86,9 +86,18 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, initialQueueState, setQueueState, children }) {
-  const [inQueue, setInQueue] = useState(initialQueueState?.inQueue || false);
-  const [queuePosition, setQueuePosition] = useState(initialQueueState?.position || 0);
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, queueState, setQueueState, children }) {
+  const [inQueue, setInQueue] = useState(queueState?.inQueue || false);
+  const [queuePosition, setQueuePosition] = useState(queueState?.position || 0);
+
+  // ✅ 3. Sync: If Global State changes (e.g. late socket event), update UI
+  useEffect(() => {
+    if (queueState) {
+      setInQueue(queueState.inQueue);
+      setQueuePosition(queueState.position);
+    }
+  }, [queueState]);
+
   const [notification, setNotification] = useState(externalNotification || null);
   // Use global state instead of local state
   const friendRequests = globalFriendRequests;
@@ -186,9 +195,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
     // show banner
     setBannerMessage('Partner disconnected. ready to go again?');
-
-    // user is already queued after disconnect
-    setInQueue(true);
 
     const t = setTimeout(() => {
       setBannerMessage(null);

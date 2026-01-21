@@ -636,7 +636,7 @@ useEffect(() => {
         setGlobalFriendRequests={setGlobalFriendRequests}
         unreadCount={unreadCount}
         notification={pageNotification}
-        initialQueueState={queueState}
+        queueState={queueState}
         setQueueState={setQueueState}
         onNotificationChange={setPageNotification}
         onChatStart={() => {
