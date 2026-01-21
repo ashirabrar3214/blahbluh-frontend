@@ -147,6 +147,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [reportContext, setReportContext] = useState(null); // { type: 'user' | 'message', data: ... }
   const [isReporting, setIsReporting] = useState(false);
+  const [partnerStatus, setPartnerStatus] = useState('online'); // 'online' | 'reconnecting'
 
   // --- SWIPE STATE ---
   const [swipeY, setSwipeY] = useState(0);
@@ -534,12 +535,27 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('partner-disconnected', handlePartnerDisconnected);
           socket.off('friend-request-received', handleFriendRequestReceived);
           socket.off('message-error', handleMessageError);
-          socket.off('friend-message-received');
-        };
-      }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
-      
-      // ✅ NEW: Verify chat status on reconnection (Handling "Phone Sleep" wakeup)
-      useEffect(() => {
+              socket.off('friend-message-received');
+            };
+          }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
+          
+          // --- Partner Status Listener ---
+          useEffect(() => {
+            if (!socket) return;
+          
+            const handlePartnerStatus = ({ status }) => {
+              console.log('Partner status changed:', status);
+              setPartnerStatus(status);
+            };
+          
+            socket.on('partner-status', handlePartnerStatus);
+          
+            return () => {
+              socket.off('partner-status', handlePartnerStatus);
+            };
+          }, [socket]);
+          
+          // ✅ NEW: Verify chat status on reconnection (Handling "Phone Sleep" wakeup)      useEffect(() => {
         // 1. If we are in a Friend Chat, we don't need this (chats persist)
         if (!socket || !chatId || chatId.startsWith('friend_')) return;
       
@@ -1207,10 +1223,25 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 </div>
                 {/* Border Layer */}
                 <div className="absolute inset-0 rounded-full border-2 border-black/20 pointer-events-none" />
+              
+                {/* ✅ STATUS BADGE */}
+                {partnerStatus === 'reconnecting' && (
+                  <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-yellow-500 border border-black"></span>
+                  </span>
+                )}
              </div>
              <span className="text-[10px] md:text-sm font-semibold text-gray-100 leading-tight mt-0.5 md:mt-1.5 max-w-[100px] truncate text-center">
                 {chatPartner?.username || 'Stranger'}
              </span>
+   
+             {/* ✅ TEXT STATUS */}
+             {partnerStatus === 'reconnecting' && (
+                <span className="text-[9px] text-yellow-500 font-bold animate-pulse">
+                  Reconnecting...
+                </span>
+             )}
           </div>
 
           {/* Right: Action Buttons */}

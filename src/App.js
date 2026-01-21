@@ -351,8 +351,24 @@ useEffect(() => {
     // UPDATE THIS LISTENER: Clear queue state when matched
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired globally:', data);
-      setQueueState({ inQueue: false, position: 0 }); // We are paired, so no longer waiting
-      setChatData(data);
+      
+      // Always stop the queue spinner
+      setQueueState({ inQueue: false, position: 0 });
+
+      // ✅ SMART RESTORE LOGIC
+      setChatData(currentChatData => {
+        // 1. If we are already in this chat (e.g., Phone wake up),
+        // don't overwrite the state. This preserves message history.
+        if (currentChatData && currentChatData.chatId === data.chatId) {
+          console.log('App: Already in this chat, ignoring redundant pair event.');
+          return currentChatData;
+        }
+        
+        // 2. If we are NOT in this chat (e.g., Page Refresh or New Match),
+        // accept the data. This mounts the ChatPage.
+        console.log('App: Setting new chat data (Match or Restore).');
+        return data;
+      });
     });
 
     setupFriendPresence();
