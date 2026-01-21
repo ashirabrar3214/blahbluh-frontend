@@ -39,6 +39,7 @@ function App() {
   const [globalNotifications, setGlobalNotifications] = useState([]);
   const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [queueState, setQueueState] = useState({ inQueue: false, position: 0 });
   const globalSocketRef = useRef(null);
   const currentPageRef = useRef(currentPage);
   const chatExitRef = useRef(false);
@@ -341,6 +342,12 @@ useEffect(() => {
       setupFriendPresence();
     });
 
+    // Listen for queue-joined globally
+    globalSocketRef.current.on('queue-joined', (data) => {
+      console.log('Global queue-joined:', data);
+      setQueueState({ inQueue: true, position: data.queuePosition || 1 });
+    });
+
     // Listen for chat pairing
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired globally:', data);
@@ -353,6 +360,7 @@ useEffect(() => {
         return;
       }
 
+      setQueueState({ inQueue: false, position: 0 });
       setChatData(data);
     });
 
@@ -628,6 +636,8 @@ useEffect(() => {
         setGlobalFriendRequests={setGlobalFriendRequests}
         unreadCount={unreadCount}
         notification={pageNotification}
+        initialQueueState={queueState}
+        setQueueState={setQueueState}
         onNotificationChange={setPageNotification}
         onChatStart={() => {
           // HomePage calls this right before joining queue

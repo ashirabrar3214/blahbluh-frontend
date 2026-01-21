@@ -86,9 +86,9 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, children }) {
-  const [inQueue, setInQueue] = useState(false);
-  const [queuePosition, setQueuePosition] = useState(0);
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, initialQueueState, setQueueState, children }) {
+  const [inQueue, setInQueue] = useState(initialQueueState?.inQueue || false);
+  const [queuePosition, setQueuePosition] = useState(initialQueueState?.position || 0);
   const [notification, setNotification] = useState(externalNotification || null);
   // Use global state instead of local state
   const friendRequests = globalFriendRequests;
