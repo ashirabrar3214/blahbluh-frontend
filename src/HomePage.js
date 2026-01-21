@@ -113,6 +113,75 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   const [isBanned, setIsBanned] = useState(false);
   const [processingRequests, setProcessingRequests] = useState(new Set());
   
+  const joinQueue = useCallback(async () => {
+    if (!currentUserId) {
+      console.log('HomePage: joinQueue attempted without currentUserId.');
+      return;
+    }
+
+    // IMPORTANT: if user previously hit Home/Exit from chat,
+    // App.js may still be ignoring chat-paired. Clear that now.
+    onChatStart?.();
+
+    try {
+      // Send interests to the backend for logging/analytics
+      if (tags.length > 0) {
+        api.sendUserInterests(currentUserId, tags).catch(console.error);
+      }
+
+      console.log('🚀 Joining queue for user:', currentUserId);
+      console.log('Tags:', tags);
+      const result = await api.joinQueue(currentUserId, tags);
+      console.log('✅ Queue join result:', result);
+
+      if (result.error) {
+        if (result.banned_until) {
+          setIsBanned(true);
+          setBannerMessage(`You are banned until ${new Date(result.banned_until).toLocaleString()}. Reason: ${result.reason}`);
+        } else {
+          setBannerMessage(result.message || result.error);
+        }
+        setInQueue(false);
+        return;
+      }
+
+      // ✅ Update global state when manually joining
+      setQueueState({ inQueue: true, position: result.queuePosition || 1 });
+      setInQueue(true);
+      setQueuePosition(result.queuePosition || 1);
+      setNotification(null);
+      if (onNotificationChange) onNotificationChange(null);
+
+      // Fetch a suggested topic when joining the queue
+      try {
+        const topicData = await api.suggestTopic(currentUserId);
+        if (topicData && topicData.suggestion) {
+          // We'll use a global notification to pass this to the ChatPage
+          setSuggestedTopic(topicData.suggestion);
+        }
+      } catch (topicError) {
+        console.error('Error fetching suggested topic:', topicError);
+        // Don't block user from chatting if topic suggestion fails
+      }
+    } catch (error) {
+      console.error('❌ Error joining queue:', error);
+    }
+  }, [currentUserId, tags, onChatStart, setQueueState, setInQueue, setQueuePosition, setNotification, onNotificationChange, setSuggestedTopic, setIsBanned, setBannerMessage]);
+
+  const leaveQueue = useCallback(async () => {
+    try {
+      console.log('HomePage: Leaving queue for user:', currentUserId);
+      await api.leaveQueue(currentUserId);
+      console.log('HomePage: Successfully left queue.');
+      // ✅ Update global state when leaving
+      setQueueState({ inQueue: false, position: 0 });
+      setInQueue(false);
+      setQueuePosition(0);
+    } catch (error) {
+      console.error('Error leaving queue:', error);
+    }
+  }, [currentUserId, setQueueState, setInQueue, setQueuePosition]);
+
   // Ref to track queue state for unmount cleanup
   const inQueueRef = useRef(inQueue);
 
@@ -351,75 +420,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       socket.off('banned', handleBanned);
     };
   }, [socket]);
-
-  const joinQueue = useCallback(async () => {
-    if (!currentUserId) {
-      console.log('HomePage: joinQueue attempted without currentUserId.');
-      return;
-    }
-
-    // IMPORTANT: if user previously hit Home/Exit from chat,
-    // App.js may still be ignoring chat-paired. Clear that now.
-    onChatStart?.();
-
-    try {
-      // Send interests to the backend for logging/analytics
-      if (tags.length > 0) {
-        api.sendUserInterests(currentUserId, tags).catch(console.error);
-      }
-
-      console.log('🚀 Joining queue for user:', currentUserId);
-      console.log('Tags:', tags);
-      const result = await api.joinQueue(currentUserId, tags);
-      console.log('✅ Queue join result:', result);
-
-      if (result.error) {
-        if (result.banned_until) {
-          setIsBanned(true);
-          setBannerMessage(`You are banned until ${new Date(result.banned_until).toLocaleString()}. Reason: ${result.reason}`);
-        } else {
-          setBannerMessage(result.message || result.error);
-        }
-        setInQueue(false);
-        return;
-      }
-
-      // ✅ Update global state when manually joining
-      setQueueState({ inQueue: true, position: result.queuePosition || 1 });
-      setInQueue(true);
-      setQueuePosition(result.queuePosition || 1);
-      setNotification(null);
-      if (onNotificationChange) onNotificationChange(null);
-
-      // Fetch a suggested topic when joining the queue
-      try {
-        const topicData = await api.suggestTopic(currentUserId);
-        if (topicData && topicData.suggestion) {
-          // We'll use a global notification to pass this to the ChatPage
-          setSuggestedTopic(topicData.suggestion);
-        }
-      } catch (topicError) {
-        console.error('Error fetching suggested topic:', topicError);
-        // Don't block user from chatting if topic suggestion fails
-      }
-    } catch (error) {
-      console.error('❌ Error joining queue:', error);
-    }
-  }, [currentUserId, tags, onChatStart, setQueueState, setInQueue, setQueuePosition, setNotification, onNotificationChange, setSuggestedTopic, setIsBanned, setBannerMessage]);
-
-  const leaveQueue = async () => {
-    try {
-      console.log('HomePage: Leaving queue for user:', currentUserId);
-      await api.leaveQueue(currentUserId);
-      console.log('HomePage: Successfully left queue.');
-      // ✅ Update global state when leaving
-      setQueueState({ inQueue: false, position: 0 });
-      setInQueue(false);
-      setQueuePosition(0);
-    } catch (error) {
-      console.error('Error leaving queue:', error);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
