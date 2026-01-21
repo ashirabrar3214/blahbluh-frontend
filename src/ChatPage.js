@@ -131,7 +131,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   // Debug logging for notification counts
   useEffect(() => {
-    console.log('NOTIFICATION DEBUG: ChatPage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
+    //console.log('NOTIFICATION DEBUG: ChatPage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
   }, [friendRequests.length, notifications.length]);
   const [showWarning, setShowWarning] = useState(false);
   const [showBlockPopup, setShowBlockPopup] = useState(false);
@@ -384,7 +384,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     if (!socket || !currentUserId) return;
 
     const handleChatPaired = (payload) => {
-      console.log('ChatPage: Re-paired via socket', payload);
+      //console.log('ChatPage: Re-paired via socket', payload);
 
       const newPartner = payload.users?.find(
         (u) => (u.id || u.userId) !== currentUserId
@@ -498,7 +498,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     };
 
     const handleMessageError = (data) => {
-        console.error("Message failed:", data);
+        //console.error("Message failed:", data);
         setActionToast(data.error || "Failed to send");
         
         // Optional: Remove the optimistic message from UI if it failed
@@ -544,7 +544,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             if (!socket) return;
           
             const handlePartnerStatus = ({ status }) => {
-              console.log('Partner status changed:', status);
+              //console.log('Partner status changed:', status);
               setPartnerStatus(status);
             };
           
@@ -598,7 +598,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
   // Initialize chat based on props
   useEffect(() => {
-    console.log('ChatPage initialization:', { initialChatData, targetFriend, currentUserId, currentUsername });
+    //console.log('ChatPage initialization:', { initialChatData, targetFriend, currentUserId, currentUsername });
     
     if (initialChatData) {
       // Random chat from queue
@@ -607,7 +607,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       const myId = currentUserId;
       const partner = initialChatData.users.find(u => (u.id || u.userId) !== myId);
       if (partner) {
-        console.log('Setting up random chat:', partner);
+        //console.log('Setting up random chat:', partner);
         setIsRequeuing(false);
         setChatId(initialChatData.chatId);
         setChatPartner(partner);
@@ -623,7 +623,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       }
     } else if (targetFriend && currentUserId && currentUsername) {
       // Friend chat from inbox - only proceed if we have user info
-      console.log('Setting up friend chat:', targetFriend);
+      //console.log('Setting up friend chat:', targetFriend);
       setIsRequeuing(false);
       setChatId(targetFriend.chatId);
       setChatPartner(targetFriend);
@@ -636,9 +636,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       // Load message history for friend chats
       const loadMessages = async () => {
         try {
-          console.log('Loading message history for:', targetFriend.chatId);
+          //console.log('Loading message history for:', targetFriend.chatId);
           const history = await api.getFriendChatMessages(targetFriend.chatId, null, 50);
-          console.log('Loaded messages:', history);
+          //console.log('Loaded messages:', history);
           
           const formattedMessages = history.map(msg => ({
             id: msg.id,
@@ -650,7 +650,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             reactions: {}
           }));
           
-          console.log('Formatted messages:', formattedMessages);
+          //console.log('Formatted messages:', formattedMessages);
           setMessages(formattedMessages);
           setHasMore(history.length >= 50);
         } catch (error) {
@@ -1156,7 +1156,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         created_at: new Date().toISOString()
       };
 
-      console.log('Submitting report with data:', reportData);
+      //console.log('Submitting report with data:', reportData);
       await api.submitReport(reportData);
       setActionToast('Report submitted. Thank you.');
     } catch (error) {
