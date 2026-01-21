@@ -208,6 +208,21 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   }, [notification, onNotificationChange]);
 
   useEffect(() => {
+    if (notification !== 'partner-disconnected') return;
+    if (isBanned) return;
+    if (inQueue) return; // already waiting
+    if (!currentUserId) return;
+    if (!tags || tags.length === 0) return; // Start Chatting is disabled without tags anyway
+
+    // slight delay so UI can breathe + banner can show
+    const t = setTimeout(() => {
+      joinQueue();
+    }, 300);
+
+    return () => clearTimeout(t);
+  }, [notification, isBanned, inQueue, currentUserId, tags, joinQueue]);
+
+  useEffect(() => {
     if (!currentUserId) return;
 
     let ignore = false;
@@ -337,7 +352,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
     };
   }, [socket]);
 
-  const joinQueue = async () => {
+  const joinQueue = useCallback(async () => {
     if (!currentUserId) {
       console.log('HomePage: joinQueue attempted without currentUserId.');
       return;
@@ -390,7 +405,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
     } catch (error) {
       console.error('❌ Error joining queue:', error);
     }
-  };
+  }, [currentUserId, tags, onChatStart, setQueueState, setInQueue, setQueuePosition, setNotification, onNotificationChange, setSuggestedTopic, setIsBanned, setBannerMessage]);
 
   const leaveQueue = async () => {
     try {
