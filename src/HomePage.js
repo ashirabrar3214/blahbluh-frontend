@@ -86,17 +86,17 @@ const InboxIcon = () => (
   </svg>
 );
 
-function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, queueState, setQueueState, children }) {
-  const [inQueue, setInQueue] = useState(queueState?.inQueue || false);
-  const [queuePosition, setQueuePosition] = useState(queueState?.position || 0);
+function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, initialQueueState, setQueueState, children }) {
+  const [inQueue, setInQueue] = useState(initialQueueState?.inQueue || false);
+  const [queuePosition, setQueuePosition] = useState(initialQueueState?.position || 0);
 
-  // ✅ 3. Sync: If Global State changes (e.g. late socket event), update UI
+  // ✅ 3. LISTEN TO PROP UPDATES (Crucial for race conditions)
   useEffect(() => {
-    if (queueState) {
-      setInQueue(queueState.inQueue);
-      setQueuePosition(queueState.position);
+    if (initialQueueState) {
+      setInQueue(initialQueueState.inQueue);
+      setQueuePosition(initialQueueState.position);
     }
-  }, [queueState]);
+  }, [initialQueueState]);
 
   const [notification, setNotification] = useState(externalNotification || null);
   // Use global state instead of local state
@@ -369,8 +369,10 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
         return;
       }
 
+      // ✅ Update global state when manually joining
+      setQueueState({ inQueue: true, position: result.queuePosition || 1 });
       setInQueue(true);
-      setQueuePosition(result.queuePosition ?? 0);
+      setQueuePosition(result.queuePosition || 1);
       setNotification(null);
       if (onNotificationChange) onNotificationChange(null);
 
@@ -395,6 +397,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       console.log('HomePage: Leaving queue for user:', currentUserId);
       await api.leaveQueue(currentUserId);
       console.log('HomePage: Successfully left queue.');
+      // ✅ Update global state when leaving
+      setQueueState({ inQueue: false, position: 0 });
       setInQueue(false);
       setQueuePosition(0);
     } catch (error) {

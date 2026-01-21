@@ -344,23 +344,14 @@ useEffect(() => {
 
     // Listen for queue-joined globally
     globalSocketRef.current.on('queue-joined', (data) => {
-      console.log('Global queue-joined:', data);
+      console.log('Global: User joined queue', data);
       setQueueState({ inQueue: true, position: data.queuePosition || 1 });
     });
 
-    // Listen for chat pairing
+    // UPDATE THIS LISTENER: Clear queue state when matched
     globalSocketRef.current.on('chat-paired', (data) => {
       console.log('Chat paired globally:', data);
-
-      // If we just explicitly exited, ignore ONE match event only,
-      // then immediately re-enable matching.
-      if (chatExitRef.current) {
-        console.log('Ignoring chat-paired due to explicit exit (one-shot)');
-        chatExitRef.current = false;
-        return;
-      }
-
-      setQueueState({ inQueue: false, position: 0 });
+      setQueueState({ inQueue: false, position: 0 }); // We are paired, so no longer waiting
       setChatData(data);
     });
 
@@ -636,7 +627,7 @@ useEffect(() => {
         setGlobalFriendRequests={setGlobalFriendRequests}
         unreadCount={unreadCount}
         notification={pageNotification}
-        queueState={queueState}
+        initialQueueState={queueState}
         setQueueState={setQueueState}
         onNotificationChange={setPageNotification}
         onChatStart={() => {
