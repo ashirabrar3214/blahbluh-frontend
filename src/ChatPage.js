@@ -532,16 +532,39 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('new-message', handleNewMessage);
       socket.off('message-reaction', handleMessageReaction);
       socket.off('partner-disconnected', handlePartnerDisconnected);
-      socket.off('friend-request-received', handleFriendRequestReceived);
-      socket.off('message-error', handleMessageError);
-      socket.off('friend-message-received');
-    };
-  }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
-  // Notify server when user leaves chat via navigation (Home button)
-  useEffect(() => {
-      // Reset flag when entering a new chat
-      if (chatId) {
-        partnerDisconnectedRef.current = false;
+          socket.off('friend-request-received', handleFriendRequestReceived);
+          socket.off('message-error', handleMessageError);
+          socket.off('friend-message-received');
+        };
+      }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
+      
+      // ✅ NEW: Verify chat status on reconnection (Handling "Phone Sleep" wakeup)
+      useEffect(() => {
+        // 1. If we are in a Friend Chat, we don't need this (chats persist)
+        if (!socket || !chatId || chatId.startsWith('friend_')) return;
+      
+        const verifyChatStatus = () => {
+          if (socket.connected) {
+            // Ask server: "Is this random chat still active?"
+            socket.emit('check-active-chat', { chatId, userId: currentUserId });
+          }
+        };
+      
+        // Check immediately on mount (in case we navigated here after a reload)
+        verifyChatStatus();
+      
+        // Check whenever the socket reconnects (waking from sleep)
+        socket.on('connect', verifyChatStatus);
+      
+        return () => {
+          socket.off('connect', verifyChatStatus);
+        };
+      }, [socket, chatId, currentUserId]);
+      
+      // Notify server when user leaves chat via navigation (Home button)
+      useEffect(() => {
+          // Reset flag when entering a new chat
+          if (chatId) {        partnerDisconnectedRef.current = false;
       }
       return () => {
         if (hardExitRef.current) return;
