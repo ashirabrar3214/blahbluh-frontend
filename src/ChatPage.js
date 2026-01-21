@@ -555,7 +555,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             };
           }, [socket]);
           
-          // ✅ NEW: Verify chat status on reconnection (Handling "Phone Sleep" wakeup)      useEffect(() => {
+          // ✅ NEW: Verify chat status on reconnection (Handling "Phone Sleep" wakeup)
+      useEffect(() => {
         // 1. If we are in a Friend Chat, we don't need this (chats persist)
         if (!socket || !chatId || chatId.startsWith('friend_')) return;
       
