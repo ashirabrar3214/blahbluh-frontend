@@ -596,6 +596,28 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       };
     }, [chatId, socket, currentUserId]);
 
+  // ✅ NEW: Watchdog for "Stuck" State
+  useEffect(() => {
+    let watchdogTimer;
+
+    if (isRequeuing) {
+      // If we've been searching for 5 seconds, something might be wrong.
+      // The server might have missed our "skip" command.
+      watchdogTimer = setTimeout(() => {
+        console.log('⛑️ Watchdog: Searching took too long. Force-joining queue...');
+        
+        if (socket && socket.connected && currentUserId) {
+          // Forcefully tell server: "I am waiting! Put me in queue!"
+          // This fixes the "Phantom State" where server thinks you are still chatting.
+          const tags = user?.interests || []; 
+          socket.emit('join-queue', { userId: currentUserId, tags });
+        }
+      }, 5000); // 5 seconds timeout
+    }
+
+    return () => clearTimeout(watchdogTimer);
+  }, [isRequeuing, socket, currentUserId, user]);
+
   // Initialize chat based on props
   useEffect(() => {
     //console.log('ChatPage initialization:', { initialChatData, targetFriend, currentUserId, currentUsername });
