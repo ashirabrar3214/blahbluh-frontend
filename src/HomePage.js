@@ -336,8 +336,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
   try {
     console.log('HomePage: Calling api.acceptFriendRequest...');
-    const result = await api.acceptFriendRequest(requestId, currentUserId);
-    //console.log('✅ HomePage accept friend API response:', result);
+    await api.acceptFriendRequest(requestId, currentUserId);
 
     // refresh requests UI
     console.log('HomePage: Reloading friend requests after accepting...');
