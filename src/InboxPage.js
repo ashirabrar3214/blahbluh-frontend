@@ -26,7 +26,7 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
       if (!currentUserId) return;
       try {
         const friendsData = await api.getFriends(currentUserId);
-        console.log('👥 InboxPage: Loaded friends data:', friendsData);
+        //console.log('👥 InboxPage: Loaded friends data:', friendsData);
         setFriends(friendsData);
         // Load unread counts for each friend
         const counts = {};
@@ -34,14 +34,14 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
           const friendId = friend.userId || friend.id;
           try {
             const count = await api.getUnreadCount(currentUserId, friendId);
-            console.log(`📊 InboxPage: Unread count for ${friend.username} (${friendId}):`, count);
+           // console.log(`📊 InboxPage: Unread count for ${friend.username} (${friendId}):`, count);
             counts[friendId] = count;
           } catch (error) {
-            console.error(`❌ InboxPage: Error getting unread count for ${friend.username}:`, error);
+            //console.error(`❌ InboxPage: Error getting unread count for ${friend.username}:`, error);
             counts[friendId] = 0;
           }
         }
-        console.log('📊 InboxPage: Final unread counts:', counts);
+        //console.log('📊 InboxPage: Final unread counts:', counts);
         setUnreadCounts(counts);
       } catch (error) {
         console.error('Error in loading friends:', error);
@@ -81,10 +81,10 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
     console.log('🔌 InboxPage: Setting up socket listener for friend-message-received');
 
     const handleFriendMessage = (messageData) => {
-      console.log('📨 InboxPage: Friend message received:', messageData);
+      //console.log('📨 InboxPage: Friend message received:', messageData);
       const senderId = messageData.userId || messageData.senderId;
       if (senderId && senderId !== currentUserId) {
-        console.log(`📊 InboxPage: Incrementing unread count for sender ${senderId}`);
+        //console.log(`📊 InboxPage: Incrementing unread count for sender ${senderId}`);
         setUnreadCounts(prev => ({
           ...prev,
           [senderId]: (prev[senderId] || 0) + 1
@@ -154,7 +154,7 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
                 onClick={() => {
                   const friendId = friend.userId || friend.id;
                   const chatId = `friend_${[currentUserId, friendId].sort().join('_')}`;
-                  console.log('🔍 InboxPage: Opening chat with friend:', { friend, friendId, chatId });
+                  //console.log('🔍 InboxPage: Opening chat with friend:', { friend, friendId, chatId });
                   onChatOpen && onChatOpen({ ...friend, userId: friendId, chatId });
                 }}
                 className="flex items-center gap-3 p-4 hover:bg-zinc-900/50 rounded-2xl cursor-pointer transition-colors border-b border-zinc-800/50 last:border-b-0"

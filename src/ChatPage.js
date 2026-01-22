@@ -763,20 +763,31 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
 
   const handleExitToHome = async (requeuePartner = false) => {
-    // Mark this as a controlled, hard exit. This prevents the unmount
-    // effect from firing a duplicate `leave-chat` event.
+    // 1. Mark as hard exit to prevent duplicate cleanup
     hardExitRef.current = true;
     joinedChatIdRef.current = null;
 
-    // Tell the server to end the active chat.
-    if (socket?.id) {
+    // 2. ✅ FIX: Use Socket Event instead of API
+    // This ensures the CURRENT socket leaves the room.
+    if (socket?.connected && chatId && currentUserId) {
+      console.log('ChatPage: Emitting leave-chat via socket');
+      socket.emit('leave-chat', {
+        chatId,
+        userId: currentUserId,
+        reason: 'exit',       // Tells server we quit (don't requeue us)
+        requeuePartner        // Should partner be requeued?
+      });
+    } else if (currentUserId) {
+      // 3. Fallback to API only if socket is dead
+      console.log('ChatPage: Socket disconnected, using API fallback');
       try {
-        await api.exitChat(socket.id, currentUserId, chatId, requeuePartner);
+        await api.exitChat(socket?.id, currentUserId, chatId, requeuePartner);
       } catch (error) {
         console.error("Error exiting chat:", error);
       }
     }
 
+    // 4. Navigate Home
     onGoHome?.();
   };
 

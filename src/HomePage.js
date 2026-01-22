@@ -129,10 +129,10 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
         api.sendUserInterests(currentUserId, tags).catch(console.error);
       }
 
-      console.log('🚀 Joining queue for user:', currentUserId);
-      console.log('Tags:', tags);
+      //console.log('Joining queue for user:', currentUserId);
+      //console.log('Tags:', tags);
       const result = await api.joinQueue(currentUserId, tags);
-      console.log('✅ Queue join result:', result);
+      //console.log('✅ Queue join result:', result);
 
       if (result.error) {
         if (result.banned_until) {
@@ -170,7 +170,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
   const leaveQueue = useCallback(async () => {
     try {
-      console.log('HomePage: Leaving queue for user:', currentUserId);
+      //console.log('HomePage: Leaving queue for user:', currentUserId);
       await api.leaveQueue(currentUserId);
       console.log('HomePage: Successfully left queue.');
       // ✅ Update global state when leaving
@@ -210,9 +210,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   }, [currentUserId]);
 
   // Debug logging for notification counts
-  useEffect(() => {
-    console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
-  }, [friendRequests.length, notifications.length]);
+  // useEffect(() => {
+  //   //console.log('NOTIFICATION DEBUG: HomePage notification counts - friendRequests:', friendRequests.length, 'notifications:', notifications.length, 'total:', friendRequests.length + notifications.length);
+  // }, [friendRequests.length, notifications.length]);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -317,10 +317,10 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
   const loadFriendRequests = useCallback(async () => {
     if (!currentUserId) return;
-    console.log('HomePage: Loading friend requests for user:', currentUserId);
+    //console.log('HomePage: Loading friend requests for user:', currentUserId);
     try {
       const requests = await api.getFriendRequests(currentUserId);
-      console.log('HomePage: Loaded friend requests:', requests);
+      //console.log('HomePage: Loaded friend requests:', requests);
       setFriendRequests(requests);
     } catch (error) {
       console.error('Error loading friend requests:', error);
@@ -331,22 +331,22 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   if (processingRequests.has(requestId)) return;
 
   setProcessingRequests(prev => new Set(prev).add(requestId));
-  console.log('👍 HomePage accepting friend request:', requestId);
-  console.log('Current user accepting on HomePage:', currentUserId);
+  //console.log('👍 HomePage accepting friend request:', requestId);
+  //console.log('Current user accepting on HomePage:', currentUserId);
 
   try {
     console.log('HomePage: Calling api.acceptFriendRequest...');
     const result = await api.acceptFriendRequest(requestId, currentUserId);
-    console.log('✅ HomePage accept friend API response:', result);
+    //console.log('✅ HomePage accept friend API response:', result);
 
     // refresh requests UI
     console.log('HomePage: Reloading friend requests after accepting...');
     await loadFriendRequests();
 
     // ✅ CRITICAL: acceptor must join friend chat rooms immediately
-    console.log('HomePage: Calling api.getFriends to join chat rooms...');
+    //console.log('HomePage: Calling api.getFriends to join chat rooms...');
     const friends = await api.getFriends(currentUserId);
-    console.log('HomePage: Got friends:', friends);
+    //console.log('HomePage: Got friends:', friends);
       friends.forEach((friend) => {
         const friendId = friend.userId || friend.id; // handle both shapes
         if (!friendId) return;
@@ -399,14 +399,14 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
     if (!socket) return;
 
     const handleQueueJoined = (data) => {
-      console.log('HomePage: Received queue-joined event from server:', data);
+      //console.log('HomePage: Received queue-joined event from server:', data);
       setInQueue(true);
       // Backend uses 1-based index (queue.length), so 1 is the first spot.
       setQueuePosition(data.queuePosition || 1); 
     };
 
     const handleBanned = (data) => {
-      console.log('User is banned:', data);
+      //console.log('User is banned:', data);
       setInQueue(false);
       setIsBanned(true);
       setBannerMessage(`You are banned until ${new Date(data.bannedUntil).toLocaleString()}. Reason: ${data.reason}`);
