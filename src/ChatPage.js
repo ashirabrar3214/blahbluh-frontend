@@ -379,6 +379,23 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     }
   }, [icebreakerOpen]);
 
+  // ✅ Fix Black Screen: Listen for match limits while skipping
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMatchError = (data) => {
+      console.log("ChatPage: Match limit reached, stopping requeue.");
+      setIsRequeuing(false); // 🛑 STOP THE BLACK SCREEN SPINNER
+      onGoHome();            // 🏠 Send user to Home (where the popup lives)
+    };
+
+    socket.on('match-error', handleMatchError);
+
+    return () => {
+      socket.off('match-error', handleMatchError);
+    };
+  }, [socket, onGoHome]);
+
   // --- SOCKET LISTENERS ---
   useEffect(() => {
     if (!socket || !currentUserId) return;
@@ -505,11 +522,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setMessages(prev => prev.filter(msg => msg.id !== data.id));
     };
 
-    const handleMatchError = () => {
-       // ✅ Stop the "Finding match" spinner so they see the popup
-       setIsRequeuing(false);
-    };
-
 
     const handleFriendRequestReceived = () => loadFriendRequests();
 
@@ -519,7 +531,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     socket.on('partner-disconnected', handlePartnerDisconnected);
     socket.on('friend-request-received', handleFriendRequestReceived);
     socket.on('message-error', handleMessageError);
-    socket.on('match-error', handleMatchError);
 
     
     // Listen for friend messages even when not in chat
@@ -541,7 +552,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('partner-disconnected', handlePartnerDisconnected);
           socket.off('friend-request-received', handleFriendRequestReceived);
           socket.off('message-error', handleMessageError);
-          socket.off('match-error', handleMatchError);
               socket.off('friend-message-received');
             };
           }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
