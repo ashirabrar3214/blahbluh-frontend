@@ -21,7 +21,7 @@ function SignupForm({ onComplete, loading = false }) {
     country: 'Other', // Default country
     pfp: '',
     pfp_background: '',
-    interests: ['bored'], // Default interest
+    interests: ['empty'], // Default interest
   });
 
   const [error, setError] = useState('');
