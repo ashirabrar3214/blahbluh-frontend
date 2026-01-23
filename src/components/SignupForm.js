@@ -74,27 +74,20 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
         const user = result.user;
         const details = getAdditionalUserInfo(result);
     
-        if (!isUpgrade) {
-            // This will now throw if the backend fails
-            const { userId } = await api.generateUserId(user.uid, formData.username);
-            
-            onComplete({ 
-                uid: user.uid, 
-                email: user.email,
-                username: formData.username,
-                age: 18, 
-                gender: 'prefer-not-to-say', 
-                country: 'Other', 
-                interests: ['bored'],
-                isLogin: details.isNewUser ? false : true,
-                userId,
-            });
-            return; 
-        }
+        // This will now throw if the backend fails
+        const { userId } = await api.generateUserId(user.uid, formData.username);
         
-        // ... rest of isUpgrade logic
-        setFormData(prev => ({ ...prev, email: user.email, uid: user.uid }));
-        setStep(2);
+        onComplete({ 
+            uid: user.uid, 
+            email: user.email,
+            username: formData.username,
+            age: 18, 
+            gender: 'prefer-not-to-say', 
+            country: 'Other', 
+            interests: ['bored'],
+            isLogin: details.isNewUser ? false : true,
+            userId,
+        });
 
     } catch (err) {
         console.error("Signup Error:", err);
