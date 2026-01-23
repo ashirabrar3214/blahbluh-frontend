@@ -122,8 +122,11 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
       return;
     }
 
-    // We only send the data we want to store (age is stored, dob is NOT)
-    onComplete(formData);
+    // ✅ FIX: Add 'profile_completed: true' so the backend knows to unlock 50 matches
+    onComplete({ 
+        ...formData, 
+        profile_completed: true 
+    });
   };
 
   const getInitials = (name) => {
