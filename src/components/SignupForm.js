@@ -66,42 +66,42 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
   const handleGoogleAuth = async () => {
     if (loading || isSubmitting) return;
     try {
-      setIsSubmitting(true);
-      setError(''); // Clear previous errors
-      
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const details = getAdditionalUserInfo(result);
-      
-      if (!isUpgrade) {
-          // This will now throw if the backend fails
-          const { userId } = await api.generateUserId(user.uid, formData.username);
-          
-          onComplete({ 
-              uid: user.uid, 
-              email: user.email,
-              username: formData.username,
-              age: 18, 
-              gender: 'prefer-not-to-say', 
-              country: 'Other', 
-              interests: ['bored'],
-              isLogin: details.isNewUser ? false : true,
-              userId,
-          });
-          return; 
-      }
-      
-      // ... rest of isUpgrade logic
-      setFormData(prev => ({ ...prev, email: user.email, uid: user.uid }));
-      setStep(2);
+        setIsSubmitting(true);
+        setError(''); // Clear previous errors
+        
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const details = getAdditionalUserInfo(result);
+    
+        if (!isUpgrade) {
+            // This will now throw if the backend fails
+            const { userId } = await api.generateUserId(user.uid, formData.username);
+            
+            onComplete({ 
+                uid: user.uid, 
+                email: user.email,
+                username: formData.username,
+                age: 18, 
+                gender: 'prefer-not-to-say', 
+                country: 'Other', 
+                interests: ['bored'],
+                isLogin: details.isNewUser ? false : true,
+                userId,
+            });
+            return; 
+        }
+        
+        // ... rest of isUpgrade logic
+        setFormData(prev => ({ ...prev, email: user.email, uid: user.uid }));
+        setStep(2);
 
     } catch (err) {
-      console.error("Signup Error:", err);
-      // Show the actual error message from the backend if available
-      setError(err.message || 'Google authentication failed.'); 
+        console.error("Signup Error:", err);
+        // Show the actual error message from the backend if available
+        setError(err.message || 'Google authentication failed.'); 
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
   };
 
