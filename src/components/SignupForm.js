@@ -13,7 +13,7 @@ function SignupForm({ onComplete, loading = false }) {
     return `${adj}${noun}${num}`;
   };
 
-  const [formData, setFormData] = useState({
+  const [formData] = useState({
     username: generateRandomUsername(),
     email: '',
     age: 18, // Default age
