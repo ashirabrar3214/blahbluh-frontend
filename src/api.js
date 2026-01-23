@@ -141,6 +141,15 @@ export const api = {
       body: JSON.stringify({ userId, tags })
     });
     const data = await response.json();
+
+    if (!response.ok) {
+      const error = new Error(data.error || 'Failed to join queue');
+      if (data.code) error.code = data.code;
+      if (data.banned_until) error.banned_until = data.banned_until;
+      if (data.reason) error.reason = data.reason;
+      throw error;
+    }
+
     console.log('API: Join queue response:', data);
     return data;
   },

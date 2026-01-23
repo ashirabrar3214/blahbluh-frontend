@@ -81,10 +81,6 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
             uid: user.uid, 
             email: user.email,
             username: formData.username,
-            age: 18, 
-            gender: 'prefer-not-to-say', 
-            country: 'Other', 
-            interests: ['bored'],
             isLogin: details.isNewUser ? false : true,
             userId,
         });

@@ -140,16 +140,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
     setCurrentUser(freshUser);
 
-    const isGuest =
-      freshUser?.is_guest === true ||
-      freshUser?.is_guest === null ||
-      freshUser?.is_guest === undefined;
-
-    // ✅ Show popup only when they USED their 5 matches
-    if (isGuest && (freshUser?.matches_remaining ?? 0) <= 0) {
-      setShowUpgrade(true);
-      return;
-    }
+    // We rely on the backend to enforce limits (GUEST_LIMIT error).
 
     onChatStart?.();
 
@@ -295,6 +286,11 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   useEffect(() => {
     if (notification !== 'partner-disconnected') return;
 
+    // Refresh user data to keep counter real
+    if (currentUserId) {
+      api.getUser(currentUserId).then(setCurrentUser).catch(console.error);
+    }
+
     // show banner
     setBannerMessage('Partner disconnected. ready to go again?');
 
@@ -307,7 +303,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
     }, 3000);
 
     return () => clearTimeout(t);
-  }, [notification, onNotificationChange]);
+  }, [notification, onNotificationChange, currentUserId]);
 
   useEffect(() => {
     if (notification !== 'partner-disconnected') return;
