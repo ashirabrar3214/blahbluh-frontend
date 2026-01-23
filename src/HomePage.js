@@ -132,8 +132,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   
   const handleStartChat = useCallback(async () => {
     // 1. Local Check (Instant Feedback)
-    // If we already know they are out of matches, stop them immediately.
-    if (currentUser?.matches_remaining <= 0 && currentUser?.is_guest) {
+    
+    // FIX 1: Robust guest check (handles null/undefined if DB default missed)
+    const isGuest = currentUser?.is_guest === true || currentUser?.is_guest === null || currentUser?.is_guest === undefined;
+
+    // FIX 2: Trigger if matches are 45 OR LESS (instead of 0)
+    if (currentUser?.matches_remaining <= 45 && isGuest) {
       setShowUpgrade(true);
       return;
     }
