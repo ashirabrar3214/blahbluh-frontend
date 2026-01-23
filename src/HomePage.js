@@ -131,18 +131,26 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   const [processingRequests, setProcessingRequests] = useState(new Set());
   
   const handleStartChat = useCallback(async () => {
-    // 1. Local Check (Instant Feedback)
-    
-    // FIX 1: Robust guest check (handles null/undefined if DB default missed)
-    const isGuest = currentUser?.is_guest === true || currentUser?.is_guest === null || currentUser?.is_guest === undefined;
+    if (!currentUserId) return;
 
-    // FIX 2: Trigger if matches are 45 OR LESS (instead of 0)
-    if (currentUser?.matches_remaining <= 45 && isGuest) {
+    // Always ensure we have a real user object (kills the race condition)
+    const freshUser = currentUser?.id
+      ? currentUser
+      : await api.getUser(currentUserId);
+
+    setCurrentUser(freshUser);
+
+    const isGuest =
+      freshUser?.is_guest === true ||
+      freshUser?.is_guest === null ||
+      freshUser?.is_guest === undefined;
+
+    // ✅ Show popup only when they USED their 5 matches
+    if (isGuest && (freshUser?.matches_remaining ?? 0) <= 0) {
       setShowUpgrade(true);
       return;
     }
 
-    if (!currentUserId) return;
     onChatStart?.();
 
     try {
