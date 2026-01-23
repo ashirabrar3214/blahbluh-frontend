@@ -131,44 +131,37 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   const [processingRequests, setProcessingRequests] = useState(new Set());
   
   const handleStartChat = useCallback(async () => {
-    // Check limits locally first (optional, backend catches it too)
+    // 1. Local Check (Instant Feedback)
+    // If we already know they are out of matches, stop them immediately.
     if (currentUser?.matches_remaining <= 0 && currentUser?.is_guest) {
       setShowUpgrade(true);
       return;
     }
 
-    if (!currentUserId) {
-      console.log('HomePage: joinQueue attempted without currentUserId.');
-      return;
-    }
-
-    // IMPORTANT: if user previously hit Home/Exit from chat,
-    // App.js may still be ignoring chat-paired. Clear that now.
+    if (!currentUserId) return;
     onChatStart?.();
 
     try {
-      // Send interests to the backend for logging/analytics
-      if (tags.length > 0) {
-        api.sendUserInterests(currentUserId, tags).catch(console.error);
-      }
+      if (tags.length > 0) api.sendUserInterests(currentUserId, tags).catch(console.error);
 
-      //console.log('Joining queue for user:', currentUserId);
-      //console.log('Tags:', tags);
       const result = await api.joinQueue(currentUserId, tags);
-      //console.log('✅ Queue join result:', result);
 
       if (result.error) {
-        if (result.banned_until) {
-          setIsBanned(true);
-          setBannerMessage(`You are banned until ${new Date(result.banned_until).toLocaleString()}. Reason: ${result.reason}`);
-        } else {
-          setBannerMessage(result.message || result.error);
-        }
-        setInQueue(false);
-        return;
+        // To allow the catch block to handle all errors uniformly, we construct
+        // an error object that includes details that were previously in 'result'.
+        const err = new Error(result.error.message || result.error);
+        if (result.error.code) err.code = result.error.code;
+        if (result.banned_until) err.banned_until = result.banned_until;
+        if (result.reason) err.reason = result.reason;
+        throw err;
       }
 
-      // ✅ Update global state when manually joining
+      // 2. Success: Decrement local counter immediately for UI
+      setCurrentUser(prev => ({
+        ...prev,
+        matches_remaining: prev.matches_remaining > 0 ? prev.matches_remaining - 1 : 0
+      }));
+
       setQueueState({ inQueue: true, position: result.queuePosition || 1 });
       setInQueue(true);
       setQueuePosition(result.queuePosition || 1);
@@ -179,22 +172,28 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       try {
         const topicData = await api.suggestTopic(currentUserId);
         if (topicData && topicData.suggestion) {
-          // We'll use a global notification to pass this to the ChatPage
           setSuggestedTopic(topicData.suggestion);
         }
       } catch (topicError) {
         console.error('Error fetching suggested topic:', topicError);
-        // Don't block user from chatting if topic suggestion fails
       }
+
     } catch (error) {
       console.error('❌ Error joining queue:', error);
-       if (error.message.includes('GUEST_LIMIT')) {
-            setShowUpgrade(true);
-        } else {
-            setBannerMessage(error.message || 'An unexpected error occurred.');
-        }
+      
+      // 3. Backend Error Check (The Fix)
+      // Check for both the code AND the message to be safe
+      const errMsg = error.message || JSON.stringify(error);
+      if (error.code === 'GUEST_LIMIT' || errMsg.includes('GUEST_LIMIT') || errMsg.includes('Out of matches')) {
+          setShowUpgrade(true);
+      } else if (error.banned_until || errMsg.includes('banned')) {
+          setIsBanned(true);
+          setBannerMessage(`You are banned until ${new Date(error.banned_until).toLocaleString()}. Reason: ${error.reason || 'Violating community guidelines'}`);
+      } else {
+          setBannerMessage(errMsg || 'An unexpected error occurred.');
+      }
     }
-  }, [currentUserId, tags, onChatStart, setQueueState, setInQueue, setQueuePosition, setNotification, onNotificationChange, setSuggestedTopic, setIsBanned, setBannerMessage, currentUser]);
+  }, [currentUserId, tags, onChatStart, setQueueState, setInQueue, setQueuePosition, setNotification, onNotificationChange, setSuggestedTopic, setIsBanned, setBannerMessage, currentUser, setCurrentUser]);
 
   const leaveQueue = useCallback(async () => {
     try {
@@ -641,13 +640,17 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
            isUpgrade={true} 
            loading={false}
            onComplete={async (formData) => {
-              if (!formData) { setShowUpgrade(false); return; } // Closed
+              if (!formData) { setShowUpgrade(false); return; } // User clicked "Remind me later"
               
-              // Submit update
+              // 1. Send profile data to backend
+              // Backend will detect completion -> Set is_guest=false, matches=50
               await api.updateUser(currentUserId, formData);
               
-              // Refresh local user data
+              // 2. Fetch the FRESH user data immediately
               const updated = await api.getUser(currentUserId);
+              
+              // 3. Update State
+              // Now currentUser.matches_remaining is 50, so handleStartChat works!
               setCurrentUser(updated);
               setShowUpgrade(false);
            }} 
