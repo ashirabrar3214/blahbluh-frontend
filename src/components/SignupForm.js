@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import PfpSelect from './PfpSelect';
 import TagInput from '../TagInput';
+import { api } from '../api';
 
 import { auth } from './firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import '../TagInput.css';
 
 function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
@@ -66,26 +67,39 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
     if (loading || isSubmitting) return;
     try {
       setIsSubmitting(true);
-      setError('');
+      setError(''); // Clear previous errors
+      
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+      const details = getAdditionalUserInfo(result);
       
-      // Quick Signup: Use defaults immediately
-      onComplete({
-        uid: user.uid,
-        email: user.email,
-        username: generateRandomUsername(),
-        age: 18,
-        gender: 'prefer-not-to-say',
-        country: 'Other',
-        interests: ['bored'],
-        isLogin: true
-      });
+      if (!isUpgrade) {
+          // This will now throw if the backend fails
+          const { userId } = await api.generateUserId(user.uid, formData.username);
+          
+          onComplete({ 
+              uid: user.uid, 
+              email: user.email,
+              username: formData.username,
+              age: 18, 
+              gender: 'prefer-not-to-say', 
+              country: 'Other', 
+              interests: ['bored'],
+              isLogin: details.isNewUser ? false : true,
+              userId,
+          });
+          return; 
+      }
+      
+      // ... rest of isUpgrade logic
+      setFormData(prev => ({ ...prev, email: user.email, uid: user.uid }));
+      setStep(2);
+
     } catch (err) {
-      console.error(err);
-      setError('Google authentication failed.');
+      console.error("Signup Error:", err);
+      // Show the actual error message from the backend if available
+      setError(err.message || 'Google authentication failed.'); 
     } finally {
       setIsSubmitting(false);
     }

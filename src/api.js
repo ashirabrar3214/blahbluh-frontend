@@ -12,6 +12,15 @@ export const api = {
     const response = await fetch(url);
     const data = await response.json();
 
+    if (!response.ok) {
+      console.error("API Error in generateUserId:", data);
+      throw new Error(data.error || `Server error: ${response.status}`);
+    }
+
+    if (!data.userId) {
+      throw new Error("Server returned success but missing userId");
+    }
+
     console.log('✅ Supabase userId (UUID):', data.userId);
     return data;
   },
