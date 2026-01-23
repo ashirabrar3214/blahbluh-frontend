@@ -3,6 +3,8 @@ import { getAuth } from 'firebase/auth';
 import { api } from './api';
 import TagInput from './TagInput';
 import './TagInput.css';
+import SignupForm from './components/SignupForm';
+
 
 const INTEREST_HINTS = [
   "the best tv show in mankind's history is ... ",
@@ -89,6 +91,8 @@ const InboxIcon = () => (
 function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, initialQueueState, setQueueState, children }) {
   const [inQueue, setInQueue] = useState(initialQueueState?.inQueue || false);
   const [queuePosition, setQueuePosition] = useState(initialQueueState?.position || 0);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // Ensure you fetch this via api.getUser
 
   // ✅ 3. LISTEN TO PROP UPDATES (Crucial for race conditions)
   useEffect(() => {
@@ -97,6 +101,19 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       setQueuePosition(initialQueueState.position);
     }
   }, [initialQueueState]);
+
+  useEffect(() => {
+    if (currentUserId) {
+        api.getUser(currentUserId).then(user => {
+            setCurrentUser(user);
+            if (user.banned_until && new Date(user.banned_until) > new Date()) {
+                setIsBanned(true);
+                setBannerMessage(`You are banned until ${new Date(user.banned_until).toLocaleString()}. Reason: ${user.reason || 'Violating community guidelines'}`);
+            }
+        }).catch(err => console.error("Failed to fetch user or check ban status", err));
+    }
+}, [currentUserId]);
+
 
   const [notification, setNotification] = useState(externalNotification || null);
   // Use global state instead of local state
@@ -113,7 +130,13 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   const [isBanned, setIsBanned] = useState(false);
   const [processingRequests, setProcessingRequests] = useState(new Set());
   
-  const joinQueue = useCallback(async () => {
+  const handleStartChat = useCallback(async () => {
+    // Check limits locally first (optional, backend catches it too)
+    if (currentUser?.matches_remaining <= 0 && currentUser?.is_guest) {
+      setShowUpgrade(true);
+      return;
+    }
+
     if (!currentUserId) {
       console.log('HomePage: joinQueue attempted without currentUserId.');
       return;
@@ -165,8 +188,13 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       }
     } catch (error) {
       console.error('❌ Error joining queue:', error);
+       if (error.message.includes('GUEST_LIMIT')) {
+            setShowUpgrade(true);
+        } else {
+            setBannerMessage(error.message || 'An unexpected error occurred.');
+        }
     }
-  }, [currentUserId, tags, onChatStart, setQueueState, setInQueue, setQueuePosition, setNotification, onNotificationChange, setSuggestedTopic, setIsBanned, setBannerMessage]);
+  }, [currentUserId, tags, onChatStart, setQueueState, setInQueue, setQueuePosition, setNotification, onNotificationChange, setSuggestedTopic, setIsBanned, setBannerMessage, currentUser]);
 
   const leaveQueue = useCallback(async () => {
     try {
@@ -196,17 +224,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
         api.leaveQueue(currentUserId).catch(err => console.error('Error leaving queue on unmount:', err));
       }
     };
-  }, [currentUserId]);
-
-  useEffect(() => {
-    if (currentUserId) {
-      api.getUser(currentUserId).then(user => {
-        if (user.banned_until && new Date(user.banned_until) > new Date()) {
-          setIsBanned(true);
-          setBannerMessage(`You are banned until ${new Date(user.banned_until).toLocaleString()}. Reason: ${user.reason || 'Violating community guidelines'}`);
-        }
-      }).catch(err => console.error("Failed to check ban status", err));
-    }
   }, [currentUserId]);
 
   // Debug logging for notification counts
@@ -285,11 +302,11 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
     // slight delay so UI can breathe + banner can show
     const t = setTimeout(() => {
-      joinQueue();
+      handleStartChat();
     }, 300);
 
     return () => clearTimeout(t);
-  }, [notification, isBanned, inQueue, currentUserId, tags, joinQueue]);
+  }, [notification, isBanned, inQueue, currentUserId, tags, handleStartChat]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -422,6 +439,13 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
+        {/* 1. Matches Left Badge */}
+       <div className="absolute top-4 left-4 bg-zinc-800/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full z-10">
+            <span className="text-zinc-400 text-xs uppercase tracking-wider">
+                🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left
+            </span>
+       </div>
+
       <nav className="fixed top-0 w-full z-20 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center bg-[#000000]/50 backdrop-blur-md border-b border-[#fefefe]/5">
         <div className="flex items-center gap-2 md:gap-2.5">
           <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-8 h-8 md:w-9 md:h-9 object-contain rounded-[18%]" />
@@ -595,7 +619,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
               )} */}
               
               <button 
-                onClick={joinQueue} 
+                onClick={handleStartChat} 
                 disabled={tags.length === 0 || isBanned}
                 className={`group relative w-full py-4 md:py-5 rounded-full bg-[#ffbd59] text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,189,89,0.3)] ${(tags.length === 0 || isBanned) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
               >
@@ -610,6 +634,25 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       <div className="py-6 text-center text-[#fefefe]/40 text-xs font-medium">
         &copy; 2025 blahbluh. Crafted for anonymity.
       </div>
+
+       {/* 2. Upgrade Modal */}
+       {showUpgrade && (
+         <SignupForm 
+           isUpgrade={true} 
+           loading={false}
+           onComplete={async (formData) => {
+              if (!formData) { setShowUpgrade(false); return; } // Closed
+              
+              // Submit update
+              await api.updateUser(currentUserId, formData);
+              
+              // Refresh local user data
+              const updated = await api.getUser(currentUserId);
+              setCurrentUser(updated);
+              setShowUpgrade(false);
+           }} 
+         />
+       )}
 
       {/* Global Call UI */}
       {children}

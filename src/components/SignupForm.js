@@ -2,9 +2,30 @@ import React, { useState } from 'react';
 import { api } from '../api';
 import { auth } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import TagInput from '../TagInput'; // Assuming TagInput is for interests
 
-function SignupForm({ onComplete, loading = false }) {
-  const generateRandomUsername = () => {
+// Add isUpgrade prop
+function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
+  
+  // ... imports and state ...
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    username: generateRandomUsername(),
+    email: '',
+    age: 18,
+    gender: 'prefer-not-to-say',
+    country: 'Other',
+    pfp: '',
+    pfp_background: '',
+    interests: [],
+  });
+
+  // Initialize step based on mode
+  const [step, setStep] = useState(isUpgrade ? 2 : 1); 
+
+  // ... generateRandomUsername ...
+  function generateRandomUsername() {
     const adjectives = ['Happy', 'Lucky', 'Sunny', 'Clever', 'Brave', 'Calm', 'Witty', 'Fuzzy', 'Jolly', 'Kind', 'Swift', 'Silent', 'Cosmic', 'Neon', 'Hyper', 'Retro', 'Glitch', 'Cyber'];
     const nouns = ['Panda', 'Tiger', 'Lion', 'Bear', 'Fox', 'Wolf', 'Eagle', 'Hawk', 'Owl', 'Seal', 'Ninja', 'Star', 'Moon', 'Sun', 'Ghost', 'Bot', 'Byte', 'Pixel'];
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
@@ -12,48 +33,145 @@ function SignupForm({ onComplete, loading = false }) {
     const num = Math.floor(Math.random() * 1000);
     return `${adj}${noun}${num}`;
   };
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-  const [formData] = useState({
-    username: generateRandomUsername(),
-    email: '',
-    age: 18, // Default age
-    gender: 'prefer-not-to-say', // Default gender
-    country: 'Other', // Default country
-    pfp: '',
-    pfp_background: '',
-    interests: ['empty'], // Default interest
-  });
-
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const handleTagsChange = (newTags) => {
+    setFormData(prev => ({ ...prev, interests: newTags }));
+  };
+  
+  // Modify handleGoogleAuth to SKIP the wizard if it's the initial signup
   const handleGoogleAuth = async () => {
     if (loading || isSubmitting) return;
     try {
-      setIsSubmitting(true);
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const details = getAdditionalUserInfo(result);
+        setIsSubmitting(true);
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const details = getAdditionalUserInfo(result);
+    
+        // QUICK MODE: Immediately finish with defaults
+        if (!isUpgrade) {
+            const { userId } = await api.generateUserId(user.uid, formData.username);
+            onComplete({ 
+                uid: user.uid, 
+                email: user.email,
+                username: formData.username,
+                age: 18, 
+                gender: 'prefer-not-to-say', 
+                country: 'Other', 
+                interests: ['bored'],
+                isLogin: details.isNewUser ? false : true,
+                userId,
+            });
+            return; 
+        }
+        
+        // UPGRADE MODE: just get email and uid, proceed with form
+        setFormData(prev => ({ ...prev, email: user.email, uid: user.uid }));
+        // In isUpgrade, we assume they already have an account, so we proceed to step 2
+        setStep(2);
 
-      const { userId } = await api.generateUserId(user.uid, formData.username);
-
-      // Immediately complete with default data + google info
-      onComplete({
-        ...formData,
-        email: user.email,
-        uid: user.uid,
-        userId,
-        isLogin: details.isNewUser ? false : true
-      });
     } catch (err) {
-      console.error(err);
-      setError('Google authentication failed.');
+        console.error(err);
+        setError('Google authentication failed.');
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
   };
 
+  const handleFormSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+        // In an upgrade flow, the user already exists.
+        // We are just updating their profile.
+        onComplete(formData);
+    } catch (error) {
+        console.error("Update failed", error);
+        setError("Profile update failed.");
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
+
+  const nextStep = () => setStep(s => s + 1);
+  const prevStep = () => {
+    if (isUpgrade && step === 2) {
+      onComplete(null); // Close modal if they go back from the first step of upgrade
+    } else {
+      setStep(s => s - 1);
+    }
+  };
+
+
+  // If isUpgrade is true, render the specific steps inside a container
+  if (isUpgrade) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+         <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-6 rounded-2xl relative shadow-2xl">
+            <h2 className="text-2xl font-bold text-white mb-2 text-center">Complete Your Profile</h2>
+            <p className="text-zinc-400 text-center mb-6">Unlock 50 daily matches by setting up your profile.</p>
+            
+            {/* Show Steps 2, 3, or 4 based on state */}
+            {step === 2 && (
+               <div className="space-y-4 animate-in fade-in duration-300">
+                    <h3 className="text-lg font-semibold text-zinc-200">About You</h3>
+                    <div>
+                        <label htmlFor="age" className="block text-sm font-medium text-zinc-400 mb-1">Age</label>
+                        <input type="number" name="age" id="age" value={formData.age} onChange={handleChange} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-[#ffbd59] outline-none" min="18" />
+                    </div>
+                    <div>
+                        <label htmlFor="gender" className="block text-sm font-medium text-zinc-400 mb-1">Gender</label>
+                        <select name="gender" id="gender" value={formData.gender} onChange={handleChange} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-[#ffbd59] outline-none">
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="non-binary">Non-binary</option>
+                            <option value="prefer-not-to-say">Prefer not to say</option>
+                        </select>
+                    </div>
+                    <div className="flex justify-between items-center pt-4">
+                        <button onClick={() => onComplete(null)} className="text-zinc-400 hover:text-white transition">Cancel</button>
+                        <button onClick={nextStep} className="bg-[#ffbd59] text-black font-bold px-6 py-2 rounded-lg hover:bg-opacity-90 transition">Next</button>
+                    </div>
+               </div>
+            )}
+            {step === 3 && (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                    <h3 className="text-lg font-semibold text-zinc-200">Location</h3>
+                    <div>
+                        <label htmlFor="country" className="block text-sm font-medium text-zinc-400 mb-1">Country</label>
+                        {/* A proper country dropdown would be better, but this is a quick implementation */}
+                        <input type="text" name="country" id="country" value={formData.country} onChange={handleChange} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-[#ffbd59] outline-none" />
+                    </div>
+                    <div className="flex justify-between items-center pt-4">
+                        <button onClick={prevStep} className="text-zinc-400 hover:text-white transition">Back</button>
+                        <button onClick={nextStep} className="bg-[#ffbd59] text-black font-bold px-6 py-2 rounded-lg hover:bg-opacity-90 transition">Next</button>
+                    </div>
+                </div>
+            )}
+            {step === 4 && (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                    <h3 className="text-lg font-semibold text-zinc-200">Your Interests</h3>
+                     <p className="text-sm text-zinc-400">Add up to 5 interests to help us find better matches.</p>
+                    <TagInput tags={formData.interests} onTagsChange={handleTagsChange} />
+                    <div className="flex justify-between items-center pt-4">
+                        <button onClick={prevStep} className="text-zinc-400 hover:text-white transition">Back</button>
+                        <button onClick={handleFormSubmit} disabled={isSubmitting} className="bg-green-500 text-white font-bold px-6 py-2 rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
+                            {isSubmitting ? 'Saving...' : 'Complete Profile'}
+                        </button>
+                    </div>
+                </div>
+            )}
+         </div>
+      </div>
+    );
+  }
+
+  // ... Rest of the original simplified Welcome/Google View code ...
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 font-sans selection:bg-[#ffbd59]/30">
         <div className="w-full max-w-md relative text-center">
