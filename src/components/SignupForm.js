@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import PfpSelect from './PfpSelect';
 import TagInput from '../TagInput';
-import { api } from '../api';
+
 import { auth } from './firebase';
-import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import '../TagInput.css';
 
 function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
@@ -16,7 +16,6 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
     return `${adj}${noun}${num}`;
   };
 
-  const [view, setView] = useState('welcome'); 
   const [formData, setFormData] = useState({
     username: generateRandomUsername(),
     email: '',
