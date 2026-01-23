@@ -439,8 +439,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
-        {/* 1. Matches Left Badge */}
-       <div className="absolute top-4 left-4 bg-zinc-800/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full z-10">
+        {/* 1. Matches Left Badge - MOVED DOWN to be visible */}
+       <div className="absolute top-20 left-4 md:top-24 bg-zinc-800/90 backdrop-blur border border-white/10 px-4 py-2 rounded-full z-10 shadow-lg pointer-events-none select-none">
             <span className="text-zinc-400 text-xs uppercase tracking-wider">
                 🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left
             </span>
