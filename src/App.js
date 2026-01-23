@@ -40,6 +40,7 @@ function App() {
   const [globalFriendRequests, setGlobalFriendRequests] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [queueState, setQueueState] = useState({ inQueue: false, position: 0 });
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false); // ✅ Global Modal State
   const globalSocketRef = useRef(null);
   const currentPageRef = useRef(currentPage);
   const chatExitRef = useRef(false);
@@ -427,6 +428,12 @@ useEffect(() => {
       // If we're already on home, HomePage will show the banner automatically.
     });
 
+    // ✅ GLOBAL LISTENER: Trigger Profile Popup on Match Error
+    globalSocketRef.current.on('match-error', (data) => {
+      console.log('App: Match limit reached (Universal Trigger)', data);
+      setShowUpgradeModal(true);
+    });
+
     // --- Global WebRTC Listeners ---
     
     // ✅ Updated call-offer to be non-blocking
@@ -622,6 +629,26 @@ useEffect(() => {
         <CallPopup partner={callPartner} status={callStatus} onHangup={hangupCall} isMuted={isMuted} onToggleMute={toggleMute} />
       )}
       <audio ref={remoteAudioRef} autoPlay />
+
+      {/* ✅ RENDER GLOBAL UPGRADE MODAL */}
+      {showUpgradeModal && (
+        <SignupForm 
+          isUpgrade={true} 
+          loading={false}
+          onComplete={async (formData) => {
+             if (!formData) { setShowUpgradeModal(false); return; }
+             
+             // 1. Update User
+             await api.updateUser(currentUser.id, formData);
+             
+             // 2. Refresh Local User Data (to get 50 matches)
+             const updated = await api.getUser(currentUser.id);
+             setCurrentUser(updated);
+             
+             setShowUpgradeModal(false);
+          }} 
+        />
+      )}
     </>
   );
 

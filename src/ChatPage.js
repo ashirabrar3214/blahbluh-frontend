@@ -505,6 +505,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setMessages(prev => prev.filter(msg => msg.id !== data.id));
     };
 
+    const handleMatchError = () => {
+       // ✅ Stop the "Finding match" spinner so they see the popup
+       setIsRequeuing(false);
+    };
+
 
     const handleFriendRequestReceived = () => loadFriendRequests();
 
@@ -514,6 +519,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     socket.on('partner-disconnected', handlePartnerDisconnected);
     socket.on('friend-request-received', handleFriendRequestReceived);
     socket.on('message-error', handleMessageError);
+    socket.on('match-error', handleMatchError);
 
     
     // Listen for friend messages even when not in chat
@@ -535,6 +541,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       socket.off('partner-disconnected', handlePartnerDisconnected);
           socket.off('friend-request-received', handleFriendRequestReceived);
           socket.off('message-error', handleMessageError);
+          socket.off('match-error', handleMatchError);
               socket.off('friend-message-received');
             };
           }, [socket, currentUserId, chatPartner, loadFriendRequests, chatId, setSuggestedTopic]);
