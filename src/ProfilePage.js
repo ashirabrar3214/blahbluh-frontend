@@ -117,13 +117,6 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
     // Save to backend so others can see it
     try {
       const promises = [];
-      if (oldProfile.country !== editedProfile.country || oldProfile.age !== editedProfile.age) {
-        promises.push(api.updateUserDemographics(currentUserId, {
-          gender: profile.gender,
-          country: editedProfile.country,
-          age: editedProfile.age
-        }));
-      }
       if (oldProfile.pfp !== editedProfile.pfp || oldProfile.pfp_background !== editedProfile.pfp_background) {
         promises.push(api.updateUserPfp(currentUserId, editedProfile.pfp, editedProfile.pfp_background));
       }
@@ -147,8 +140,19 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
-  const handleImageSave = ({ pfp, bg }) => {
-    setEditedProfile({ ...editedProfile, pfp, pfp_background: bg });
+  const handleImageSave = async ({ pfp, bg }) => {
+    if (isEditing) {
+      setEditedProfile({ ...editedProfile, pfp, pfp_background: bg });
+    } else {
+      const newProfile = { ...profile, pfp, pfp_background: bg };
+      setProfile(newProfile);
+      setEditedProfile(newProfile);
+      try {
+        await api.updateUserPfp(currentUserId, pfp, bg);
+      } catch (error) {
+        console.error("Failed to update PFP:", error);
+      }
+    }
     setShowPfpSelect(false);
   };
 
@@ -237,16 +241,14 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
               <div className="absolute inset-0 rounded-full border-4 border-black pointer-events-none" />
 
               {/* Edit Overlay */}
-              {isEditing && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 rounded-full">
-                  <button 
-                    onClick={() => setShowPfpSelect(true)}
-                    className="text-sm bg-[#fefefe]/20 hover:bg-[#fefefe]/30 px-4 py-2 rounded-lg text-[#fefefe] backdrop-blur-sm font-semibold"
-                  >
-                    Edit
-                  </button>
-                </div>
-              )}
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20 rounded-full">
+                <button 
+                  onClick={() => setShowPfpSelect(true)}
+                  className="text-sm bg-[#fefefe]/20 hover:bg-[#fefefe]/30 px-4 py-2 rounded-lg text-[#fefefe] backdrop-blur-sm font-semibold"
+                >
+                  Edit
+                </button>
+              </div>
             </div>
             </div>
             <h2 className="text-3xl font-bold text-[#fefefe] mt-5 tracking-tight">{profile.username}</h2>
@@ -262,16 +264,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
                 <label className="block text-[#fefefe]/40 text-xs font-bold uppercase tracking-wider mb-1">Age</label>
-                {isEditing ? (
-                  <input 
-                    type="number" 
-                    value={editedProfile.age || ''} 
-                    onChange={(e) => setEditedProfile({...editedProfile, age: e.target.value})}
-                    className="w-full bg-transparent text-lg font-medium text-[#fefefe] focus:outline-none border-b border-[#fefefe]/20 focus:border-[#ffbd59] p-0"
-                  />
-                ) : (
-                  <p className="text-lg font-medium text-[#fefefe]">{profile.age || 'N/A'}</p>
-                )}
+                <p className="text-lg font-medium text-[#fefefe]">{profile.age || 'N/A'}</p>
               </div>
 
               <div className="bg-[#fefefe]/5 backdrop-blur-md rounded-2xl p-5 border border-[#fefefe]/5 hover:border-[#fefefe]/10 transition-colors">
@@ -421,7 +414,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
       </div>
 
       {/* PFP Selection Modal */}
-      {showPfpSelect && isEditing && (
+      {showPfpSelect && (
         <PfpSelect 
           onClose={() => setShowPfpSelect(false)}
           onSave={handleImageSave}

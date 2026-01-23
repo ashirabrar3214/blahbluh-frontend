@@ -49,6 +49,8 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
         age--;
       }
       setFormData(prev => ({ ...prev, age: age }));
+    } else {
+      setFormData(prev => ({ ...prev, age: '' }));
     }
   };
 
@@ -97,10 +99,29 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
   // --- UPGRADE SUBMIT HANDLER ---
   const handleUpgradeSubmit = (e) => {
     e.preventDefault();
-    if (!formData.age || formData.age < 13) {
-      setError('You must be at least 13 years old.');
+    setError('');
+
+    if (!formData.name || !formData.name.trim()) {
+      setError('Please enter your display name.');
       return;
     }
+    if (formData.age === '') {
+      setError('Please enter your birth date.');
+      return;
+    }
+    if (parseInt(formData.age) < 15) {
+      setError('Your age is not eligible.');
+      return;
+    }
+    if (!formData.gender) {
+      setError('Please select your gender.');
+      return;
+    }
+    if (!formData.country) {
+      setError('Please select your country.');
+      return;
+    }
+
     // We only send the data we want to store (age is stored, dob is NOT)
     onComplete(formData);
   };
@@ -126,6 +147,10 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
             
+            <p className="text-white/40 text-xs text-center">
+               <span className="text-red-500">*</span> are the information visible to other users...
+            </p>
+
             {/* 1. Avatar Section (Top) */}
             <div className="flex flex-col items-center">
               <div className="relative group cursor-pointer" onClick={() => setShowPfpSelect(true)}>
@@ -190,18 +215,40 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
               <div className="grid grid-cols-2 gap-4">
                 {/* Birth Date */}
                 <div>
-                  <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">Birth Date</label>
+                  <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">
+                    Birth Date <span className="text-red-500">*</span>
+                  </label>
                   <input 
                     type="date" 
                     value={dob}
                     onChange={handleDobChange}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] transition-all [color-scheme:dark]"
                   />
+                  <p className="text-[10px] text-white/30 mt-1 ml-1">we dont store it, age is only visible</p>
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">
+                    Gender <span className="text-red-500">*</span>
+                  </label>
+                  <select 
+                    value={formData.gender} 
+                    onChange={(e) => setFormData({...formData, gender: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none"
+                  >
+                    <option value="prefer-not-to-say" className="text-black">Prefer not to say</option>
+                    <option value="male" className="text-black">Male</option>
+                    <option value="female" className="text-black">Female</option>
+                    <option value="non-binary" className="text-black">Non-binary</option>
+                  </select>
                 </div>
 
                 {/* Country */}
-                <div>
-                  <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">Country</label>
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">
+                    Country <span className="text-red-500">*</span>
+                  </label>
                   <select 
                     value={formData.country} 
                     onChange={(e) => setFormData({...formData, country: e.target.value})}
@@ -234,7 +281,7 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
           <div className="p-6 border-t border-white/5 bg-[#111] space-y-3">
             <button 
               onClick={handleUpgradeSubmit}
-              disabled={!formData.country || !formData.age || loading}
+              disabled={loading}
               className="w-full py-4 rounded-2xl bg-[#ffbd59] text-black font-bold hover:bg-[#ffbd59]/90 disabled:opacity-50 transition-all text-lg shadow-lg shadow-[#ffbd59]/20"
             >
               Save & Continue
