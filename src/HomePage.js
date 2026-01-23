@@ -147,13 +147,18 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       const result = await api.joinQueue(currentUserId, tags);
 
       if (result.error) {
-        // To allow the catch block to handle all errors uniformly, we construct
-        // an error object that includes details that were previously in 'result'.
-        const err = new Error(result.error.message || result.error);
-        if (result.error.code) err.code = result.error.code;
+        // --- FIX START ---
+        // result.error is just the message string "Out of matches"
+        const err = new Error(result.error);
+        
+        // The 'code' is at the top level of the result object, NOT inside 'error'
+        if (result.code) err.code = result.code; 
+        
         if (result.banned_until) err.banned_until = result.banned_until;
         if (result.reason) err.reason = result.reason;
+        
         throw err;
+        // --- FIX END ---
       }
 
       // 2. Success: Decrement local counter immediately for UI
