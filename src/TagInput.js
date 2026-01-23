@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 /**
  * A component for inputting tags.
@@ -7,6 +7,7 @@ import React, { useState } from 'react';
  */
 const TagInput = ({ tags, onTagsChange }) => {
   const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef(null);
 
   /**
    * Handles changes to the input field.
@@ -59,7 +60,7 @@ const TagInput = ({ tags, onTagsChange }) => {
 
   return (
     <div className="tag-form">
-      <div className="tag-input-container" onClick={() => document.querySelector('.tag-input').focus()}>
+      <div className="tag-input-container" onClick={() => inputRef.current?.focus()}>
         {tags.map((tag, index) => (
           <div key={index} className="tag-chip">
             {tag}
@@ -67,6 +68,7 @@ const TagInput = ({ tags, onTagsChange }) => {
           </div>
         ))}
         <input
+          ref={inputRef}
           type="text"
           className="tag-input"
           value={inputValue}

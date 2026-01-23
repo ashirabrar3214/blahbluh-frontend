@@ -454,7 +454,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
         {/* 1. Matches Left Badge - MOVED DOWN to be visible */}
        <div className="absolute top-20 left-4 md:top-24 bg-zinc-800/90 backdrop-blur border border-white/10 px-4 py-2 rounded-full z-10 shadow-lg pointer-events-none select-none">
             <span className="text-zinc-400 text-xs uppercase tracking-wider">
-                🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left
+                🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left, Please complete your profile to get more matches. 
             </span>
        </div>
 
