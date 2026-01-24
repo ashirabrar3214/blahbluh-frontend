@@ -430,8 +430,17 @@ useEffect(() => {
 
     // ✅ GLOBAL LISTENER: Trigger Profile Popup on Match Error
     globalSocketRef.current.on('match-error', (data) => {
-      console.log('App: Match limit reached (Universal Trigger)', data);
-      setShowUpgradeModal(true);
+      console.log('App: Match limit reached', data);
+      
+      // 1. Only show Upgrade Modal if they are a GUEST
+      if (data.code === 'GUEST_LIMIT') {
+         setShowUpgradeModal(true);
+      } else {
+         // 2. If it's DAILY_LIMIT (User has completed profile), DO NOT show the popup.
+         // You can optionally add a simple toast here if you want, 
+         // but simply doing nothing fulfills "only show how many matches left".
+         console.log("Daily limit reached. Suppressing popup.");
+      }
     });
 
     // --- Global WebRTC Listeners ---
