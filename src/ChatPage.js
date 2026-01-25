@@ -1670,7 +1670,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                   <IcebreakerLoader />
                 )}
               </div>
-              {icebreakerPrompt?.kind === "mcq" && icebreakerPrompt.options?.length ? (
+              {icebreakerTopic && (icebreakerPrompt?.kind === "mcq" && icebreakerPrompt.options?.length ? (
                 <div className="flex flex-col gap-2">
                   {icebreakerPrompt.options.map((opt, i) => (
                     <button
@@ -1722,7 +1722,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                     </button>
                   </div>
                 </form>
-              )}
+              ))}
             </div>
             <div className={`absolute bottom-10 text-zinc-500 text-sm font-medium transition-opacity duration-300 md:hidden ${isSwiping || swipeY < 0 ? 'opacity-0' : 'opacity-100'}`}>
               Swipe up to skip
