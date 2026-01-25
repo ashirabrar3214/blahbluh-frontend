@@ -140,11 +140,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
     setCurrentUser(freshUser);
 
-    if (!freshUser.profile_completed) {
-      setBannerMessage("Please complete your profile to get more matches.");
-      setTimeout(() => setBannerMessage(null), 5000);
-    }
-
     // We rely on the backend to enforce limits (GUEST_LIMIT error).
 
     onChatStart?.();
@@ -170,10 +165,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       }
 
       // 2. Success: Decrement local counter immediately for UI
-      setCurrentUser(prev => ({
+      // We do not want to deduct matches just for waiting in line.
+      /* setCurrentUser(prev => ({
         ...prev,
         matches_remaining: prev.matches_remaining > 0 ? prev.matches_remaining - 1 : 0
       }));
+      */
 
       setQueueState({ inQueue: true, position: result.queuePosition || 1 });
       setInQueue(true);
@@ -457,8 +454,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   return (
     <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
         {/* 1. Matches Left Badge - MOVED DOWN to be visible */}
-       <div className="absolute top-20 left-4 md:top-24 bg-zinc-800/90 backdrop-blur border border-white/10 px-4 py-2 rounded-full z-10 shadow-lg pointer-events-none select-none">
-            <span className="text-zinc-400 text-xs uppercase tracking-wider">
+       <div className="absolute top-20 left-1/2 -translate-x-1/2 md:top-24 bg-zinc-800/90 backdrop-blur border border-white/10 px-4 py-1.5 rounded-full z-50 shadow-lg pointer-events-none select-none">
+            <span className="text-zinc-400 text-[10px] uppercase tracking-wider">
                 🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left
             </span>
        </div>
@@ -583,7 +580,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-20 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
+      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-28 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
 

@@ -167,7 +167,7 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
           {/* Header */}
           <div className="px-6 py-1 border-b border-white/5 text-center bg-[#111]">
             <h2 className="text-base font-bold text-white">Customize Profile</h2>
-            <p className="text-white/50 text-[10px]">Show users more about you to get 50 daily matches.</p>
+            <p className="text-white/50 text-xs">Show users more about you to get 50 daily matches.</p>
           </div>
 
           {/* Scrollable Content */}
