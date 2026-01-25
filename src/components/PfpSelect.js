@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useState, useRef } from 'react';
 
-const PFP_BASE_URL = 'https://pub-c344659298794c9f96898621acc3f91a.r2.dev';
+const MALE_PFP_BASE_URL = 'https://pub-c61675e13cbd40ad973b2415bf4bbbe2.r2.dev';
+const FEMALE_PFP_BASE_URL = 'https://pub-c344659298794c9f96898621acc3f91a.r2.dev';
 const PFP_FILES = [
   'b (1).png',
   'b (5).png',
@@ -30,21 +31,25 @@ const BG_FILES = [
   'a.png',
 ];
 
-const pfpUrls = PFP_FILES.map(file => `${PFP_BASE_URL}/${encodeURIComponent(file)}`);
+const malePfpUrls = PFP_FILES.map(file => `${MALE_PFP_BASE_URL}/${encodeURIComponent(file)}`);
+const femalePfpUrls = PFP_FILES.map(file => `${FEMALE_PFP_BASE_URL}/${encodeURIComponent(file)}`);
 const bgUrls = BG_FILES.map(file => `${BG_BASE_URL}/${encodeURIComponent(file)}`);
 
 function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
   const titleId = useId();
-  const [previewPfp, setPreviewPfp] = useState(currentPfp || pfpUrls[0]);
+  const [previewPfp, setPreviewPfp] = useState(currentPfp || malePfpUrls[0]);
   const [previewBg, setPreviewBg] = useState(currentBg || '');
   
-  const pfpScrollRef = useRef(null);
+  const malePfpScrollRef = useRef(null);
+  const femalePfpScrollRef = useRef(null);
   const bgScrollRef = useRef(null);
   
-  const pfpScrollTimeout = useRef(null);
+  const malePfpScrollTimeout = useRef(null);
+  const femalePfpScrollTimeout = useRef(null);
   const bgScrollTimeout = useRef(null);
   
-  const isPfpScrolling = useRef(false);
+  const isMalePfpScrolling = useRef(false);
+  const isFemalePfpScrolling = useRef(false);
   const isBgScrolling = useRef(false);
 
   // Handle Escape key to close the modal
@@ -63,12 +68,22 @@ function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
 
   // Scroll to initial PFP on mount
   useEffect(() => {
-    setPreviewPfp(currentPfp || pfpUrls[0]);
+    setPreviewPfp(currentPfp || malePfpUrls[0]);
     setPreviewBg(currentBg || '');
 
-    const container = pfpScrollRef.current;
-    if (container && currentPfp) {
-      const elementToScrollTo = container.querySelector(`[data-pfp-url="${currentPfp}"]`);
+    const maleContainer = malePfpScrollRef.current;
+    if (maleContainer && currentPfp) {
+      const elementToScrollTo = maleContainer.querySelector(`[data-pfp-url="${currentPfp}"]`);
+      if (elementToScrollTo) {
+        setTimeout(() => {
+          elementToScrollTo.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+        }, 0);
+      }
+    }
+
+    const femaleContainer = femalePfpScrollRef.current;
+    if (femaleContainer && currentPfp) {
+      const elementToScrollTo = femaleContainer.querySelector(`[data-pfp-url="${currentPfp}"]`);
       if (elementToScrollTo) {
         setTimeout(() => {
           elementToScrollTo.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
@@ -125,7 +140,8 @@ function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
     }, 150); // Debounce time
   };
 
-  const handlePfpScroll = createScrollHandler(pfpScrollRef, pfpScrollTimeout, isPfpScrolling, setPreviewPfp, 'pfpUrl');
+  const handleMalePfpScroll = createScrollHandler(malePfpScrollRef, malePfpScrollTimeout, isMalePfpScrolling, setPreviewPfp, 'pfpUrl');
+  const handleFemalePfpScroll = createScrollHandler(femalePfpScrollRef, femalePfpScrollTimeout, isFemalePfpScrolling, setPreviewPfp, 'pfpUrl');
   const handleBgScroll = createScrollHandler(bgScrollRef, bgScrollTimeout, isBgScrolling, setPreviewBg, 'bgUrl');
 
   const handleThumbnailClick = (val, setPreview, ref, dataAttr, isScrollingRef) => {
@@ -203,10 +219,10 @@ function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
           </div>
 
 
-        {/* Avatar Carousel */}
-        <div className="mb-8 relative z-10">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-xs font-bold text-[#fefefe]/60 uppercase tracking-wider">Avatar</h3>
+        {/* Male Avatar Carousel */}
+        <div className="mb-4 relative z-10">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h3 className="text-xs font-bold text-[#fefefe]/60 uppercase tracking-wider">Male Avatars</h3>
             <span className="text-[10px] text-[#fefefe]/60 bg-[#fefefe]/5 px-2 py-0.5 rounded-full border border-[#fefefe]/5">Scroll to select</span>
           </div>
           
@@ -216,22 +232,57 @@ function PfpSelect({ onSave, onClose, currentPfp, currentBg }) {
             <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/90 to-transparent z-10 pointer-events-none" />
 
             <div 
-              ref={pfpScrollRef}
-              onScroll={handlePfpScroll}
+              ref={malePfpScrollRef}
+              onScroll={handleMalePfpScroll}
               className="flex items-center gap-4 overflow-x-auto px-6 pb-4 pt-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
             >
-              {pfpUrls.map((url, index) => (
+              {malePfpUrls.map((url, index) => (
                 <button
                   key={url}
                   data-pfp-url={url}
-                  onClick={() => handleThumbnailClick(url, setPreviewPfp, pfpScrollRef, 'pfp-url', isPfpScrolling)}
+                  onClick={() => handleThumbnailClick(url, setPreviewPfp, malePfpScrollRef, 'pfp-url', isMalePfpScrolling)}
                   className={`snap-center shrink-0 w-16 h-16 rounded-full overflow-hidden transition-all duration-300 ease-out ${
                     previewPfp === url 
                       ? 'ring-2 ring-[#fefefe] scale-110 shadow-lg shadow-[#ffbd59]/20 opacity-100 z-10' 
                       : 'ring-1 ring-[#fefefe]/10 scale-90 opacity-40 hover:opacity-80 hover:scale-100 grayscale hover:grayscale-0'
                   }`}
                 >
-                  <img src={url} alt={`Option ${index + 1}`} className="w-full h-full object-contain" />
+                  <img src={url} alt={`Male Option ${index + 1}`} className="w-full h-full object-contain" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Female Avatar Carousel */}
+        <div className="mb-8 relative z-10">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h3 className="text-xs font-bold text-[#fefefe]/60 uppercase tracking-wider">Female Avatars</h3>
+            <span className="text-[10px] text-[#fefefe]/60 bg-[#fefefe]/5 px-2 py-0.5 rounded-full border border-[#fefefe]/5">Scroll to select</span>
+          </div>
+          
+          <div className="relative -mx-6">
+            {/* Fade Gradients */}
+            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black/90 to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/90 to-transparent z-10 pointer-events-none" />
+
+            <div 
+              ref={femalePfpScrollRef}
+              onScroll={handleFemalePfpScroll}
+              className="flex items-center gap-4 overflow-x-auto px-6 pb-4 pt-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+            >
+              {femalePfpUrls.map((url, index) => (
+                <button
+                  key={url}
+                  data-pfp-url={url}
+                  onClick={() => handleThumbnailClick(url, setPreviewPfp, femalePfpScrollRef, 'pfp-url', isFemalePfpScrolling)}
+                  className={`snap-center shrink-0 w-16 h-16 rounded-full overflow-hidden transition-all duration-300 ease-out ${
+                    previewPfp === url 
+                      ? 'ring-2 ring-[#fefefe] scale-110 shadow-lg shadow-[#ffbd59]/20 opacity-100 z-10' 
+                      : 'ring-1 ring-[#fefefe]/10 scale-90 opacity-40 hover:opacity-80 hover:scale-100 grayscale hover:grayscale-0'
+                  }`}
+                >
+                  <img src={url} alt={`Female Option ${index + 1}`} className="w-full h-full object-contain" />
                 </button>
               ))}
             </div>
