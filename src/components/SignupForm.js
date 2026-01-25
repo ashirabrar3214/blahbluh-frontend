@@ -36,16 +36,39 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+  ];
+
   // Helper to calculate age from DOB
-  const handleDobChange = (e) => {
-    const date = e.target.value;
-    setDob(date);
-    if (date) {
-      const birthDate = new Date(date);
+  const handleDatePartChange = (part, value) => {
+    let [y, m] = (dob || '-').split('-');
+    if (part === 'year') y = value;
+    if (part === 'month') m = value;
+
+    const newDob = `${y || ''}-${m || ''}`;
+    setDob(newDob);
+
+    if (y && m) {
+      const yearNum = parseInt(y);
+      const monthNum = parseInt(m);
       const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      let age = today.getFullYear() - yearNum;
+      const monthDiff = (today.getMonth() + 1) - monthNum;
+      if (monthDiff < 0) {
         age--;
       }
       setFormData(prev => ({ ...prev, age: age }));
@@ -139,21 +162,17 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
   if (isUpgrade) {
     return (
       <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 font-sans">
-        <div className="w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="bg-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
           
           {/* Header */}
-          <div className="p-6 border-b border-white/5 text-center bg-[#111]">
-            <h2 className="text-2xl font-bold text-white mb-1">Customize Profile</h2>
-            <p className="text-white/50 text-sm">Show users more about you to get 50 daily matches.</p>
+          <div className="px-6 py-1 border-b border-white/5 text-center bg-[#111]">
+            <h2 className="text-base font-bold text-white">Customize Profile</h2>
+            <p className="text-white/50 text-[10px]">Show users more about you to get 50 daily matches.</p>
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
             
-            <p className="text-white/40 text-xs text-center">
-               <span className="text-red-500">*</span> are the information visible to other users...
-            </p>
-
             {/* 1. Avatar Section (Top) */}
             <div className="flex flex-col items-center">
               <div className="relative group cursor-pointer" onClick={() => setShowPfpSelect(true)}>
@@ -172,11 +191,10 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
                      )}
                    </div>
                    {/* Edit Overlay */}
-                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                      <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                    </div>
                 </div>
-                <p className="text-center text-xs text-white/40 mt-3 font-medium uppercase tracking-wide">Tap to edit</p>
               </div>
             </div>
 
@@ -219,53 +237,84 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
                 {/* Birth Date */}
                 <div>
                   <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">
-                    Birth Date <span className="text-red-500">*</span>
+                    Birth Date
                   </label>
-                  <input 
-                    type="date" 
-                    value={dob}
-                    onChange={handleDobChange}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] transition-all [color-scheme:dark]"
-                  />
-                  <p className="text-[10px] text-white/30 mt-1 ml-1">we dont store it, age is only visible</p>
+                  <div className="flex gap-2">
+                    <div className="relative w-[60%]">
+                      <select 
+                        value={(dob || '-').split('-')[1] || ''}
+                        onChange={(e) => handleDatePartChange('month', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
+                      >
+                        <option value="" className="text-black">Month</option>
+                        {months.map(m => <option key={m.value} value={m.value} className="text-black">{m.label}</option>)}
+                      </select>
+                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/50">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                      </div>
+                    </div>
+                    <div className="relative w-[40%]">
+                      <select 
+                        value={(dob || '-').split('-')[0] || ''}
+                        onChange={(e) => handleDatePartChange('year', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
+                      >
+                        <option value="" className="text-black">Year</option>
+                        {years.map(y => <option key={y} value={y} className="text-black">{y}</option>)}
+                      </select>
+                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/50">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Gender */}
                 <div>
                   <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">
-                    Gender <span className="text-red-500">*</span>
+                    Gender
                   </label>
-                  <select 
-                    value={formData.gender} 
-                    onChange={(e) => setFormData({...formData, gender: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none"
-                  >
-                    <option value="prefer-not-to-say" className="text-black">Prefer not to say</option>
-                    <option value="male" className="text-black">Male</option>
-                    <option value="female" className="text-black">Female</option>
-                    <option value="non-binary" className="text-black">Non-binary</option>
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={formData.gender} 
+                      onChange={(e) => setFormData({...formData, gender: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
+                    >
+                      <option value="prefer-not-to-say" className="text-black">Prefer not to say</option>
+                      <option value="male" className="text-black">Male</option>
+                      <option value="female" className="text-black">Female</option>
+                      <option value="non-binary" className="text-black">Non-binary</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/50">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Country */}
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">
-                    Country <span className="text-red-500">*</span>
+                    Country
                   </label>
-                  <select 
-                    value={formData.country} 
-                    onChange={(e) => setFormData({...formData, country: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none"
-                  >
-                    <option value="" className="text-black">Select Country</option>
-                    <option value="United States" className="text-black">United States</option>
-                    <option value="United Kingdom" className="text-black">United Kingdom</option>
-                    <option value="Canada" className="text-black">Canada</option>
-                    <option value="Australia" className="text-black">Australia</option>
-                    <option value="India" className="text-black">India</option>
-                    <option value="Germany" className="text-black">Germany</option>
-                    <option value="Other" className="text-black">Other</option>
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={formData.country} 
+                      onChange={(e) => setFormData({...formData, country: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
+                    >
+                      <option value="" className="text-black">Select Country</option>
+                      <option value="United States" className="text-black">United States</option>
+                      <option value="United Kingdom" className="text-black">United Kingdom</option>
+                      <option value="Canada" className="text-black">Canada</option>
+                      <option value="Australia" className="text-black">Australia</option>
+                      <option value="India" className="text-black">India</option>
+                      <option value="Germany" className="text-black">Germany</option>
+                      <option value="Other" className="text-black">Other</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/50">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -281,17 +330,17 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
           </div>
 
           {/* Footer Buttons */}
-          <div className="p-6 border-t border-white/5 bg-[#111] space-y-3">
+          <div className="px-6 py-1.5 border-t border-white/5 bg-[#111] flex flex-col items-center gap-1">
             <button 
               onClick={handleUpgradeSubmit}
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-[#ffbd59] text-black font-bold hover:bg-[#ffbd59]/90 disabled:opacity-50 transition-all text-lg shadow-lg shadow-[#ffbd59]/20"
+              className="w-3/4 py-1.5 rounded-2xl bg-[#ffbd59] text-black font-bold hover:bg-[#ffbd59]/90 disabled:opacity-50 transition-all text-base shadow-lg shadow-[#ffbd59]/20"
             >
               Save & Continue
             </button>
             <button 
               onClick={() => onComplete(null)} // Pass null to close without saving
-              className="w-full py-3 rounded-2xl bg-transparent text-white/40 font-medium hover:text-white transition-all"
+              className="w-full py-1 rounded-2xl bg-transparent text-white/40 font-medium hover:text-white transition-all text-sm"
             >
               Remind me later
             </button>
