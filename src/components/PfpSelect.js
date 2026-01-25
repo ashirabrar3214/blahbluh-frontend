@@ -3,9 +3,6 @@ import React, { useEffect, useId, useState, useRef } from 'react';
 const MALE_PFP_BASE_URL = 'https://pub-c61675e13cbd40ad973b2415bf4bbbe2.r2.dev';
 const FEMALE_PFP_BASE_URL = 'https://pub-c344659298794c9f96898621acc3f91a.r2.dev';
 const PFP_FILES = [
-  'a.png',
-  'b.png',
-  'c.png',
   'd.png',
   'e.png',
   'f.png',
@@ -22,11 +19,21 @@ const PFP_FILES = [
   'q.png',
   'r.png',
   's.png',
+  'a.png',
+  'b.png',
+  'c.png',
 ];
 
 const BG_BASE_URL = 'https://pub-f0d85aac44cf4aa895afe84cb6649484.r2.dev';
 const BG_FILES = [
   'a.png',
+  'b.png',  
+  'c.png',  
+  'd.png',  
+  'e.png',  
+  'f.png',  
+  'g.png',  
+  'h.png',  
 ];
 
 const malePfpUrls = PFP_FILES.map(file => `${MALE_PFP_BASE_URL}/${encodeURIComponent(file)}`);
