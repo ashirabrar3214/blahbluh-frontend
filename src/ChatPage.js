@@ -422,25 +422,23 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       joinedChatIdRef.current = newChatId;
       socket.emit('join-chat', { chatId: newChatId });
 
-      // 3) Always ensure we have a prompt topic for the popup
+      // ✅ NEW: Use the topic from the socket immediately
       if (payload.topic) {
-        setSuggestedTopic(payload.topic);
-        return;
+        const t = payload.topic;
+        const p = typeof t === 'string' ? { kind: 'text', text: t, options: [] } : t;
+        
+        // Set state immediately to show UI without loader
+        setIcebreakerOpen(true);
+        setIcebreakerTopic(p.text);
+        setIcebreakerPrompt(p);
+        
+        // 🔥 BLOCK the API fetch effect
+        topicChatIdRef.current = newChatId; 
+      } else {
+        // Fallback if server didn't send topic
+        setSuggestedTopic(null);
+        // topicChatIdRef.current will NOT match, so the API fetch effect will run naturally
       }
-
-      // Server didn't provide a topic -> fetch one here
-      setSuggestedTopic(null); // optional: clears previous topic before we set the new one
-      api.suggestTopic(currentUserId)
-        .then((data) => {
-          // stale guard: ignore if we already moved to another chat
-          if (joinedChatIdRef.current !== newChatId) return;
-          setSuggestedTopic(data?.suggestion || "What's on your mind?");
-        })
-        .catch((err) => {
-          console.error('ChatPage: Failed to fetch topic for new pairing:', err);
-          if (joinedChatIdRef.current !== newChatId) return;
-          setSuggestedTopic("What's on your mind?");
-        });
     };
 
 
@@ -652,7 +650,18 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setChatPartner(partner);
         setMessages([]);
         setHasMore(false);
-        setSuggestedTopic(initialChatData.topic || null);
+        
+        // ✅ NEW: Pre-load the topic to prevent loading screen
+        if (initialChatData.topic) {
+           const t = initialChatData.topic;
+           const p = typeof t === 'string' ? { kind: 'text', text: t, options: [] } : t;
+           setIcebreakerTopic(p.text);
+           setIcebreakerPrompt(p);
+           // 🔥 Mark this chatId as "handled" so the API fetch effect doesn't run
+           topicChatIdRef.current = initialChatData.chatId; 
+        } else {
+           setSuggestedTopic(null); // Fallback to fetching
+        }
 
         // ✅ Prevent join-chat spam
         if (initialChatData.chatId !== joinedChatIdRef.current) {
