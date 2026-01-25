@@ -453,13 +453,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
-        {/* 1. Matches Left Badge - MOVED DOWN to be visible */}
-       <div className="absolute top-20 left-1/2 -translate-x-1/2 md:top-24 bg-zinc-800/90 backdrop-blur border border-white/10 px-4 py-1.5 rounded-full z-50 shadow-lg pointer-events-none select-none">
-            <span className="text-zinc-400 text-[10px] uppercase tracking-wider">
-                🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left
-            </span>
-       </div>
-
       <nav className="fixed top-0 w-full z-20 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center bg-[#000000]/50 backdrop-blur-md border-b border-[#fefefe]/5">
         <div className="flex items-center gap-2 md:gap-2.5">
           <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-8 h-8 md:w-9 md:h-9 object-contain rounded-[18%]" />
@@ -581,10 +574,17 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       </nav>
 
       <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-28 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
+        {/* Matches Left Badge */}
+        <div className="mb-2 bg-zinc-800/90 backdrop-blur border border-white/10 px-4 py-1.5 rounded-full shadow-lg pointer-events-none select-none z-10 whitespace-nowrap">
+            <span className="text-zinc-400 text-[9px] sm:text-[10px] uppercase tracking-wider">
+                🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left
+            </span>
+       </div>
+
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
 
-        <div className="max-w-lg w-full text-center relative z-10 mt-12 md:my-auto">
+        <div className="max-w-lg w-full text-center relative z-10 mt-4 md:my-auto">
           <h1 className="text-6xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
             Yap with <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">

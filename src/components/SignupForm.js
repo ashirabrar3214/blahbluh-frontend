@@ -162,7 +162,7 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
   if (isUpgrade) {
     return (
       <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 font-sans">
-        <div className="bg-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="bg-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] w-full max-w-md">
           
           {/* Header */}
           <div className="px-6 py-1 border-b border-white/5 text-center bg-[#111]">
