@@ -98,11 +98,18 @@ function App() {
 
   useEffect(() => {
     const handleTabClose = () => {
-      globalSocketRef.current?.emit('leave_queue');
+      const socket = globalSocketRef.current;
+      if (!socket || !currentUser?.id) return;
+
+      // Tell server this is a refresh/close intent
+      socket.emit('page-unload', { userId: currentUser.id });
+
+      // If you want to be extra bulletproof for queue:
+      // navigator.sendBeacon('/api/leave-queue', JSON.stringify({ userId: currentUser.id }));
     };
     window.addEventListener('beforeunload', handleTabClose);
     return () => window.removeEventListener('beforeunload', handleTabClose);
-  }, []);
+  }, [currentUser]);
 
 useEffect(() => {
   if (!chatData) return;
