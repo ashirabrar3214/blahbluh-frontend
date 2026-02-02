@@ -657,6 +657,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         
         if (!initialChatData.chatId.startsWith('friend_')) {
           setIcebreakerOpen(true);
+          // 🔥 FIX: Clear browser history state immediately.
+          // This prevents "Refresh" from reloading this same chat data 
+          // and skipping the queue/limit checks.
+          window.history.replaceState({}, document.title);
         }
         
         // ✅ NEW: Pre-load the topic to prevent loading screen
