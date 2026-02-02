@@ -418,6 +418,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setPromptAnswer(''); // reset whatever they typed last time
       setIsRequeuing(false);
 
+      setIcebreakerOpen(true);
+
       // 2) Join the new room (and update the ref FIRST)
       joinedChatIdRef.current = newChatId;
       socket.emit('join-chat', { chatId: newChatId });
@@ -437,6 +439,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       } else {
         // Fallback if server didn't send topic
         setSuggestedTopic(null);
+        setIcebreakerTopic(null);
+        setIcebreakerPrompt(null);
         // topicChatIdRef.current will NOT match, so the API fetch effect will run naturally
       }
     };
@@ -651,6 +655,10 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setMessages([]);
         setHasMore(false);
         
+        if (!initialChatData.chatId.startsWith('friend_')) {
+          setIcebreakerOpen(true);
+        }
+        
         // ✅ NEW: Pre-load the topic to prevent loading screen
         if (initialChatData.topic) {
            const t = initialChatData.topic;
@@ -661,6 +669,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
            topicChatIdRef.current = initialChatData.chatId; 
         } else {
            setSuggestedTopic(null); // Fallback to fetching
+           setIcebreakerTopic(null);
+           setIcebreakerPrompt(null);
         }
 
         // ✅ Prevent join-chat spam
