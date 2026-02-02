@@ -96,6 +96,14 @@ function App() {
     currentPageRef.current = currentPage;
   }, [currentPage]);
 
+  useEffect(() => {
+    const handleTabClose = () => {
+      globalSocketRef.current?.emit('leave_queue');
+    };
+    window.addEventListener('beforeunload', handleTabClose);
+    return () => window.removeEventListener('beforeunload', handleTabClose);
+  }, []);
+
 useEffect(() => {
   if (!chatData) return;
 
