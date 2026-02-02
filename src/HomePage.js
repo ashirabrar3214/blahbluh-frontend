@@ -182,6 +182,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       setQueuePosition(result.queuePosition || 1);
       setNotification(null);
       if (onNotificationChange) onNotificationChange(null);
+      setBannerMessage(null);
 
       // Fetch a suggested topic when joining the queue
       try {
