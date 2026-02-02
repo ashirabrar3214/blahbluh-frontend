@@ -133,8 +133,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   const handleStartChat = useCallback(async () => {
     if (!currentUserId) return;
 
-    if (tags.length < 3) {
-      setBannerMessage("Please put at least 3 interests to get paired");
+    if (tags.length < 1) {
+      setBannerMessage("Please put at least 1 interest to get paired");
       return;
     }
 
@@ -607,7 +607,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
             </div>
             <TagInput tags={tags} onTagsChange={(newTags) => {
               setTags(newTags);
-              if (newTags.length >= 3) setBannerMessage(null);
+              if (newTags.length >= 1) setBannerMessage(null);
             }} />
           </div>
           {bannerMessage && (
