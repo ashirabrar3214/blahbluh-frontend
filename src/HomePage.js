@@ -133,6 +133,11 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   const handleStartChat = useCallback(async () => {
     if (!currentUserId) return;
 
+    if (tags.length < 3) {
+      setBannerMessage("Please put at least 3 interests to get paired");
+      return;
+    }
+
     // Always ensure we have a real user object (kills the race condition)
     const freshUser = currentUser?.id
       ? currentUser
@@ -599,7 +604,10 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
             <div className="mb-2 ml-1 h-6 flex items-center">
                <FadeRotateHint />
             </div>
-            <TagInput tags={tags} onTagsChange={setTags} />
+            <TagInput tags={tags} onTagsChange={(newTags) => {
+              setTags(newTags);
+              if (newTags.length >= 3) setBannerMessage(null);
+            }} />
           </div>
           {bannerMessage && (
             <div className="px-4 py-3 mb-4 rounded-2xl bg-[#ff907c]/10 border border-[#ff907c]/20 text-[#ff907c] text-sm animate-in fade-in">
@@ -634,8 +642,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
               
               <button 
                 onClick={handleStartChat} 
-                disabled={tags.length === 0 || isBanned}
-                className={`group relative w-full py-4 md:py-5 rounded-full bg-[#ffbd59] text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,189,89,0.3)] ${(tags.length === 0 || isBanned) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                disabled={isBanned}
+                className={`group relative w-full py-4 md:py-5 rounded-full bg-[#ffbd59] text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,189,89,0.3)] ${isBanned ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
               >
                 Start Chatting
                 <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
