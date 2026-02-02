@@ -994,8 +994,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     setIcebreakerPrompt(null);
     topicChatIdRef.current = null;
 
-    // Instead of going home, show a "searching" state until the next match.
-    setIsRequeuing(true);
+    onGoHome();
 
     // Reset guard shortly after
     setTimeout(() => {

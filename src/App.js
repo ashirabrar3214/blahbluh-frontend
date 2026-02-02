@@ -97,18 +97,29 @@ function App() {
   }, [currentPage]);
 
   useEffect(() => {
-    const handleTabClose = () => {
+    const emitUnload = () => {
       const socket = globalSocketRef.current;
       if (!socket || !currentUser?.id) return;
-
-      // Tell server this is a refresh/close intent
       socket.emit('page-unload', { userId: currentUser.id });
-
-      // If you want to be extra bulletproof for queue:
-      // navigator.sendBeacon('/api/leave-queue', JSON.stringify({ userId: currentUser.id }));
     };
-    window.addEventListener('beforeunload', handleTabClose);
-    return () => window.removeEventListener('beforeunload', handleTabClose);
+
+    // Desktop
+    window.addEventListener('beforeunload', emitUnload);
+
+    // Mobile safari/phones: MUCH more reliable
+    window.addEventListener('pagehide', emitUnload);
+
+    // Extra paranoia: if tab goes hidden, mark it (optional)
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') emitUnload();
+    };
+    document.addEventListener('visibilitychange', onVis);
+
+    return () => {
+      window.removeEventListener('beforeunload', emitUnload);
+      window.removeEventListener('pagehide', emitUnload);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [currentUser]);
 
 useEffect(() => {
