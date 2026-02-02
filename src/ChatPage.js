@@ -418,30 +418,30 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setPromptAnswer(''); // reset whatever they typed last time
       setIsRequeuing(false);
 
+      // --- FIX START: Force Open Icebreaker for ALL new matches ---
+      // This ensures the popup shows even if you were skipped (passive match)
       setIcebreakerOpen(true);
+      // --- FIX END ---
 
-      // 2) Join the new room (and update the ref FIRST)
+      // 2) Join the new room
       joinedChatIdRef.current = newChatId;
       socket.emit('join-chat', { chatId: newChatId });
 
-      // ✅ NEW: Use the topic from the socket immediately
+      // 3) Handle Topic (if present immediately)
       if (payload.topic) {
         const t = payload.topic;
         const p = typeof t === 'string' ? { kind: 'text', text: t, options: [] } : t;
         
-        // Set state immediately to show UI without loader
-        setIcebreakerOpen(true);
+        // setIcebreakerOpen(true); // <--- DELETE THIS (Duplicate)
         setIcebreakerTopic(p.text);
         setIcebreakerPrompt(p);
         
-        // 🔥 BLOCK the API fetch effect
         topicChatIdRef.current = newChatId; 
       } else {
-        // Fallback if server didn't send topic
+        // Fallback: Clear old topic so loader shows
         setSuggestedTopic(null);
-        setIcebreakerTopic(null);
+        setIcebreakerTopic(null); // <--- ENSURE THIS IS RESET
         setIcebreakerPrompt(null);
-        // topicChatIdRef.current will NOT match, so the API fetch effect will run naturally
       }
     };
 
@@ -654,13 +654,15 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         setChatPartner(partner);
         setMessages([]);
         setHasMore(false);
-        
+
+        // --- FIX START: Clear browser history so Refresh (F5) doesn't reuse this data ---
+        // This effectively "consumes" the initial data so it's gone on next reload.
+        window.history.replaceState(null, '');
+        // --- FIX END ---
+
+        // Show icebreaker for random chats
         if (!initialChatData.chatId.startsWith('friend_')) {
           setIcebreakerOpen(true);
-          // 🔥 FIX: Clear browser history state immediately.
-          // This prevents "Refresh" from reloading this same chat data 
-          // and skipping the queue/limit checks.
-          window.history.replaceState({}, document.title);
         }
         
         // ✅ NEW: Pre-load the topic to prevent loading screen
