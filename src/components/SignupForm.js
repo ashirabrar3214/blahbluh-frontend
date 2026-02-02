@@ -7,6 +7,15 @@ import { auth } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import '../TagInput.css';
 
+const COUNTRIES = [
+  "Argentina", "Australia", "Austria", "Belgium", "Brazil", "Canada", "Chile", "China", "Colombia", 
+  "Czech Republic", "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "Hungary", "India", 
+  "Indonesia", "Ireland", "Israel", "Italy", "Japan", "Malaysia", "Mexico", "Netherlands", "New Zealand", 
+  "Norway", "Pakistan", "Peru", "Philippines", "Poland", "Portugal", "Romania", "Russia", "Saudi Arabia", 
+  "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkey", 
+  "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Vietnam", "Other"
+];
+
 function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
   const generateRandomUsername = () => {
     const adjectives = ['Happy', 'Lucky', 'Sunny', 'Clever', 'Brave', 'Calm', 'Witty', 'Fuzzy', 'Jolly', 'Kind', 'Swift', 'Silent', 'Cosmic', 'Neon', 'Hyper', 'Retro', 'Glitch', 'Cyber'];
@@ -32,6 +41,8 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
   // Local state for DOB calculation
   const [dob, setDob] = useState('');
   
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showPfpSelect, setShowPfpSelect] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,6 +167,10 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
+  const filteredCountries = COUNTRIES.filter(c => 
+    c.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
   // ==========================================
   // VIEW: PROFILE CUSTOMIZATION POPUP (Upgrade)
   // ==========================================
@@ -165,13 +180,19 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
         <div className="bg-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] w-full max-w-md">
           
           {/* Header */}
-          <div className="px-6 py-1 border-b border-white/5 text-center bg-[#111]">
-            <h2 className="text-base font-bold text-white">Customize Profile</h2>
-            <p className="text-white/50 text-xs">Show users more about you to get 50 daily matches.</p>
+          <div className="relative bg-gradient-to-r from-[#ffbd59] to-[#ff907c] p-6 text-center shrink-0">
+            <div className="absolute top-0 left-0 w-full h-full bg-black/10" />
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 backdrop-blur-sm shadow-lg">
+                 <span className="text-2xl">🔥</span>
+              </div>
+              <h2 className="text-2xl font-black text-black uppercase tracking-tight leading-none">Unlock 50 Matches</h2>
+              <p className="text-black/70 text-xs font-bold mt-1">Complete your profile to start chatting</p>
+            </div>
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-8 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
             
             {/* 1. Avatar Section (Top) */}
             <div className="flex flex-col items-center">
@@ -244,12 +265,12 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
                       <select 
                         value={(dob || '-').split('-')[1] || ''}
                         onChange={(e) => handleDatePartChange('month', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-3 py-3 pr-8 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
                       >
                         <option value="" className="text-black">Month</option>
                         {months.map(m => <option key={m.value} value={m.value} className="text-black">{m.label}</option>)}
                       </select>
-                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/50">
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/50">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                       </div>
                     </div>
@@ -257,12 +278,12 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
                       <select 
                         value={(dob || '-').split('-')[0] || ''}
                         onChange={(e) => handleDatePartChange('year', e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-3 py-3 pr-8 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
                       >
                         <option value="" className="text-black">Year</option>
                         {years.map(y => <option key={y} value={y} className="text-black">{y}</option>)}
                       </select>
-                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/50">
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/50">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                       </div>
                     </div>
@@ -296,24 +317,45 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
                   <label className="block text-xs font-bold text-[#fefefe]/40 uppercase tracking-wider mb-2 ml-1">
                     Country
                   </label>
-                  <div className="relative">
-                    <select 
-                      value={formData.country} 
-                      onChange={(e) => setFormData({...formData, country: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#ffbd59] appearance-none cursor-pointer"
+                  <div className="relative z-20">
+                    <div 
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-[#ffbd59]"
+                        onClick={() => setShowCountryDropdown(!showCountryDropdown)}
                     >
-                      <option value="" className="text-black">Select Country</option>
-                      <option value="United States" className="text-black">United States</option>
-                      <option value="United Kingdom" className="text-black">United Kingdom</option>
-                      <option value="Canada" className="text-black">Canada</option>
-                      <option value="Australia" className="text-black">Australia</option>
-                      <option value="India" className="text-black">India</option>
-                      <option value="Germany" className="text-black">Germany</option>
-                      <option value="Other" className="text-black">Other</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/50">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        <span className={formData.country ? "text-white" : "text-white/50"}>
+                            {formData.country || "Select Country"}
+                        </span>
+                        <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
+                    
+                    {showCountryDropdown && (
+                        <div className="absolute bottom-full mb-2 left-0 w-full bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 flex flex-col">
+                            <div className="p-2 border-b border-white/5 sticky top-0 bg-[#1a1a1a]">
+                                <input
+                                    type="text"
+                                    value={countrySearch}
+                                    onChange={(e) => setCountrySearch(e.target.value)}
+                                    placeholder="Search country..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#ffbd59]"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="overflow-y-auto flex-1">
+                                {filteredCountries.map(c => (
+                                    <div 
+                                        key={c}
+                                        onClick={() => { setFormData({...formData, country: c}); setCountrySearch(''); setShowCountryDropdown(false); }}
+                                        className="px-4 py-3 hover:bg-white/5 text-white text-sm cursor-pointer transition-colors"
+                                    >
+                                        {c}
+                                    </div>
+                                ))}
+                                {filteredCountries.length === 0 && (
+                                    <div className="px-4 py-3 text-white/40 text-sm text-center">No countries found</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                   </div>
                 </div>
               </div>
