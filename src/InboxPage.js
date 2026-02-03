@@ -27,10 +27,21 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
       try {
         const friendsData = await api.getFriends(currentUserId);
         //console.log('👥 InboxPage: Loaded friends data:', friendsData);
-        setFriends(friendsData);
+
+        // Deduplicate friends based on ID to prevent duplicate inboxes
+        const uniqueFriendsMap = new Map();
+        friendsData.forEach(friend => {
+          const id = friend.userId || friend.id;
+          if (id && !uniqueFriendsMap.has(id)) {
+            uniqueFriendsMap.set(id, friend);
+          }
+        });
+        const uniqueFriends = Array.from(uniqueFriendsMap.values());
+
+        setFriends(uniqueFriends);
         // Load unread counts for each friend
         const counts = {};
-        for (const friend of friendsData) {
+        for (const friend of uniqueFriends) {
           const friendId = friend.userId || friend.id;
           try {
             const count = await api.getUnreadCount(currentUserId, friendId);

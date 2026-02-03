@@ -669,7 +669,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       {/* Contact / Help Button */}
       <a
         href="mailto:hello@blahbluh.com"
-        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/40 hover:text-[#fefefe] hover:bg-[#fefefe]/10 hover:border-[#fefefe]/20 transition-all duration-300 backdrop-blur-sm group shadow-lg hover:shadow-[#fefefe]/5"
+        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-300 shadow-lg"
         aria-label="Contact Support"
       >
         <HelpIcon />
