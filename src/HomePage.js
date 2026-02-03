@@ -88,6 +88,14 @@ const InboxIcon = () => (
   </svg>
 );
 
+const HelpIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+);
+
 function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, initialQueueState, setQueueState, children }) {
   const [inQueue, setInQueue] = useState(initialQueueState?.inQueue || false);
   const [queuePosition, setQueuePosition] = useState(initialQueueState?.position || 0);
@@ -657,6 +665,18 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       <div className="py-6 text-center text-[#fefefe]/40 text-xs font-medium">
         &copy; 2025 blahbluh. Crafted for anonymity.
       </div>
+
+      {/* Contact / Help Button */}
+      <a
+        href="mailto:hello@blahbluh.com"
+        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/40 hover:text-[#fefefe] hover:bg-[#fefefe]/10 hover:border-[#fefefe]/20 transition-all duration-300 backdrop-blur-sm group shadow-lg hover:shadow-[#fefefe]/5"
+        aria-label="Contact Support"
+      >
+        <HelpIcon />
+        <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-medium text-zinc-300 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0 pointer-events-none whitespace-nowrap shadow-xl">
+          hello@blahbluh.com
+        </span>
+      </a>
 
        {/* 2. Upgrade Modal */}
        {showUpgrade && (
