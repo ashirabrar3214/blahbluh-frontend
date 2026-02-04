@@ -103,15 +103,17 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
     if (loading || isSubmitting) return;
     try {
         setIsSubmitting(true);
-        setError(''); // Clear previous errors
+        setError(''); 
         
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
+        // Contains user.email
         const details = getAdditionalUserInfo(result);
     
         // This will now throw if the backend fails
-        const { userId } = await api.generateUserId(user.uid, formData.username);
+        // [CHANGE 8] Pass user.email as the 3rd argument!
+        const { userId } = await api.generateUserId(user.uid, formData.username, user.email);
         
         onComplete({ 
             uid: user.uid, 
@@ -123,7 +125,6 @@ function SignupForm({ onComplete, loading = false, isUpgrade = false }) {
 
     } catch (err) {
         console.error("Signup Error:", err);
-        // Show the actual error message from the backend if available
         setError(err.message || 'Google authentication failed.'); 
     } finally {
         setIsSubmitting(false);

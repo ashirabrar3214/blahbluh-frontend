@@ -1,12 +1,16 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 export const api = {
-  async generateUserId(firebaseUid, username) {
+  // [CHANGE 6] Accept 'email' as 3rd argument
+  async generateUserId(firebaseUid, username, email) {
     console.log('🆔 Ensuring Supabase user exists for Firebase UID:', firebaseUid);
 
     const params = new URLSearchParams();
     if (firebaseUid) params.set('firebaseUid', firebaseUid);
     if (username) params.set('username', username);
+    
+    // [CHANGE 7] Add email to URL params
+    if (email) params.set('email', email);
 
     const url = `${API_BASE_URL}/api/generate-user-id?${params.toString()}`;
     const response = await fetch(url);
