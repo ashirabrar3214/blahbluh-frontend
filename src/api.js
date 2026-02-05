@@ -671,7 +671,10 @@ export const api = {
   },
 
   async getMyInvites(userId) {
-      const res = await fetch(`${API_BASE_URL}/api/invites/mine/${userId}`);
+      // We add ?t=... to force the browser to ignore its cache
+      const timestamp = new Date().getTime();
+      const res = await fetch(`${API_BASE_URL}/api/invites/mine/${userId}?t=${timestamp}`);
+      
       if(!res.ok) throw new Error("Failed to fetch");
       return res.json();
   }
