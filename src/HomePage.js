@@ -102,6 +102,10 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [currentUser, setCurrentUser] = useState(null); // Ensure you fetch this via api.getUser
 
+  // 1. Add state for the specific prompt of this session
+  const [queueTopic, setQueueTopic] = useState(null);
+  const [sharing, setSharing] = useState(false);
+
   // ✅ 3. LISTEN TO PROP UPDATES (Crucial for race conditions)
   useEffect(() => {
     if (initialQueueState) {
@@ -197,6 +201,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
         const topicData = await api.suggestTopic(currentUserId);
         if (topicData && topicData.suggestion) {
           setSuggestedTopic(topicData.suggestion);
+          setQueueTopic(topicData.suggestion); // <--- Store locally for this queue session
         }
       } catch (topicError) {
         console.error('Error fetching suggested topic:', topicError);
@@ -232,6 +237,34 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
       console.error('Error leaving queue:', error);
     }
   }, [currentUserId, setQueueState, setInQueue, setQueuePosition]);
+
+  // 3. New Function to handle native sharing
+  const handleSharePrompt = async () => {
+    if (!queueTopic || !currentUserId) return;
+    setSharing(true);
+    
+    try {
+        // Generate the link
+        const { shareUrl } = await api.createInvite(currentUserId, queueTopic);
+        
+        // Native Share Sheet
+        if (navigator.share) {
+            await navigator.share({
+                title: 'Yap with me on blahbluh',
+                text: `I want to talk about: "${queueTopic}". Click to join me!`,
+                url: shareUrl
+            });
+        } else {
+            // Fallback for desktop
+            await navigator.clipboard.writeText(shareUrl);
+            alert('Link copied to clipboard! Send it to your bestie.');
+        }
+    } catch (err) {
+        console.error('Share failed:', err);
+    } finally {
+        setSharing(false);
+    }
+  };
 
   // Ref to track queue state for unmount cleanup
   const inQueueRef = useRef(inQueue);
@@ -626,18 +659,49 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
 
 
           {inQueue ? (
-            <div className="w-full bg-[#000000]/80 backdrop-blur-xl border border-[#fefefe]/10 p-6 md:p-8 rounded-[32px] shadow-2xl">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-2 border-t-[#ffbd59] border-[#fefefe]/10 animate-spin"></div>
-                <div className="text-center">
-                  <h3 className="text-xl font-bold text-[#fefefe] mb-1">Finding a match<AnimatedDots /></h3>
-                  <p className="text-[#fefefe]/60 text-sm">Position in queue: <span className="text-[#fefefe] font-mono">{queuePosition}</span></p>
+            <div className="w-full bg-[#000000]/80 backdrop-blur-xl border border-[#fefefe]/10 p-6 md:p-8 rounded-[32px] shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+              <div className="flex flex-col items-center gap-6">
+                
+                {/* Spinner & Position */}
+                <div className="flex flex-col items-center">
+                   <div className="w-16 h-16 rounded-full border-2 border-t-[#ffbd59] border-[#fefefe]/10 animate-spin mb-4"></div>
+                   <h3 className="text-xl font-bold text-[#fefefe]">Finding a match<AnimatedDots /></h3>
+                   <p className="text-[#fefefe]/60 text-sm">Position in queue: <span className="text-[#fefefe] font-mono">{queuePosition}</span></p>
                 </div>
+
+                {/* The Prompt Card */}
+                {queueTopic && (
+                    <div className="w-full bg-[#fefefe]/5 rounded-2xl p-5 border border-[#fefefe]/10 relative group">
+                        <div className="absolute -top-3 left-4 bg-[#ffbd59] text-black text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            YOUR PROMPT
+                        </div>
+                        <p className="text-lg text-center font-medium text-[#fefefe]/90 my-2">
+                            "{queueTopic}"
+                        </p>
+                        
+                        {/* Share Button */}
+                        <button 
+                          onClick={handleSharePrompt}
+                          disabled={sharing}
+                          className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#fefefe]/10 hover:bg-[#fefefe]/20 transition-all text-sm font-bold text-[#ffbd59]"
+                        >
+                          {sharing ? (
+                              <span>Generating Link...</span>
+                          ) : (
+                              <>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                                  Send to Bestie instead
+                              </>
+                          )}
+                        </button>
+                    </div>
+                )}
+
                 <button
                   onClick={leaveQueue}
-                  className="mt-4 px-5 py-2.5 md:px-6 md:py-3 rounded-full bg-[#fefefe]/10 text-[#fefefe] text-xs md:text-sm font-medium hover:bg-[#fefefe]/20 transition-colors"
+                  className="text-[#fefefe]/40 text-xs hover:text-[#fefefe] transition-colors"
                 >
-                  Cancel
+                  Cancel & Leave Queue
                 </button>
               </div>
             </div>

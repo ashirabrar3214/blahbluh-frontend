@@ -644,5 +644,29 @@ export const api = {
   async searchStickers(term) {
     const res = await fetch(`${API_BASE_URL}/api/gifs/stickers/search?q=${encodeURIComponent(term)}`);
     return res.json();
+  },
+
+  async createInvite(senderId, promptText) {
+    const res = await fetch(`${API_BASE_URL}/api/invites/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senderId, promptText })
+    });
+    return res.json();
+  },
+
+  async getInvite(inviteId) {
+    const res = await fetch(`${API_BASE_URL}/api/invites/${inviteId}`);
+    if (!res.ok) throw new Error('Invite not found or expired');
+    return res.json();
+  },
+
+  async acceptInvite(inviteId, userId) {
+    const res = await fetch(`${API_BASE_URL}/api/invites/accept`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inviteId, userId })
+    });
+    return res.json();
   }
 };
