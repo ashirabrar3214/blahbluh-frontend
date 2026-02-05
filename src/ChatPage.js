@@ -221,8 +221,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       // Use native mobile share if available
       if (navigator.share) {
         await navigator.share({
-          title: 'Yap with me on blahbluh',
-          text: `I want to talk about: "${icebreakerTopic}"`,
+          title: 'Incoming Yap...',
+          text: "Your friend sent you a yapping card! 🤫 Tap to reveal & answer:",
           url: shareUrl
         });
       } else {
@@ -1715,17 +1715,44 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 )}
               </div>
               {icebreakerPrompt?.kind === "mcq" && icebreakerPrompt.options?.length ? (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3 w-full max-w-md">
                   {icebreakerPrompt.options.map((opt, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => handlePromptSubmit(opt)}
-                      className="w-full py-3 rounded-2xl bg-zinc-800 text-white font-semibold text-sm hover:bg-zinc-700 transition-colors"
+                      className="w-full py-3 rounded-2xl bg-zinc-800 text-white font-semibold text-sm hover:bg-zinc-700 transition-colors" // This was the original button style
                     >
                       {opt}
                     </button>
                   ))}
+
+                  {/* ADD THIS ROW BELOW THE OPTIONS */}
+                  <div className="flex items-center justify-between mt-4 px-2">
+                      <span className="text-white/40 text-xs font-mono">
+                          {/* Optional: Show remaining time or votes */}
+                      </span>
+
+                      {/* THE SHARE BUTTON */}
+                      <button
+                          onClick={handleSharePrompt}
+                          disabled={isSharing}
+                          className="flex items-center gap-2 px-4 py-2 bg-[#ffbd59]/20 hover:bg-[#ffbd59]/30 text-[#ffbd59] rounded-full transition-all text-sm font-bold border border-[#ffbd59]/20"
+                      >
+                          {isSharing ? (
+                             <div className="w-4 h-4 border-2 border-[#ffbd59] border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="18" cy="5" r="3"></circle>
+                                <circle cx="6" cy="12" r="3"></circle>
+                                <circle cx="18" cy="19" r="3"></circle>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                             </svg>
+                          )}
+                          <span>Send to Friend</span>
+                      </button>
+                  </div>
                   <button
                     type="button"
                     onClick={confirmLeaveChat}
