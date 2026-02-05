@@ -668,5 +668,14 @@ export const api = {
       body: JSON.stringify({ inviteId, userId })
     });
     return res.json();
+  },
+
+  createInvite: async (senderId, promptText) => {
+    const res = await fetch(`${API_BASE_URL}/api/invites/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senderId, promptText })
+    });
+    return res.json();
   }
 };

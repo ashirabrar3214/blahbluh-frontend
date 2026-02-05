@@ -147,6 +147,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [reportContext, setReportContext] = useState(null); // { type: 'user' | 'message', data: ... }
   const [isReporting, setIsReporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [partnerStatus, setPartnerStatus] = useState('online'); // 'online' | 'reconnecting'
 
   // --- SWIPE STATE ---
@@ -208,6 +209,34 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       setIsAlreadyFriend(false);
     }
   }, [currentUserId, chatPartner]);
+
+  const handleSharePrompt = useCallback(async () => {
+    // Guard clause: ensure we have a prompt to share
+    if (!icebreakerTopic || !currentUserId) return; 
+  
+    setIsSharing(true);
+    try {
+      const { shareUrl } = await api.createInvite(currentUserId, icebreakerTopic);
+      
+      // Use native mobile share if available
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Yap with me on blahbluh',
+          text: `I want to talk about: "${icebreakerTopic}"`,
+          url: shareUrl
+        });
+      } else {
+        // Desktop fallback
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard! Send it to your friend.');
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
+      alert('Could not create share link');
+    } finally {
+      setIsSharing(false);
+    }
+  }, [icebreakerTopic, currentUserId]);
 
   // --- EFFECT HOOKS ---
 
@@ -1729,6 +1758,26 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                       Unlock Chat & Send
                     </button>
                     <button
+                    onClick={handleSharePrompt}
+                    disabled={isSharing}
+                    className="w-full py-2.5 md:py-3 rounded-full bg-[#ffbd59]/20 hover:bg-[#ffbd59]/30 text-[#ffbd59] font-bold text-xs md:text-sm border border-[#ffbd59]/20 transition-all duration-200"
+                  >
+                    {isSharing ? (
+                      <div className="w-4 h-4 border-2 border-[#ffbd59] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                      </svg>
+                    )}
+                    <span>Send to Friend</span>
+                  </button>
+                  {/* SHARE BUTTON - Add this next to your Skip button */}
+
+                  <button
                       type="button"
                       onClick={confirmLeaveChat}
                       className="w-full py-2 md:py-2.5 rounded-full text-zinc-400 text-[10px] md:text-xs font-medium hover:bg-zinc-800/50 hover:text-white transition-colors"
