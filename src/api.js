@@ -661,12 +661,18 @@ export const api = {
     return res.json();
   },
 
-  async acceptInvite(inviteId, userId) {
+  async acceptInvite(inviteId, userId, answerText) {
     const res = await fetch(`${API_BASE_URL}/api/invites/accept`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inviteId, userId })
+      body: JSON.stringify({ inviteId, userId, answerText })
     });
     return res.json();
+  },
+
+  async getMyInvites(userId) {
+      const res = await fetch(`${API_BASE_URL}/api/invites/mine/${userId}`);
+      if(!res.ok) throw new Error("Failed to fetch");
+      return res.json();
   }
 };

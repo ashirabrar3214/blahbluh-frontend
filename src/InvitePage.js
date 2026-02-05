@@ -1,4 +1,3 @@
-// src/InvitePage.js
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from './api';
@@ -7,85 +6,86 @@ export default function InvitePage({ currentUserId }) {
   const { token } = useParams();
   const navigate = useNavigate();
   const [invite, setInvite] = useState(null);
+  const [answer, setAnswer] = useState(''); // <--- State for their answer
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [processing, setProcessing] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     api.getInvite(token)
       .then(setInvite)
-      .catch(() => setError("This invite link is invalid or has expired."))
+      .catch(() => setError("This card has expired or disappeared."))
       .finally(() => setLoading(false));
   }, [token]);
 
-  const handleConnect = async () => {
-    setProcessing(true);
-    
-    // 1. If NOT logged in: Save token and go to home (login/signup)
+  const handleSendAnswer = async () => {
+    if (!answer.trim()) return alert("You gotta write something!");
+    setSending(true);
+
+    // 1. Not logged in? Save everything and go to login.
     if (!currentUserId) {
-      localStorage.setItem('pending_invite', token);
-      window.location.href = '/'; // Redirect to login/home
+      localStorage.setItem('pending_invite_token', token);
+      localStorage.setItem('pending_invite_answer', answer); // <--- SAVE THE ANSWER!
+      window.location.href = '/'; 
       return;
     }
 
-    // 2. If logged in: Accept immediately
+    // 2. Logged in? Process it.
     try {
-      const result = await api.acceptInvite(token, currentUserId);
+      const result = await api.acceptInvite(token, currentUserId, answer);
       if (result.success) {
-        // Redirect to chat with this friend
-        // We construct the chat ID based on user IDs
-        const chatId = `friend_${[currentUserId, result.senderId].sort().join('_')}`;
-        navigate(`/chat/${chatId}`); 
+        // Redirect STRAIGHT to the chat room
+        navigate(`/chat/${result.roomId}`);
       }
     } catch (err) {
-      alert("Failed to connect: " + err.message);
-      setProcessing(false);
+      alert("Failed to send: " + err.message);
+      setSending(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Loading invite...</div>;
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Loading card...</div>;
   if (error) return <div className="min-h-screen bg-black flex items-center justify-center text-red-400">{error}</div>;
 
   return (
     <div className="min-h-screen bg-black text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        {/* Background blobs */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
+        {/* Fancy blob background */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/10 rounded-full blur-[128px] pointer-events-none"></div>
 
-        <div className="max-w-md w-full bg-[#fefefe]/5 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] text-center z-10">
+        <div className="max-w-md w-full bg-[#fefefe]/5 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] z-10">
             
-            {/* Sender Info */}
-            <div className="flex flex-col items-center mb-6">
-                <img 
-                    src={invite.sender.pfp || 'https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg'} 
-                    className="w-20 h-20 rounded-full object-cover border-4 border-[#ffbd59] shadow-lg mb-3"
-                    alt={invite.sender.username}
-                />
-                <h2 className="text-2xl font-bold">
-                    <span className="text-[#ffbd59]">{invite.sender.username}</span> wants to yap
-                </h2>
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
+                 <img src={invite.sender.pfp || 'https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg'} className="w-12 h-12 rounded-full border-2 border-[#ffbd59]" alt={invite.sender.username} />
+                 <div>
+                    <h2 className="text-lg font-bold text-[#fefefe]">{invite.sender.username}</h2>
+                    <p className="text-xs text-[#fefefe]/50">sent you a card</p>
+                 </div>
             </div>
 
             {/* The Prompt */}
-            <div className="bg-[#fefefe]/5 rounded-2xl p-6 mb-8 border border-[#fefefe]/10">
-                <p className="text-xs text-[#fefefe]/40 uppercase tracking-widest font-bold mb-2">TOPIC</p>
-                <p className="text-xl font-medium leading-relaxed">"{invite.prompt_text}"</p>
+            <div className="mb-6">
+                <p className="text-xs text-[#ffbd59] font-bold uppercase tracking-widest mb-2">THE TOPIC</p>
+                <h1 className="text-2xl md:text-3xl font-bold leading-tight">"{invite.prompt_text}"</h1>
             </div>
 
-            {/* CTA */}
+            {/* Answer Input */}
+            <div className="relative">
+                <textarea
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    placeholder="Type your answer here..."
+                    className="w-full bg-[#000000]/50 border border-[#fefefe]/20 rounded-2xl p-4 text-[#fefefe] placeholder:text-[#fefefe]/30 focus:outline-none focus:border-[#ffbd59] transition-all min-h-[120px] resize-none"
+                />
+            </div>
+
+            {/* Send Button */}
             <button
-                onClick={handleConnect}
-                disabled={processing}
-                className="w-full py-4 rounded-full bg-[#ffbd59] text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#ffbd59]/20"
+                onClick={handleSendAnswer}
+                disabled={sending}
+                className="w-full mt-6 py-4 rounded-full bg-[#ffbd59] text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-                {processing ? 'Connecting...' : 'Connect & Answer'}
+                {sending ? 'Sending...' : 'Send Answer & Chat'}
             </button>
-            
-            {!currentUserId && (
-                <p className="mt-4 text-xs text-[#fefefe]/40">
-                    You'll need to create a quick anonymous account first.
-                </p>
-            )}
         </div>
     </div>
   );

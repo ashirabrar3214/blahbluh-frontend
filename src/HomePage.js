@@ -4,6 +4,7 @@ import { api } from './api';
 import TagInput from './TagInput';
 import './TagInput.css';
 import SignupForm from './components/SignupForm';
+import YappingCardsModal from './components/YappingCardsModal';
 
 
 const INTEREST_HINTS = [
@@ -105,6 +106,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
   // 1. Add state for the specific prompt of this session
   const [queueTopic, setQueueTopic] = useState(null);
   const [sharing, setSharing] = useState(false);
+  const [showCards, setShowCards] = useState(false);
 
   // ✅ 3. LISTEN TO PROP UPDATES (Crucial for race conditions)
   useEffect(() => {
@@ -587,6 +589,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
               </div>
             )}
           </div>
+          <button 
+            onClick={() => setShowCards(true)}
+            className="text-xs text-[#ffbd59] hover:text-[#ffbd59]/80 transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 font-bold"
+          >
+            My Yaps
+          </button>
           <button
             onClick={() => {
               if (isBanned) {
@@ -764,6 +772,13 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onAdminOpen
            }} 
          />
        )}
+
+      {/* Yapping Cards Modal */}
+      <YappingCardsModal 
+        isOpen={showCards} 
+        onClose={() => setShowCards(false)} 
+        currentUserId={currentUserId} 
+      />
 
       {/* Global Call UI */}
       {children}

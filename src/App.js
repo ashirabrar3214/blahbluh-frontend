@@ -97,15 +97,17 @@ function App() {
   // Handle pending invites from localStorage
   useEffect(() => {
     const checkPendingInvite = async () => {
-      const pendingToken = localStorage.getItem('pending_invite');
+      const pendingToken = localStorage.getItem('pending_invite_token');
+      const pendingAnswer = localStorage.getItem('pending_invite_answer');
       
       // We only process if we have a token AND a logged-in user
       if (pendingToken && currentUser?.id) {
           console.log("Found pending invite, accepting...");
           try {
-              const result = await api.acceptInvite(pendingToken, currentUser.id);
+              const result = await api.acceptInvite(pendingToken, currentUser.id, pendingAnswer);
               if (result.success) {
-                  localStorage.removeItem('pending_invite'); // Clear it
+                  localStorage.removeItem('pending_invite_token'); 
+                  localStorage.removeItem('pending_invite_answer');
                   const chatId = `friend_${[currentUser.id, result.senderId].sort().join('_')}`;
                   
                   // Fetch friend details to open chat
@@ -120,7 +122,8 @@ function App() {
               }
           } catch (err) {
               console.error("Failed to accept pending invite", err);
-              localStorage.removeItem('pending_invite'); // Clear invalid token
+              localStorage.removeItem('pending_invite_token'); // Clear invalid token
+              localStorage.removeItem('pending_invite_answer');
           }
       }
     };
