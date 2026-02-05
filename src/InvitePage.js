@@ -23,8 +23,8 @@ export default function InvitePage({ currentUserId }) {
     
     // 1. If NOT logged in: Save token and go to home (login/signup)
     if (!currentUserId) {
-      localStorage.setItem('pending_invite_token', token);
-      navigate('/'); // Or open signup modal directly if possible
+      localStorage.setItem('pending_invite', token);
+      window.location.href = '/'; // Redirect to login/home
       return;
     }
 

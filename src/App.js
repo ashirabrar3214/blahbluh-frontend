@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import io from 'socket.io-client';
 import ChatPage from './ChatPage';
 import HomePage from './HomePage';
@@ -6,6 +7,7 @@ import InboxPage from './InboxPage';
 import ProfilePage from './ProfilePage';
 import SignupForm from './components/SignupForm';
 import { api } from './api';
+import InvitePage from './InvitePage';
 import LoadingScreen from './components/LoadingScreen';
 import CallPopup from './components/CallPopup';
 import AdminDashboard from './AdminDashboard';
@@ -95,7 +97,7 @@ function App() {
   // Handle pending invites from localStorage
   useEffect(() => {
     const checkPendingInvite = async () => {
-      const pendingToken = localStorage.getItem('pending_invite_token');
+      const pendingToken = localStorage.getItem('pending_invite');
       
       // We only process if we have a token AND a logged-in user
       if (pendingToken && currentUser?.id) {
@@ -103,7 +105,7 @@ function App() {
           try {
               const result = await api.acceptInvite(pendingToken, currentUser.id);
               if (result.success) {
-                  localStorage.removeItem('pending_invite_token'); // Clear it
+                  localStorage.removeItem('pending_invite'); // Clear it
                   const chatId = `friend_${[currentUser.id, result.senderId].sort().join('_')}`;
                   
                   // Fetch friend details to open chat
@@ -118,7 +120,7 @@ function App() {
               }
           } catch (err) {
               console.error("Failed to accept pending invite", err);
-              localStorage.removeItem('pending_invite_token'); // Clear invalid token
+              localStorage.removeItem('pending_invite'); // Clear invalid token
           }
       }
     };
@@ -641,17 +643,6 @@ useEffect(() => {
     );
   }
 
-  if (!currentUser) {
-    return (
-      <>
-        {loading && <LoadingScreen message="Creating your account..." />}
-        <SignupForm
-          onComplete={handleSignupComplete}
-          loading={loading}
-        />
-      </>
-    );
-  }
 
   // --- Global Call UI ---
   const renderCallUI = () => (
@@ -721,110 +712,116 @@ useEffect(() => {
     </>
   );
 
-  if (currentPage === 'admin') {
-    return <AdminDashboard onBack={() => setCurrentPage('home')} />;
-  }
-
-  // ✅ App content only AFTER signup
-  if (currentPage === 'home') {
-    return (
-      <HomePage
-        socket={globalSocketRef.current}
-        currentUserId={currentUser.id}
-        currentUsername={currentUser.username}
-        initialTags={currentUser.interests || []}
-        globalNotifications={globalNotifications}
-        globalFriendRequests={globalFriendRequests}
-        setGlobalNotifications={setGlobalNotifications}
-        setGlobalFriendRequests={setGlobalFriendRequests}
-        unreadCount={unreadCount}
-        notification={pageNotification}
-        initialQueueState={queueState}
-        setQueueState={setQueueState}
-        onNotificationChange={setPageNotification}
-        onChatStart={() => {
-          // HomePage calls this right before joining queue
-          // so future matches are not ignored.
-          chatExitRef.current = false;
-        }}
-
-        onProfileOpen={() => setCurrentPage('profile')}
-        onAdminOpen={() => setCurrentPage('admin')}
-        onInboxOpen={() => {
-          console.log('App: Inbox opened. Resetting unread count and navigating to inbox page.');
-          setUnreadCount(0);
-          setInboxKey(prev => prev + 1);
-          setCurrentPage('inbox');
-        }}
-        children={renderCallUI()}
-      />
-    );
-  }
-
-  if (currentPage === 'inbox') {
-    return (
-      <InboxPage
-        key={inboxKey}
-        socket={globalSocketRef.current}
-        currentUserId={currentUser.id}
-        currentUsername={currentUser.username}
-        onBack={() => setCurrentPage('home')}
-        onChatOpen={(friend) => {
-          console.log('App: Opening friend chat from inbox with friend:', friend);
-          setSelectedFriend(friend);
-          setChatData(null);
-          setCurrentPage('chat');
-        }}
-        children={renderCallUI()}
-      />
-    );
-  }
-
-  if (currentPage === 'profile') {
-    return (
-      <ProfilePage
-        currentUserId={currentUser.id}
-        currentUsername={currentUser.username}
-        onBack={() => setCurrentPage('home')}
-        children={renderCallUI()}
-      />
-    );
-  }
-
   return (
-    <ChatPage 
-      socket={globalSocketRef.current}
-      user={currentUser}
-      currentUserId={currentUser.id}
-      currentUsername={currentUser.username}
-      initialChatData={chatData}
-      targetFriend={selectedFriend}
-      suggestedTopic={suggestedTopic}
-      setSuggestedTopic={setSuggestedTopic}
-      globalNotifications={globalNotifications}
-      globalFriendRequests={globalFriendRequests}
-      setGlobalNotifications={setGlobalNotifications}
-      setGlobalFriendRequests={setGlobalFriendRequests}
-      unreadCount={unreadCount}
-      callStatus={callStatus}
-      onStartCall={(chatId, partner) => startCall(chatId, partner)}
-      onHangupCall={hangupCall}
-      onGoHome={() => {
-        console.log('App: Navigating to home page from chat.');
-        chatExitRef.current = true;
-        setSelectedFriend(null);
-        setChatData(null);
-        setPageNotification(null);
-        setSuggestedTopic(null);
-        setCurrentPage('home');
-      }}
-      onInboxOpen={() => {
-        setUnreadCount(0);
-        setInboxKey(prev => prev + 1);
-        setCurrentPage('inbox');
-      }}
-      children={renderCallUI()}
-    />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/invite/:token" element={<InvitePage currentUserId={currentUser?.id} />} />
+        <Route path="*" element={
+          !currentUser ? (
+            <>
+              {loading && <LoadingScreen message="Creating your account..." />}
+              <SignupForm
+                onComplete={handleSignupComplete}
+                loading={loading}
+              />
+            </>
+          ) : (
+            <>
+              {currentPage === 'admin' ? (
+                <AdminDashboard onBack={() => setCurrentPage('home')} />
+              ) : currentPage === 'home' ? (
+                <HomePage
+                  socket={globalSocketRef.current}
+                  currentUserId={currentUser.id}
+                  currentUsername={currentUser.username}
+                  initialTags={currentUser.interests || []}
+                  globalNotifications={globalNotifications}
+                  globalFriendRequests={globalFriendRequests}
+                  setGlobalNotifications={setGlobalNotifications}
+                  setGlobalFriendRequests={setGlobalFriendRequests}
+                  unreadCount={unreadCount}
+                  notification={pageNotification}
+                  initialQueueState={queueState}
+                  setQueueState={setQueueState}
+                  onNotificationChange={setPageNotification}
+                  onChatStart={() => {
+                    // HomePage calls this right before joining queue
+                    // so future matches are not ignored.
+                    chatExitRef.current = false;
+                  }}
+
+                  onProfileOpen={() => setCurrentPage('profile')}
+                  onAdminOpen={() => setCurrentPage('admin')}
+                  onInboxOpen={() => {
+                    console.log('App: Inbox opened. Resetting unread count and navigating to inbox page.');
+                    setUnreadCount(0);
+                    setInboxKey(prev => prev + 1);
+                    setCurrentPage('inbox');
+                  }}
+                  children={renderCallUI()}
+                />
+              ) : currentPage === 'inbox' ? (
+                <InboxPage
+                  key={inboxKey}
+                  socket={globalSocketRef.current}
+                  currentUserId={currentUser.id}
+                  currentUsername={currentUser.username}
+                  onBack={() => setCurrentPage('home')}
+                  onChatOpen={(friend) => {
+                    console.log('App: Opening friend chat from inbox with friend:', friend);
+                    setSelectedFriend(friend);
+                    setChatData(null);
+                    setCurrentPage('chat');
+                  }}
+                  children={renderCallUI()}
+                />
+              ) : currentPage === 'profile' ? (
+                <ProfilePage
+                  currentUserId={currentUser.id}
+                  currentUsername={currentUser.username}
+                  onBack={() => setCurrentPage('home')}
+                  children={renderCallUI()}
+                />
+              ) : (
+                <ChatPage 
+                  socket={globalSocketRef.current}
+                  user={currentUser}
+                  currentUserId={currentUser.id}
+                  currentUsername={currentUser.username}
+                  initialChatData={chatData}
+                  targetFriend={selectedFriend}
+                  suggestedTopic={suggestedTopic}
+                  setSuggestedTopic={setSuggestedTopic}
+                  globalNotifications={globalNotifications}
+                  globalFriendRequests={globalFriendRequests}
+                  setGlobalNotifications={setGlobalNotifications}
+                  setGlobalFriendRequests={setGlobalFriendRequests}
+                  unreadCount={unreadCount}
+                  callStatus={callStatus}
+                  onStartCall={(chatId, partner) => startCall(chatId, partner)}
+                  onHangupCall={hangupCall}
+                  onGoHome={() => {
+                    console.log('App: Navigating to home page from chat.');
+                    chatExitRef.current = true;
+                    setSelectedFriend(null);
+                    setChatData(null);
+                    setPageNotification(null);
+                    setSuggestedTopic(null);
+                    setCurrentPage('home');
+                  }}
+                  onInboxOpen={() => {
+                    setUnreadCount(0);
+                    setInboxKey(prev => prev + 1);
+                    setCurrentPage('inbox');
+                  }}
+                  children={renderCallUI()}
+                />
+              )}
+            </>
+          )
+        } />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
