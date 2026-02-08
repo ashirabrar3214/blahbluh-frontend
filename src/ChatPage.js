@@ -757,7 +757,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 setIcebreakerPrompt({ kind: 'text', text: invite.prompt_text, options: [] });
                 
                 // 6. Connect Socket to this Room
-                socket?.emit('join-chat', { chatId });
+                socket?.emit('join_firechat', { roomId: chatId, userId: currentUserId });
+                setIsFirechat(true);
 
             })
             .catch(err => {
