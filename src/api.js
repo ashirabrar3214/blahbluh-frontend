@@ -679,11 +679,11 @@ export const api = {
       return res.json();
   },
 
-  async getYapSession(inviteId) {
+  async getYapSession(inviteId, userId) {
     // If the ID comes in as "yap_UUID", strip the prefix to query the DB
     const cleanId = inviteId.startsWith('yap_') ? inviteId.split('_')[1] : inviteId;
     
-    const response = await fetch(`${API_BASE_URL}/api/invites/session/${cleanId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/invites/session/${cleanId}?userId=${userId}`, {
         headers: {
             'Content-Type': 'application/json',
             // Include auth headers if your app requires them for this endpoint
@@ -691,6 +691,8 @@ export const api = {
     });
     
     if (!response.ok) {
+        const err = await response.text();
+        console.error("Yap Session Error:", err);
         throw new Error('Failed to load session');
     }
     return response.json();

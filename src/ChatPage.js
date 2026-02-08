@@ -684,7 +684,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
           setChatId(chatId);
           
           // 1. Fetch Session Data
-          api.getYapSession(chatId) 
+          api.getYapSession(chatId, currentUserId) 
             .then(data => {
                 const { invite, messages } = data;
 
@@ -725,7 +725,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
             })
             .catch(err => {
                 console.error("Failed to load Yap session:", err);
-                setActionToast("This chat has expired or doesn't exist.");
+                setActionToast("Unable to join this Yap.");
                 onGoHome(); // Kick back to home if invalid
             });
             
