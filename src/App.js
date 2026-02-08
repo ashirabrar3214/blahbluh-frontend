@@ -68,6 +68,23 @@ function App() {
     return false;
   }, []);
 
+  // 1. ADD THIS EFFECT to handle direct URL navigation to /chat/:id
+  // This fixes the bug where navigate('/chat/...') did nothing
+  const matchChatRoute = window.location.pathname.match(/^\/chat\/(.+)$/);
+  useEffect(() => {
+    if (matchChatRoute && currentUser) {
+      const urlChatId = matchChatRoute[1];
+      console.log("App: Detected Chat URL, opening chat:", urlChatId);
+      
+      // Manually set the chat data to force the view
+      setChatData({
+        chatId: urlChatId,
+        users: [] // ChatPage will load the details
+      });
+      setCurrentPage('chat');
+    }
+  }, [window.location.pathname, currentUser]);
+
   useEffect(() => {
     const restoreUser = async () => {
       const userId = localStorage.getItem('blahbluh_userId');
@@ -101,7 +118,6 @@ function App() {
       const pendingToken = localStorage.getItem('pending_invite_token');
       const pendingAnswer = localStorage.getItem('pending_invite_answer');
       
-      // We only process if we have a token AND a logged-in user
       if (pendingToken && currentUser?.id) {
           console.log("Found pending invite, accepting...");
           try {
@@ -109,16 +125,12 @@ function App() {
               if (result.success) {
                   localStorage.removeItem('pending_invite_token'); 
                   localStorage.removeItem('pending_invite_answer');
-                  const chatId = `friend_${[currentUser.id, result.senderId].sort().join('_')}`;
                   
-                  // Fetch friend details to open chat
-                  const friend = await api.getUser(result.senderId);
-                  setSelectedFriend({
-                    ...friend,
-                    userId: friend.id,
-                    chatId
+                  // FIX: Use the roomId from the result (yap_...), NOT a friend_ ID
+                  setChatData({
+                    chatId: result.roomId,
+                    users: [] // ChatPage will fetch details
                   });
-                  setChatData(null);
                   setCurrentPage('chat');
               }
           } catch (err) {
@@ -720,6 +732,45 @@ useEffect(() => {
     <BrowserRouter>
       <Routes>
         <Route path="/invite/:token" element={<InvitePage currentUserId={currentUser?.id} />} />
+        {/* Add this explicit route if you want proper browser history support */}
+        <Route path="/chat/:chatId" element={
+            currentUser ? (
+               <ChatPage 
+                  socket={globalSocketRef.current}
+                  user={currentUser}
+                  currentUserId={currentUser.id}
+                  currentUsername={currentUser.username}
+                  initialChatData={{ chatId: window.location.pathname.split('/').pop() }}
+                  targetFriend={selectedFriend}
+                  suggestedTopic={suggestedTopic}
+                  setSuggestedTopic={setSuggestedTopic}
+                  globalNotifications={globalNotifications}
+                  globalFriendRequests={globalFriendRequests}
+                  setGlobalNotifications={setGlobalNotifications}
+                  setGlobalFriendRequests={setGlobalFriendRequests}
+                  unreadCount={unreadCount}
+                  callStatus={callStatus}
+                  onStartCall={(chatId, partner) => startCall(chatId, partner)}
+                  onHangupCall={hangupCall}
+                  onGoHome={() => {
+                     window.history.pushState(null, "", "/"); // Reset URL
+                     console.log('App: Navigating to home page from chat.');
+                     chatExitRef.current = true;
+                     setSelectedFriend(null);
+                     setChatData(null);
+                     setPageNotification(null);
+                     setSuggestedTopic(null);
+                     setCurrentPage('home');
+                  }}
+                  onInboxOpen={() => {
+                    setUnreadCount(0);
+                    setInboxKey(prev => prev + 1);
+                    setCurrentPage('inbox');
+                  }}
+                  children={renderCallUI()}
+               />
+            ) : <SignupForm onComplete={handleSignupComplete} loading={loading} />
+        } />
         <Route path="*" element={
           !currentUser ? (
             <>

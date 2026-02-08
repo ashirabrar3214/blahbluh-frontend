@@ -674,6 +674,59 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       // Random chat from queue
       if (!currentUserId) return; // <-- hard guard, prevents wrong partner selection
 
+      // NEW: Handle Yap (Deep Link) Chat
+      if (initialChatData.chatId.startsWith('yap_')) {
+         const yapId = initialChatData.chatId;
+         setIsRequeuing(false);
+         setChatId(yapId);
+         
+         // Fetch session details (Prompt + Messages + Partner)
+         api.getYapSession(yapId).then(data => {
+            const { invite, messages } = data;
+            
+            // Determine partner (it's whoever isn't me)
+            const isSender = invite.sender_id === currentUserId;
+            const partnerUser = isSender 
+                ? { ...invite.respondent, id: invite.respondent_id }
+                : { ...invite.sender, id: invite.sender_id };
+            
+            setChatPartner(partnerUser);
+            
+            // Format messages
+            const formattedMessages = messages.map(msg => ({
+                id: msg.id,
+                chatId: yapId,
+                message: msg.text || msg.message,
+                userId: msg.sender_id,
+                // Simple check for username
+                username: msg.sender_id === currentUserId ? currentUsername : (partnerUser?.username || 'Partner'),
+                timestamp: msg.created_at,
+                reactions: {}
+            }));
+            
+            setMessages(formattedMessages);
+            
+            // Set the prompt as the "Icebreaker" topic so it shows at the top
+            setIcebreakerTopic(invite.prompt_text);
+            setIcebreakerPrompt({ kind: 'text', text: invite.prompt_text, options: [] });
+            
+            // Mark topic as handled
+            topicChatIdRef.current = yapId;
+            setIcebreakerOpen(false); // Show chat immediately
+         }).catch(err => {
+             console.error("Failed to load Yap session:", err);
+             setActionToast("Failed to load chat");
+             onGoHome?.();
+         });
+         
+         // Join the socket room
+         if (yapId !== joinedChatIdRef.current) {
+            joinedChatIdRef.current = yapId;
+            socket?.emit('join-chat', { chatId: yapId });
+         }
+         return;
+      }
+
       const myId = currentUserId;
       const partner = initialChatData.users.find(u => (u.id || u.userId) !== myId);
       if (partner) {
