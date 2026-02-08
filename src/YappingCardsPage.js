@@ -23,13 +23,13 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
     }, [currentUserId]);
 
     const handleCardClick = (card) => {
-        // If is_active is TRUE, it means it's still pending (no one answered yet).
+        // If is_active is true, it means NO ONE has answered it yet.
         if (card.is_active) {
-            alert("This card hasn't been answered yet!");
+            alert("This card hasn't been answered yet! Wait for a reply.");
             return;
         }
         
-        // If answered, open the chat using the yap_ ID format
+        // Use the specific "yap_" prefix so ChatPage knows it's a temporary room
         onChatOpen(`yap_${card.id}`);
     };
 
@@ -70,10 +70,9 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
                                 <span className="text-[#fefefe]/40">
                                     {new Date(card.created_at).toLocaleDateString()}
                                 </span>
-                                {/* Status Logic */}
                                 {!card.is_active ? (
                                     <span className="text-green-400 font-bold flex items-center gap-1">
-                                        ✓ Answered (Click to Chat)
+                                        ✓ Answered (Tap to Chat)
                                     </span>
                                 ) : (
                                     <span className="text-[#ffbd59] font-bold">

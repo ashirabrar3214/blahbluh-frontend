@@ -795,11 +795,14 @@ useEffect(() => {
                   currentUserId={currentUser.id}
                   onBack={() => setCurrentPage('home')}
                   onChatOpen={(chatId) => {
-                    console.log("App: Opening Yap Chat", chatId);
+                    console.log("App: Opening Yap Room:", chatId);
+                    
+                    // Force the app into "Chat Mode" with this specific ID
                     setChatData({
-                        chatId: chatId,
-                        users: [] // ChatPage will fetch the participant details
+                        chatId: chatId, 
+                        users: [] // Empty users array signals ChatPage to fetch details itself
                     });
+                    
                     setCurrentPage('chat');
                   }}
                 />

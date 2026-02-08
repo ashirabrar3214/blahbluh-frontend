@@ -680,17 +680,19 @@ export const api = {
   },
 
   async getYapSession(inviteId) {
-    // extract UUID if the ID is "yap_UUID"
+    // If the ID comes in as "yap_UUID", strip the prefix to query the DB
     const cleanId = inviteId.startsWith('yap_') ? inviteId.split('_')[1] : inviteId;
+    
     const response = await fetch(`${API_BASE_URL}/api/invites/session/${cleanId}`, {
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            // Include auth headers if your app requires them for this endpoint
         }
     });
     
     if (!response.ok) {
-        throw new Error(`Failed to fetch session: ${response.status}`);
+        throw new Error('Failed to load session');
     }
-    return await response.json();
+    return response.json();
   }
 };

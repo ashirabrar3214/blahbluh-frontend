@@ -671,60 +671,65 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     //console.log('ChatPage initialization:', { initialChatData, targetFriend, currentUserId, currentUsername });
     
     if (initialChatData) {
+      const { chatId } = initialChatData;
+
       // Random chat from queue
       if (!currentUserId) return; // <-- hard guard, prevents wrong partner selection
 
-      // NEW: Handle Yap (Deep Link) Chat
-      if (initialChatData.chatId.startsWith('yap_')) {
-         const yapId = initialChatData.chatId;
-         setIsRequeuing(false);
-         setChatId(yapId);
-         
-         // Fetch session details (Prompt + Messages + Partner)
-         api.getYapSession(yapId).then(data => {
-            const { invite, messages } = data;
+      // ✅ NEW: Handle Temporary "Yap" Rooms
+      if (chatId && chatId.startsWith('yap_')) {
+          console.log('ChatPage: Detected Yap Room. Fetching session...');
+          
+          setIsRequeuing(false); // Ensure we don't show the queue spinner
+          setChatId(chatId);
+          
+          // 1. Fetch Session Data
+          api.getYapSession(chatId) 
+            .then(data => {
+                const { invite, messages } = data;
+
+                // 2. Figure out who the "Partner" is
+                // If I am the sender, partner is respondent. If I am respondent, partner is sender.
+                const isMeSender = invite.sender_id === currentUserId;
+                const partnerUser = isMeSender ? invite.respondent : invite.sender;
+                const partnerId = isMeSender ? invite.respondent_id : invite.sender_id;
+
+                // 3. Set Partner Data (No Friend Status Required)
+                setChatPartner({
+                    id: partnerId,
+                    userId: partnerId,
+                    username: partnerUser?.username || 'Anonymous',
+                    pfp: partnerUser?.pfp,
+                    pfp_background: partnerUser?.pfp_background
+                });
+
+                // 4. Load Messages
+                const formattedMessages = messages.map(msg => ({
+                    id: msg.id,
+                    chatId: chatId,
+                    message: msg.text || msg.message,
+                    userId: msg.sender_id,
+                    username: msg.sender_id === currentUserId ? currentUsername : partnerUser?.username,
+                    timestamp: msg.created_at,
+                    reactions: {} 
+                }));
+                setMessages(formattedMessages);
+                
+                // 5. Set the Prompt as the Topic Header
+                setIcebreakerTopic(invite.prompt_text);
+                setIcebreakerPrompt({ kind: 'text', text: invite.prompt_text, options: [] });
+                
+                // 6. Connect Socket to this Room
+                socket?.emit('join-chat', { chatId });
+
+            })
+            .catch(err => {
+                console.error("Failed to load Yap session:", err);
+                setActionToast("This chat has expired or doesn't exist.");
+                onGoHome(); // Kick back to home if invalid
+            });
             
-            // Determine partner (it's whoever isn't me)
-            const isSender = invite.sender_id === currentUserId;
-            const partnerUser = isSender 
-                ? { ...invite.respondent, id: invite.respondent_id }
-                : { ...invite.sender, id: invite.sender_id };
-            
-            setChatPartner(partnerUser);
-            
-            // Format messages
-            const formattedMessages = messages.map(msg => ({
-                id: msg.id,
-                chatId: yapId,
-                message: msg.text || msg.message,
-                userId: msg.sender_id,
-                // Simple check for username
-                username: msg.sender_id === currentUserId ? currentUsername : (partnerUser?.username || 'Partner'),
-                timestamp: msg.created_at,
-                reactions: {}
-            }));
-            
-            setMessages(formattedMessages);
-            
-            // Set the prompt as the "Icebreaker" topic so it shows at the top
-            setIcebreakerTopic(invite.prompt_text);
-            setIcebreakerPrompt({ kind: 'text', text: invite.prompt_text, options: [] });
-            
-            // Mark topic as handled
-            topicChatIdRef.current = yapId;
-            setIcebreakerOpen(false); // Show chat immediately
-         }).catch(err => {
-             console.error("Failed to load Yap session:", err);
-             setActionToast("Failed to load chat");
-             onGoHome?.();
-         });
-         
-         // Join the socket room
-         if (yapId !== joinedChatIdRef.current) {
-            joinedChatIdRef.current = yapId;
-            socket?.emit('join-chat', { chatId: yapId });
-         }
-         return;
+          return; // 🛑 EXIT HERE so we don't run the random queue logic
       }
 
       const myId = currentUserId;
