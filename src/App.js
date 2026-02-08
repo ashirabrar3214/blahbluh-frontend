@@ -70,8 +70,8 @@ function App() {
 
   // 1. ADD THIS EFFECT to handle direct URL navigation to /chat/:id
   // This fixes the bug where navigate('/chat/...') did nothing
-  const matchChatRoute = window.location.pathname.match(/^\/chat\/(.+)$/);
   useEffect(() => {
+    const matchChatRoute = window.location.pathname.match(/^\/chat\/(.+)$/);
     if (matchChatRoute && currentUser) {
       const urlChatId = matchChatRoute[1];
       console.log("App: Detected Chat URL, opening chat:", urlChatId);
@@ -83,7 +83,7 @@ function App() {
       });
       setCurrentPage('chat');
     }
-  }, [window.location.pathname, currentUser]);
+  }, [currentUser]);
 
   useEffect(() => {
     const restoreUser = async () => {
@@ -637,6 +637,21 @@ useEffect(() => {
     setLoading(false);
   };
 
+  const handleGoHome = useCallback(() => {
+    console.log('App: Navigating to home page from chat.');
+    chatExitRef.current = true;
+    setSelectedFriend(null);
+    setChatData(null);
+    setPageNotification(null);
+    setSuggestedTopic(null);
+    setCurrentPage('home');
+  }, []);
+
+  const handleGoHomeWithUrlReset = useCallback(() => {
+    window.history.pushState(null, "", "/"); // Reset URL
+    handleGoHome();
+  }, [handleGoHome]);
+
   // 🔥 GLOBAL SIGNUP GATE
   if (currentPage === 'loading') {
     return <LoadingScreen message="Loading..." />;
@@ -752,16 +767,7 @@ useEffect(() => {
                   callStatus={callStatus}
                   onStartCall={(chatId, partner) => startCall(chatId, partner)}
                   onHangupCall={hangupCall}
-                  onGoHome={() => {
-                     window.history.pushState(null, "", "/"); // Reset URL
-                     console.log('App: Navigating to home page from chat.');
-                     chatExitRef.current = true;
-                     setSelectedFriend(null);
-                     setChatData(null);
-                     setPageNotification(null);
-                     setSuggestedTopic(null);
-                     setCurrentPage('home');
-                  }}
+                  onGoHome={handleGoHomeWithUrlReset}
                   onInboxOpen={() => {
                     setUnreadCount(0);
                     setInboxKey(prev => prev + 1);
@@ -869,15 +875,7 @@ useEffect(() => {
                   callStatus={callStatus}
                   onStartCall={(chatId, partner) => startCall(chatId, partner)}
                   onHangupCall={hangupCall}
-                  onGoHome={() => {
-                    console.log('App: Navigating to home page from chat.');
-                    chatExitRef.current = true;
-                    setSelectedFriend(null);
-                    setChatData(null);
-                    setPageNotification(null);
-                    setSuggestedTopic(null);
-                    setCurrentPage('home');
-                  }}
+                  onGoHome={handleGoHome}
                   onInboxOpen={() => {
                     setUnreadCount(0);
                     setInboxKey(prev => prev + 1);

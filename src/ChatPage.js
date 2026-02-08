@@ -812,7 +812,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         api.markMessagesAsRead(currentUserId, targetFriend.userId).catch(console.error);
       }
     }
-  }, [initialChatData, targetFriend, currentUserId, currentUsername, socket, setSuggestedTopic]);
+  }, [initialChatData, targetFriend, currentUserId, currentUsername, socket, setSuggestedTopic, onGoHome]);
 
   const loadMoreMessages = async () => {
     if (loadingMore || !hasMore || !chatId) return;
