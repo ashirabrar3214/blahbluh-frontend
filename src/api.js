@@ -681,8 +681,12 @@ export const api = {
 
   async getYapSession(inviteId) {
     // extract UUID if the ID is "yap_UUID"
-    const realId = inviteId.startsWith('yap_') ? inviteId.split('_')[1] : inviteId;
-    const response = await fetch(`${API_BASE_URL}/api/invites/session/${realId}`);
+    const cleanId = inviteId.startsWith('yap_') ? inviteId.split('_')[1] : inviteId;
+    const response = await fetch(`${API_BASE_URL}/api/invites/session/${cleanId}`, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
     
     if (!response.ok) {
         throw new Error(`Failed to fetch session: ${response.status}`);

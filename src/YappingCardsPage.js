@@ -8,7 +8,7 @@ const BackIcon = () => (
   </svg>
 );
 
-export default function YappingCardsPage({ currentUserId, onBack }) {
+export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) {
     const [invites, setInvites] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -21,6 +21,17 @@ export default function YappingCardsPage({ currentUserId, onBack }) {
                 .finally(() => setLoading(false));
         }
     }, [currentUserId]);
+
+    const handleCardClick = (card) => {
+        // If is_active is TRUE, it means it's still pending (no one answered yet).
+        if (card.is_active) {
+            alert("This card hasn't been answered yet!");
+            return;
+        }
+        
+        // If answered, open the chat using the yap_ ID format
+        onChatOpen(`yap_${card.id}`);
+    };
 
     return (
         <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
@@ -49,7 +60,11 @@ export default function YappingCardsPage({ currentUserId, onBack }) {
                     </div>
                 ) : (
                     invites.map(card => (
-                        <div key={card.id} className="bg-[#fefefe]/5 rounded-xl p-4 border border-[#fefefe]/5">
+                        <div 
+                            key={card.id} 
+                            onClick={() => handleCardClick(card)}
+                            className={`bg-[#fefefe]/5 rounded-xl p-4 border border-[#fefefe]/5 transition-all ${!card.is_active ? 'cursor-pointer hover:bg-[#fefefe]/10 hover:border-[#ffbd59]/30' : 'opacity-75'}`}
+                        >
                             <p className="text-[#fefefe] font-medium text-sm mb-2">"{card.prompt_text}"</p>
                             <div className="flex justify-between items-center text-xs">
                                 <span className="text-[#fefefe]/40">
@@ -58,7 +73,7 @@ export default function YappingCardsPage({ currentUserId, onBack }) {
                                 {/* Status Logic */}
                                 {!card.is_active ? (
                                     <span className="text-green-400 font-bold flex items-center gap-1">
-                                        ✓ Answered
+                                        ✓ Answered (Click to Chat)
                                     </span>
                                 ) : (
                                     <span className="text-[#ffbd59] font-bold">

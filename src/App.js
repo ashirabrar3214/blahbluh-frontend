@@ -788,6 +788,14 @@ useEffect(() => {
                 <YappingCardsPage 
                   currentUserId={currentUser.id}
                   onBack={() => setCurrentPage('home')}
+                  onChatOpen={(chatId) => {
+                    console.log("App: Opening Yap Chat", chatId);
+                    setChatData({
+                        chatId: chatId,
+                        users: [] // ChatPage will fetch the participant details
+                    });
+                    setCurrentPage('chat');
+                  }}
                 />
               ) : currentPage === 'home' ? (
                 <HomePage
