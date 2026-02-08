@@ -18,7 +18,7 @@ export default function InvitePage({ currentUserId }) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const handleSendAnswer = async () => {
+  const handleAcceptInvite = async () => {
     if (!answer.trim()) return alert("You gotta write something!");
     setSending(true);
 
@@ -33,11 +33,20 @@ export default function InvitePage({ currentUserId }) {
     // 2. Logged in? Process it.
     try {
       const result = await api.acceptInvite(token, currentUserId, answer);
-      if (result.success) {
-        // Redirect STRAIGHT to the chat room
-        navigate(`/chat/${result.roomId}`);
+      if (result.success || result.data) {
+        const roomId = result.roomId || `yap_${token}`;
+        // Navigate to chat with 'firechat' type
+        navigate(`/chat/${roomId}`, { 
+          state: { 
+            roomId: roomId, 
+            chatType: 'firechat',
+            partnerId: result.data?.sender_id || invite?.sender_id,
+            isExistingChat: true 
+          } 
+        });
       }
     } catch (err) {
+      console.error("Link invalid or expired", err);
       alert("Failed to send: " + err.message);
       setSending(false);
     }
@@ -80,7 +89,7 @@ export default function InvitePage({ currentUserId }) {
 
             {/* Send Button */}
             <button
-                onClick={handleSendAnswer}
+                onClick={handleAcceptInvite}
                 disabled={sending}
                 className="w-full mt-6 py-4 rounded-full bg-[#ffbd59] text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
             >

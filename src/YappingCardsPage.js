@@ -36,6 +36,7 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
             navigate(`/chat/yap_${card.id}`, { 
                 state: { 
                     roomId: `yap_${card.id}`, 
+                    chatType: 'firechat',
                     partnerId: card.respondent_id,
                     isExistingChat: true 
                 } 

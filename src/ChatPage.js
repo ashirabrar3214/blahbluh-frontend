@@ -104,6 +104,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [activeKeyboard, setActiveKeyboard] = useState(null); // 'media', 'clip', or null
   const [viewingClip, setViewingClip] = useState(null);
   const location = useLocation();
+  const [isFirechat, setIsFirechat] = useState(false);
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
@@ -673,20 +674,27 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     const state = location.state || {};
     
     if (state.isExistingChat && state.roomId) {
+      const { roomId, chatType, partnerId } = state;
+
       // If we are coming from Sent Cards, join the room immediately
       if (socket && currentUserId) {
-          socket.emit('join-chat', { 
-            chatId: state.roomId, 
-            userId: currentUserId 
-          });
+          if (chatType === 'firechat') {
+             socket.emit('join_firechat', { roomId, userId: currentUserId });
+             setIsFirechat(true);
+          } else {
+             socket.emit('join-chat', { 
+               chatId: roomId, 
+               userId: currentUserId 
+             });
+          }
       }
-      setChatId(state.roomId);
+      setChatId(roomId);
       
       // Optimistically set partner if ID provided
-      if (state.partnerId) {
-          setChatPartner(prev => prev?.id === state.partnerId ? prev : { id: state.partnerId, userId: state.partnerId, username: 'Chat Partner' });
+      if (partnerId) {
+          setChatPartner(prev => prev?.id === partnerId ? prev : { id: partnerId, userId: partnerId, username: 'Chat Partner' });
           // Fetch full details
-          api.getUser(state.partnerId).then(u => {
+          api.getUser(partnerId).then(u => {
               if(u) setChatPartner(prev => ({ ...prev, ...u }));
           });
       }
@@ -1382,6 +1390,11 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
         <div className={`fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh] transition-all duration-300 ${isIcebreakerActive ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header - Different for friend vs random chat */}
         <header className="absolute top-0 left-0 right-0 z-30 px-3 py-2 md:px-4 md:py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
+          {isFirechat && (
+             <div className="absolute top-full left-0 right-0 bg-red-500/10 text-red-400 text-[10px] font-bold text-center py-1 border-b border-red-500/20 backdrop-blur-md">
+                🔥 Firechat - Disappears in 24h
+             </div>
+          )}
           <div className="justify-self-start">
             <button onClick={() => handleExitToHomeWithCleanup(!chatId?.startsWith('friend_'))} className="flex items-center gap-1.5 md:gap-2 text-zinc-400 hover:text-white transition-colors px-1.5 py-1 md:px-2 md:py-1 rounded-full hover:bg-zinc-800">
               <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain rounded-[15%]" />
