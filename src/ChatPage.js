@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { api } from './api';
 import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
@@ -104,7 +104,6 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [activeKeyboard, setActiveKeyboard] = useState(null); // 'media', 'clip', or null
   const [viewingClip, setViewingClip] = useState(null);
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
