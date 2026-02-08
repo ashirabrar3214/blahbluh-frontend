@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from './api';
 
 const BackIcon = () => (
@@ -11,6 +12,7 @@ const BackIcon = () => (
 export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) {
     const [invites, setInvites] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (currentUserId) {
@@ -29,8 +31,18 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
             return;
         }
         
-        // Use the specific "yap_" prefix so ChatPage knows it's a temporary room
-        onChatOpen(`yap_${card.id}`);
+        if (card.respondent_id) {
+            // Navigate to ChatPage with existing session info
+            navigate(`/chat/yap_${card.id}`, { 
+                state: { 
+                    roomId: `yap_${card.id}`, 
+                    partnerId: card.respondent_id,
+                    isExistingChat: true 
+                } 
+            });
+        } else {
+            onChatOpen(`yap_${card.id}`);
+        }
     };
 
     return (

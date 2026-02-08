@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from './api';
 import ReviewPopup from './ReviewPopup';
 import BlockUserPopup from './BlockUserPopup';
@@ -102,6 +103,8 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   const [showPublicProfile, setShowPublicProfile] = useState(false);
   const [activeKeyboard, setActiveKeyboard] = useState(null); // 'media', 'clip', or null
   const [viewingClip, setViewingClip] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [icebreakerOpen, setIcebreakerOpen] = useState(false);
   const [icebreakerTopic, setIcebreakerTopic] = useState(null);
@@ -665,6 +668,33 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
 
     return () => clearTimeout(watchdogTimer);
   }, [isRequeuing, socket, currentUserId, user]);
+
+  // Handle Existing Sessions from Navigation State
+  useEffect(() => {
+    const state = location.state || {};
+    
+    if (state.isExistingChat && state.roomId) {
+      // If we are coming from Sent Cards, join the room immediately
+      if (socket && currentUserId) {
+          socket.emit('join-chat', { 
+            chatId: state.roomId, 
+            userId: currentUserId 
+          });
+      }
+      setChatId(state.roomId);
+      
+      // Optimistically set partner if ID provided
+      if (state.partnerId) {
+          setChatPartner(prev => prev?.id === state.partnerId ? prev : { id: state.partnerId, userId: state.partnerId, username: 'Chat Partner' });
+          // Fetch full details
+          api.getUser(state.partnerId).then(u => {
+              if(u) setChatPartner(prev => ({ ...prev, ...u }));
+          });
+      }
+      
+      setIsRequeuing(false);
+    }
+  }, [location.state, socket, currentUserId]);
 
   // Initialize chat based on props
   useEffect(() => {
