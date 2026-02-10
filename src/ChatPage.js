@@ -741,14 +741,15 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
                 });
 
                 // 4. Load Messages
-                const formattedMessages = messages.map(msg => ({
+                const formattedMessages = messages.map((msg, index) => ({
                     id: msg.id,
                     chatId: chatId,
                     message: msg.text || msg.message,
                     userId: msg.sender_id,
                     username: msg.sender_id === currentUserId ? currentUsername : partnerUser?.username,
                     timestamp: msg.created_at,
-                    reactions: {} 
+                    reactions: {},
+                    prompt: index === 0 ? invite.prompt_text : null
                 }));
                 setMessages(formattedMessages);
                 
@@ -2015,6 +2016,17 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
       </>
     );
   }
+
+  return (
+    <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center font-sans h-[100dvh]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
+        <div className="text-center">
+           <h3 className="text-xl font-bold text-white mb-1 mt-4">Loading...</h3>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default ChatPage;
