@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import io from 'socket.io-client';
 import ChatPage from './ChatPage';
+import FireChatPage from './FireChatPage';
 import HomePage from './HomePage';
 import InboxPage from './InboxPage';
 import ProfilePage from './ProfilePage';
@@ -750,6 +751,16 @@ useEffect(() => {
         {/* Add this explicit route if you want proper browser history support */}
         <Route path="/chat/:chatId" element={
             currentUser ? (
+               window.location.pathname.split('/').pop()?.startsWith('yap_') ? (
+                 <FireChatPage 
+                    socket={globalSocketRef.current}
+                    user={currentUser}
+                    currentUserId={currentUser.id}
+                    currentUsername={currentUser.username}
+                    initialChatData={{ chatId: window.location.pathname.split('/').pop() }}
+                    onGoHome={handleGoHomeWithUrlReset}
+                 />
+               ) : (
                <ChatPage 
                   socket={globalSocketRef.current}
                   user={currentUser}
@@ -775,6 +786,7 @@ useEffect(() => {
                   }}
                   children={renderCallUI()}
                />
+               )
             ) : <SignupForm onComplete={handleSignupComplete} loading={loading} />
         } />
         <Route path="*" element={
@@ -861,6 +873,16 @@ useEffect(() => {
                   children={renderCallUI()}
                 />
               ) : (
+                chatData?.chatId?.startsWith('yap_') ? (
+                  <FireChatPage 
+                    socket={globalSocketRef.current}
+                    user={currentUser}
+                    currentUserId={currentUser.id}
+                    currentUsername={currentUser.username}
+                    initialChatData={chatData}
+                    onGoHome={handleGoHome}
+                  />
+                ) : (
                 <ChatPage 
                   socket={globalSocketRef.current}
                   user={currentUser}
@@ -886,6 +908,7 @@ useEffect(() => {
                   }}
                   children={renderCallUI()}
                 />
+                )
               )}
             </>
           )
