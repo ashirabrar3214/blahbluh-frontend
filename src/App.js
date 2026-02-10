@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import ChatPage from './ChatPage';
 import FireChatPage from './FireChatPage';
@@ -28,6 +28,17 @@ const normalizeChatId = (id) => {
   const a = parts[1];
   const b = parts[2];
   return `friend_${[a, b].sort().join('_')}`;
+};
+
+// This wrapper decides which page to show based on the URL ID
+const ChatRouteDispatcher = (props) => {
+  const { chatId } = useParams();
+  const isFirechat = chatId?.startsWith('yap_');
+
+  if (isFirechat) {
+    return <FireChatPage {...props} initialChatData={{ chatId }} />;
+  }
+  return <ChatPage {...props} initialChatData={{ chatId }} />;
 };
 
 function App() {
@@ -751,22 +762,12 @@ useEffect(() => {
         {/* Add this explicit route if you want proper browser history support */}
         <Route path="/chat/:chatId" element={
             currentUser ? (
-               window.location.pathname.split('/').pop()?.startsWith('yap_') ? (
-                 <FireChatPage 
-                    socket={globalSocketRef.current}
-                    user={currentUser}
-                    currentUserId={currentUser.id}
-                    currentUsername={currentUser.username}
-                    initialChatData={{ chatId: window.location.pathname.split('/').pop() }}
-                    onGoHome={handleGoHomeWithUrlReset}
-                 />
-               ) : (
-               <ChatPage 
+               <ChatRouteDispatcher 
                   socket={globalSocketRef.current}
                   user={currentUser}
                   currentUserId={currentUser.id}
                   currentUsername={currentUser.username}
-                  initialChatData={{ chatId: window.location.pathname.split('/').pop() }}
+                  // Pass all standard ChatPage props here so the dispatcher can forward them
                   targetFriend={selectedFriend}
                   suggestedTopic={suggestedTopic}
                   setSuggestedTopic={setSuggestedTopic}
@@ -786,7 +787,6 @@ useEffect(() => {
                   }}
                   children={renderCallUI()}
                />
-               )
             ) : <SignupForm onComplete={handleSignupComplete} loading={loading} />
         } />
         <Route path="*" element={
