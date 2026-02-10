@@ -6,7 +6,6 @@ import ClipKeyboard from './components/ClipKeyboard';
 import ClipPlayer from './components/ClipPlayer';
 import VideoModal from './components/VideoModal';
 import LoadingScreen from './components/LoadingScreen'; // Import LoadingScreen
-import { getEmbedConfig } from './utils/embedUtils';
 import BlockUserPopup from './BlockUserPopup';
 import ReportPopup from './ReportPopup';
 
@@ -51,11 +50,9 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
   const [showPublicProfile, setShowPublicProfile] = useState(false);
   const [showBlockPopup, setShowBlockPopup] = useState(false);
   const [showReportPopup, setShowReportPopup] = useState(false);
-  const [reportContext, setReportContext] = useState(null);
   const [actionToast, setActionToast] = useState(null);
   
   const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
 
   // --- INITIALIZATION ---
@@ -318,7 +315,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
                                 <div className="flex flex-col text-sm text-zinc-300">
                                     <button onClick={() => setReplyingTo(msg)} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-800"><ReplyIcon /> Reply</button>
                                     <button onClick={() => setActionMenuView('react')} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-800"><EmojiIcon /> React</button>
-                                    {!isOwn && <button onClick={() => { setReportContext(msg); setShowReportPopup(true); }} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 text-red-400"><ReportIcon /> Report</button>}
+                                    {!isOwn && <button onClick={() => { setShowReportPopup(true); }} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 text-red-400"><ReportIcon /> Report</button>}
                                 </div>
                             )}
                         </div>
