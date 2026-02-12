@@ -99,7 +99,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
 
             // Join Socket Room
             if (socket && socket.connected) {
-                socket.emit('join_firechat', { roomId: cId, userId: currentUserId });
+                socket.emit('join_room', { roomId: cId, userId: currentUserId });
             }
 
         } catch (error) {
