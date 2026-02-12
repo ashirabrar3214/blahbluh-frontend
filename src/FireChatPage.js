@@ -129,6 +129,18 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
         }
     };
 
+    // ✅ Add this listener to sync history on join
+    const handleHistory = (history) => {
+        const formatted = history.map(msg => ({
+            id: msg.id,
+            message: msg.text || msg.message,
+            userId: msg.sender_id,
+            timestamp: msg.created_at,
+            reactions: {},
+        }));
+        setMessages(formatted);
+    };
+
     const handleReaction = ({ messageId, emoji, userId }) => {
         if (userId === currentUserId) return; // ignore own echo
         setMessages(prev => prev.map(msg => {
@@ -149,11 +161,13 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     };
 
     socket.on('new-message', handleNewMessage);
+    socket.on('chat_history', handleHistory);
     socket.on('message-reaction', handleReaction);
     socket.on('connect', handleConnect);
 
     return () => {
         socket.off('new-message', handleNewMessage);
+        socket.off('chat_history', handleHistory);
         socket.off('message-reaction', handleReaction);
         socket.off('connect', handleConnect);
     };

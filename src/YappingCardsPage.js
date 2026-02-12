@@ -25,19 +25,22 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
     }, [currentUserId]);
 
     const handleCardClick = (card) => {
-        // If is_active is true, it means NO ONE has answered it yet.
-        if (card.is_active) {
-            alert("This card hasn't been answered yet! Wait for a reply.");
+        if (card.is_active && card.sender_id === currentUserId) {
+            alert("Wait for a reply!");
             return;
         }
         
         if (card.respondent_id) {
+            // ✅ Change: Correctly determine who the 'other' person is
+            const isMeSender = card.sender_id === currentUserId;
+            const partnerId = isMeSender ? card.respondent_id : card.sender_id;
+
             // Navigate to ChatPage with existing session info
             navigate(`/chat/yap_${card.id}`, { 
                 state: { 
                     roomId: `yap_${card.id}`, 
                     chatType: 'firechat',
-                    partnerId: card.respondent_id,
+                    partnerId: partnerId,
                     isExistingChat: true 
                 } 
             });
