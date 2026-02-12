@@ -478,14 +478,17 @@ useEffect(() => {
     //   }
     // });
     globalSocketRef.current.on('new-message', (messageData) => {
-      // ALLOW BOTH friend_ AND yap_ prefixes
-      const isRelevantChat = messageData?.chatId?.startsWith('friend_') || messageData?.chatId?.startsWith('yap_');
-      if (!isRelevantChat) return;
+      // Allow BOTH 'friend_' and 'yap_' prefixes
+      const isFireChat = messageData?.chatId?.startsWith('yap_');
+      const isFriendChat = messageData?.chatId?.startsWith('friend_');
       
+      if (!isFireChat && !isFriendChat) return;
+
+      // Do not count messages sent by yourself
       if (messageData?.userId === currentUser.id) return;
-      
+
       const page = currentPageRef.current;
-      // If user isn't actively looking at the chat, count it as unread
+      // If not currently reading the specific chat, increment unread count
       if (page !== 'chat') {
         setUnreadCount(prev => prev + 1);
       }

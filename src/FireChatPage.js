@@ -169,28 +169,25 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     if (!newMessage.trim() || !chatId) return;
 
     const msgData = {
-        id: Date.now(),
         chatId,
         message: newMessage.trim(),
         userId: currentUserId,
         username: currentUsername,
+        type: 'text',
         timestamp: new Date().toISOString(),
         replyTo: replyingTo,
         reactions: {}
     };
 
-    // Optimistic Update
-    setMessages(prev => [...prev, msgData]);
+    // STOP: Do not setMessages() here. Wait for the socket 'new-message' event.
+    socket?.emit('send-message', msgData);
     setNewMessage('');
     setReplyingTo(null);
-
-    socket?.emit('send-message', msgData);
   };
 
   const handleSendMedia = (url, type) => {
       setActiveKeyboard(null);
       const msgData = {
-          id: Date.now(),
           chatId,
           message: url,
           type,
@@ -199,7 +196,6 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
           timestamp: new Date().toISOString(),
           reactions: {}
       };
-      setMessages(prev => [...prev, msgData]);
       socket?.emit('send-message', msgData);
   };
 
