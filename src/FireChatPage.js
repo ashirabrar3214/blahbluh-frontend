@@ -118,7 +118,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     };
 
     initChat();
-  }, [initialChatData?.chatId, currentUserId, currentUsername, socket, onGoHome]);
+  }, [initialChatData?.chatId, currentUserId, currentUsername, socket, onGoHome, chatId]);
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
