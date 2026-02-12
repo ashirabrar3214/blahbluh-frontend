@@ -35,18 +35,17 @@ const ChatRouteDispatcher = (props) => {
   const { chatId } = useParams();
   const isFirechat = chatId?.startsWith('yap_');
 
+  const chatProps = {
+    ...props,
+    initialChatData: { chatId },
+    // Ensure the full user object is available
+    user: props.user 
+  };
+
   if (isFirechat) {
-    return (
-      <FireChatPage 
-        socket={props.socket}
-        currentUserId={props.currentUserId}
-        currentUsername={props.currentUsername}
-        onGoHome={props.onGoHome}
-        initialChatData={{ chatId }} 
-      />
-    );
+    return <FireChatPage {...chatProps} />;
   }
-  return <ChatPage {...props} initialChatData={{ chatId }} />;
+  return <ChatPage {...chatProps} />;
 };
 
 function App() {
@@ -87,23 +86,6 @@ function App() {
     }
     return false;
   }, []);
-
-  // 1. ADD THIS EFFECT to handle direct URL navigation to /chat/:id
-  // This fixes the bug where navigate('/chat/...') did nothing
-  useEffect(() => {
-    const matchChatRoute = window.location.pathname.match(/^\/chat\/(.+)$/);
-    if (matchChatRoute && currentUser) {
-      const urlChatId = matchChatRoute[1];
-      console.log("App: Detected Chat URL, opening chat:", urlChatId);
-      
-      // Manually set the chat data to force the view
-      setChatData({
-        chatId: urlChatId,
-        users: [] // ChatPage will load the details
-      });
-      setCurrentPage('chat');
-    }
-  }, [currentUser]);
 
   useEffect(() => {
     const restoreUser = async () => {
@@ -496,19 +478,18 @@ useEffect(() => {
     //   }
     // });
     globalSocketRef.current.on('new-message', (messageData) => {
-    if (!messageData?.chatId?.startsWith('friend_')) return;
-    // ✅ do NOT count messages you sent yourself
-    if (messageData?.userId === currentUser.id) return;
-    const page = currentPageRef.current;
-    console.log(`App: Received 'new-message' on page: ${page}. Message:`, messageData);
-    // ✅ do not increment while user is reading chat or inbox
-    if (page !== 'chat' && page !== 'inbox') {
-      console.log('App: Incrementing unread count.');
-      setUnreadCount(prev => prev + 1);
-    }
-    console.log('APP new-message', messageData);
-
-  });
+      // ALLOW BOTH friend_ AND yap_ prefixes
+      const isRelevantChat = messageData?.chatId?.startsWith('friend_') || messageData?.chatId?.startsWith('yap_');
+      if (!isRelevantChat) return;
+      
+      if (messageData?.userId === currentUser.id) return;
+      
+      const page = currentPageRef.current;
+      // If user isn't actively looking at the chat, count it as unread
+      if (page !== 'chat') {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
   
     globalSocketRef.current.on('partner-disconnected', () => {
       console.log('Partner disconnected globally');
@@ -882,14 +863,14 @@ useEffect(() => {
                 />
               ) : (
                 chatData?.chatId?.startsWith('yap_') ? (
-                  <FireChatPage 
-                    socket={globalSocketRef.current}
-                    user={currentUser}
-                    currentUserId={currentUser.id}
-                    currentUsername={currentUser.username}
-                    initialChatData={chatData}
-                    onGoHome={handleGoHome}
-                  />
+                  <FireChatPage {...{
+                    socket: globalSocketRef.current,
+                    user: currentUser,
+                    currentUserId: currentUser.id,
+                    currentUsername: currentUser.username,
+                    initialChatData: chatData,
+                    onGoHome: handleGoHome
+                  }} />
                 ) : (
                 <ChatPage 
                   socket={globalSocketRef.current}

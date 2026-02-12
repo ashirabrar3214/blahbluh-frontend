@@ -56,15 +56,17 @@ export default function InvitePage({ currentUserId }) {
   if (error) return <div className="min-h-screen bg-black flex items-center justify-center text-red-400">{error}</div>;
 
   if (invite && (invite.respondent_id || !invite.is_active)) {
+    // Use the ID from the invite object to ensure it matches the yap_ session
+    const targetRoomId = invite.room_id || `yap_${invite.id}`;
     return (
       <div className="min-h-screen bg-black text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/10 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="max-w-md w-full bg-[#fefefe]/5 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] z-10 text-center">
           <h2 className="text-xl font-bold text-[#fefefe] mb-4">This invite was already answered</h2>
           <button
-            onClick={() => navigate(`/chat/yap_${token}`, {
+            onClick={() => navigate(`/chat/${targetRoomId}`, {
               state: {
-                roomId: `yap_${token}`,
+                roomId: targetRoomId,
                 chatType: 'firechat',
                 isExistingChat: true
               }

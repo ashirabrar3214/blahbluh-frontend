@@ -51,6 +51,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
   const [showBlockPopup, setShowBlockPopup] = useState(false);
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [actionToast, setActionToast] = useState(null);
+  const [promptText, setPromptText] = useState(''); // NEW: Dedicated state
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -82,7 +83,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
                 pfp_background: partnerUser?.pfp_background
             });
 
-            // Format Messages & ATTACH PROMPT TO FIRST MESSAGE
+            // Format Messages
             const formattedMessages = apiMessages.map((msg, index) => ({
                 id: msg.id,
                 chatId: cId,
@@ -91,15 +92,16 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
                 username: msg.sender_id === currentUserId ? currentUsername : partnerUser?.username,
                 timestamp: msg.created_at,
                 reactions: {},
-                // ✅ KEY FIX: Attach prompt to the very first message
-                prompt: index === 0 ? invite.prompt_text : null 
             }));
 
             setMessages(formattedMessages);
+            
+            // Save the prompt immediately
+            setPromptText(invite.prompt_text || '');
 
             // Join Socket Room
             if (socket && socket.connected) {
-                socket.emit('join_room', { roomId: cId, userId: currentUserId });
+                socket.emit('join-chat', { chatId: cId, userId: currentUserId });
             }
 
         } catch (error) {
@@ -143,7 +145,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
 
     const handleConnect = () => {
         console.log("Socket connected, joining room:", chatId);
-        socket.emit('join_room', { roomId: chatId, userId: currentUserId });
+        socket.emit('join-chat', { chatId: chatId, userId: currentUserId });
     };
 
     socket.on('new-message', handleNewMessage);
@@ -249,6 +251,14 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
          </button>
       </header>
 
+      {/* Prompt Banner */}
+      {promptText && (
+        <div className="bg-zinc-900/50 p-4 border-b border-white/5 text-center">
+          <p className="text-xs text-[#ffbd59] font-bold uppercase mb-1">Topic</p>
+          <h2 className="text-lg font-medium italic">"{promptText}"</h2>
+        </div>
+      )}
+
       {/* Messages */}
       <div 
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3" 
@@ -257,18 +267,6 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
          {messages.map((msg, idx) => {
              const isOwn = msg.userId === currentUserId;
              
-             // RENDER PROMPT IF PRESENT
-             if (msg.prompt) {
-                 return (
-                    <div key={'prompt-' + idx} className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}>
-                        <div className="max-w-[85%] bg-zinc-900 border border-zinc-700 rounded-2xl p-4">
-                            <p className="text-sm text-zinc-400 mb-2 italic">"{msg.prompt}"</p>
-                            <p className="text-white text-base">{msg.message}</p>
-                        </div>
-                    </div>
-                 );
-             }
-
              // STANDARD MESSAGE RENDERING
              const isMedia = msg.type === 'gif' || msg.type === 'sticker' || msg.type === 'clip';
              
