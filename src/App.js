@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
+import { Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import ChatPage from './ChatPage';
 import FireChatPage from './FireChatPage';
@@ -66,6 +66,7 @@ function App() {
   const globalSocketRef = useRef(null);
   const currentPageRef = useRef(currentPage);
   const chatExitRef = useRef(false);
+  const navigate = useNavigate();
 
   // --- WebRTC STATE (Global) ---
   const [callStatus, setCallStatus] = useState('idle'); // 'idle', 'calling', 'incoming', 'connected'
@@ -645,12 +646,8 @@ useEffect(() => {
     setPageNotification(null);
     setSuggestedTopic(null);
     setCurrentPage('home');
-  }, []);
-
-  const handleGoHomeWithUrlReset = useCallback(() => {
-    window.history.pushState(null, "", "/"); // Reset URL
-    handleGoHome();
-  }, [handleGoHome]);
+    navigate('/');
+  }, [navigate]);
 
   // 🔥 GLOBAL SIGNUP GATE
   if (currentPage === 'loading') {
@@ -744,7 +741,6 @@ useEffect(() => {
   );
 
   return (
-    <BrowserRouter>
       <Routes>
         <Route path="/invite/:token" element={<InvitePage currentUserId={currentUser?.id} />} />
         {/* Add this explicit route if you want proper browser history support */}
@@ -767,7 +763,7 @@ useEffect(() => {
                   callStatus={callStatus}
                   onStartCall={(chatId, partner) => startCall(chatId, partner)}
                   onHangupCall={hangupCall}
-                  onGoHome={handleGoHomeWithUrlReset}
+                  onGoHome={handleGoHome}
                   onInboxOpen={() => {
                     setUnreadCount(0);
                     setInboxKey(prev => prev + 1);
@@ -902,7 +898,6 @@ useEffect(() => {
           )
         } />
       </Routes>
-    </BrowserRouter>
   );
 }
 

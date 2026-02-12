@@ -231,13 +231,20 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
       setActionToast("Report submitted");
   };
 
+  const handleBack = () => {
+    if (socket && chatId) {
+      socket.emit('leave-chat', { chatId, userId: currentUserId });
+    }
+    onGoHome();
+  };
+
   if (isLoading) return <LoadingScreen message="Loading Firechat..." />;
 
   return (
     <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
       {/* Header */}
       <header className="px-4 py-3 bg-zinc-900/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between z-30">
-         <button onClick={onGoHome} className="p-2 -ml-2 text-zinc-400 hover:text-white">
+         <button onClick={handleBack} className="p-2 -ml-2 text-zinc-400 hover:text-white">
             <BackIcon />
          </button>
          
