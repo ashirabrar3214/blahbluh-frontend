@@ -55,6 +55,29 @@ export default function InvitePage({ currentUserId }) {
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Loading card...</div>;
   if (error) return <div className="min-h-screen bg-black flex items-center justify-center text-red-400">{error}</div>;
 
+  if (invite && (invite.respondent_id || !invite.is_active)) {
+    return (
+      <div className="min-h-screen bg-black text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/10 rounded-full blur-[128px] pointer-events-none"></div>
+        <div className="max-w-md w-full bg-[#fefefe]/5 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] z-10 text-center">
+          <h2 className="text-xl font-bold text-[#fefefe] mb-4">This invite was already answered</h2>
+          <button
+            onClick={() => navigate(`/chat/yap_${token}`, {
+              state: {
+                roomId: `yap_${token}`,
+                chatType: 'firechat',
+                isExistingChat: true
+              }
+            })}
+            className="w-full py-4 rounded-full bg-[#ffbd59] text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            Open FireChat
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
         {/* Fancy blob background */}
@@ -78,14 +101,32 @@ export default function InvitePage({ currentUserId }) {
             </div>
 
             {/* Answer Input */}
-            <div className="relative">
-                <textarea
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Type your answer here..."
-                    className="w-full bg-[#000000]/50 border border-[#fefefe]/20 rounded-2xl p-4 text-[#fefefe] placeholder:text-[#fefefe]/30 focus:outline-none focus:border-[#ffbd59] transition-all min-h-[120px] resize-none"
-                />
-            </div>
+            {invite.prompt_type === 'options' && invite.options?.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {invite.options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setAnswer(opt)}
+                    className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border ${
+                      answer === opt
+                        ? 'bg-[#ffbd59] text-black border-[#ffbd59]'
+                        : 'bg-[#fefefe]/5 text-[#fefefe] border-[#fefefe]/10 hover:bg-[#fefefe]/10'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="relative">
+                  <textarea
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      placeholder="Type your answer here..."
+                      className="w-full bg-[#000000]/50 border border-[#fefefe]/20 rounded-2xl p-4 text-[#fefefe] placeholder:text-[#fefefe]/30 focus:outline-none focus:border-[#ffbd59] transition-all min-h-[120px] resize-none"
+                  />
+              </div>
+            )}
 
             {/* Send Button */}
             <button

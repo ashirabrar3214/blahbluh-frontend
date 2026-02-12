@@ -141,12 +141,19 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
         }));
     };
 
+    const handleConnect = () => {
+        console.log("Socket connected, joining room:", chatId);
+        socket.emit('join_room', { roomId: chatId, userId: currentUserId });
+    };
+
     socket.on('new-message', handleNewMessage);
     socket.on('message-reaction', handleReaction);
+    socket.on('connect', handleConnect);
 
     return () => {
         socket.off('new-message', handleNewMessage);
         socket.off('message-reaction', handleReaction);
+        socket.off('connect', handleConnect);
     };
   }, [socket, chatId, currentUserId]);
 

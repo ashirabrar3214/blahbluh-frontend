@@ -36,7 +36,15 @@ const ChatRouteDispatcher = (props) => {
   const isFirechat = chatId?.startsWith('yap_');
 
   if (isFirechat) {
-    return <FireChatPage {...props} initialChatData={{ chatId }} />;
+    return (
+      <FireChatPage 
+        socket={props.socket}
+        currentUserId={props.currentUserId}
+        currentUsername={props.currentUsername}
+        onGoHome={props.onGoHome}
+        initialChatData={{ chatId }} 
+      />
+    );
   }
   return <ChatPage {...props} initialChatData={{ chatId }} />;
 };
