@@ -137,8 +137,7 @@ function App() {
               }
           } catch (err) {
               console.error("Failed to accept pending invite", err);
-              localStorage.removeItem('pending_invite_token'); // Clear invalid token
-              localStorage.removeItem('pending_invite_answer');
+              // DO NOT remove yet; let the user try again or fix the connection
           }
       }
     };
