@@ -33,14 +33,14 @@ export default function InvitePage({ currentUserId }) {
     // 2. Logged in? Process it.
     try {
       const result = await api.acceptInvite(token, currentUserId, answer);
-      if (result.success || result.data) {
-        const roomId = result.roomId || `yap_${token}`;
+      if (result.success) {
+        const roomId = result.roomId;
         // Navigate to chat with 'firechat' type
         navigate(`/chat/${roomId}`, { 
           state: { 
             roomId: roomId, 
             chatType: 'firechat',
-            partnerId: result.data?.sender_id || invite?.sender_id,
+            partnerId: result.partnerId,
             isExistingChat: true 
           } 
         });
