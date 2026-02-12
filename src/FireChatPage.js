@@ -88,6 +88,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
                 id: msg.id,
                 chatId: cId,
                 message: msg.text || msg.message,
+                type: msg.type || 'text',
                 userId: msg.sender_id,
                 username: msg.sender_id === currentUserId ? currentUsername : partnerUser?.username,
                 timestamp: msg.created_at,
