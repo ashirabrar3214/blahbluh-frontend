@@ -61,6 +61,9 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     if (!initialChatData?.chatId || !currentUserId) return;
 
     const initChat = async () => {
+        // Avoid showing loading screen if we already have this chat loaded
+        if (chatId === initialChatData.chatId) return;
+
         setIsLoading(true);
         try {
             const cId = initialChatData.chatId;
@@ -115,7 +118,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     };
 
     initChat();
-  }, [initialChatData, currentUserId, currentUsername, socket, onGoHome]);
+  }, [initialChatData?.chatId, currentUserId, currentUsername, socket, onGoHome]);
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
@@ -184,6 +187,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     if (!newMessage.trim() || !chatId) return;
 
     const msgData = {
+        id: `temp-${Date.now()}`, // Unique temp ID for the key
         chatId,
         message: newMessage.trim(),
         userId: currentUserId,
@@ -194,7 +198,10 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
         reactions: {}
     };
 
-    // STOP: Do not setMessages() here. Wait for the socket 'new-message' event.
+    // ✅ 1. Optimistically add to UI immediately
+    setMessages(prev => [...prev, msgData]);
+
+    // 2. Emit to others via socket
     socket?.emit('send-message', msgData);
     setNewMessage('');
     setReplyingTo(null);

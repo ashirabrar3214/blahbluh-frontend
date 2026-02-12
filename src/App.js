@@ -487,9 +487,12 @@ useEffect(() => {
       // Do not count messages sent by yourself
       if (messageData?.userId === currentUser.id) return;
 
-      const page = currentPageRef.current;
-      // If not currently reading the specific chat, increment unread count
-      if (page !== 'chat') {
+      // Use window.location to check if we are currently looking at THIS specific chat
+      const currentPath = window.location.pathname;
+      const isViewingThisChat = currentPath.includes(messageData.chatId);
+
+      // Only increment unread count if we ARE NOT actively viewing this chat
+      if (!isViewingThisChat) {
         setUnreadCount(prev => prev + 1);
       }
     });
