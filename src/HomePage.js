@@ -74,6 +74,13 @@ function AnimatedDots() {
   return <span>{dots}</span>;
 }
 
+const CardsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+  </svg>
+);
+
 const UserIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -498,14 +505,18 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
     };
   }, [socket]);
 
+  const matches = currentUser?.matches_remaining === -1 ? 50 : (currentUser?.matches_remaining || 0);
+  const maxMatches = 50;
+  const matchPercentage = Math.min(100, Math.max(0, (matches / maxMatches) * 100));
+
   return (
     <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
-      <nav className="fixed top-0 w-full z-20 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center bg-[#000000]/50 backdrop-blur-md border-b border-[#fefefe]/5">
-        <div className="flex items-center gap-2 md:gap-2.5">
-          <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-8 h-8 md:w-9 md:h-9 object-contain rounded-[18%]" />
-          <span className="font-bold text-base md:text-lg tracking-tight text-[#fefefe]">blahbluh</span>
+      <nav className="fixed top-0 w-full z-20 bg-[#000000]/80 backdrop-blur-xl border-b border-[#fefefe]/5">
+        <div className="px-4 h-16 flex justify-between items-center max-w-5xl mx-auto">
+        <div className="flex items-center">
+          <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-10 h-10 object-contain rounded-xl" />
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2">
           {isAdmin && (
             <button
               onClick={onAdminOpen}
@@ -517,7 +528,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors relative"
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#fefefe]/5 hover:bg-[#fefefe]/10 transition-colors text-[#fefefe]/80 hover:text-[#fefefe] relative"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -589,9 +600,10 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
           </div>
           <button 
             onClick={onYappingCardsOpen}
-            className="text-xs text-[#ffbd59] hover:text-[#ffbd59]/80 transition-colors px-2 py-1 rounded-full hover:bg-zinc-800 font-bold"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#fefefe]/5 hover:bg-[#fefefe]/10 transition-colors text-[#fefefe]/80 hover:text-[#fefefe]"
+            title="My Yaps"
           >
-            My Yaps
+            <CardsIcon />
           </button>
           <button
             onClick={() => {
@@ -601,7 +613,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
               }
               onInboxOpen();
             }}
-            className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full border transition-colors relative ${isBanned ? 'bg-red-500/10 border-red-500/20 text-red-500/50 cursor-not-allowed' : 'bg-[#fefefe]/5 border-[#fefefe]/10 text-[#fefefe]/60 hover:bg-[#fefefe]/10 hover:text-[#fefefe]'}`}
+            className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors relative ${isBanned ? 'bg-red-500/10 text-red-500/50 cursor-not-allowed' : 'bg-[#fefefe]/5 hover:bg-[#fefefe]/10 text-[#fefefe]/80 hover:text-[#fefefe]'}`}
           >
             <InboxIcon />
             {!isBanned && unreadCount > 0 && (
@@ -612,43 +624,40 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
           </button>
           <button
             onClick={onProfileOpen}
-            className="flex items-center gap-2 pl-1 pr-2 md:pr-3 py-1 rounded-full bg-[#fefefe]/5 border border-[#fefefe]/10 text-[10px] md:text-xs text-[#fefefe]/60 font-mono hover:bg-[#fefefe]/10 hover:text-[#fefefe] transition-colors"
+            className="w-10 h-10 rounded-full overflow-hidden border border-[#fefefe]/10 hover:border-[#fefefe]/30 transition-all"
           >
             {pfpUrl ? (
-              <img src={pfpUrl} alt="Profile" className="w-6 h-6 md:w-7 md:h-7 rounded-full object-contain bg-[#fefefe]/10" />
+              <img src={pfpUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-[#fefefe]/10 flex items-center justify-center">
+              <div className="w-full h-full bg-[#fefefe]/10 flex items-center justify-center text-[#fefefe]/60">
                 <UserIcon />
               </div>
             )}
-            {currentUsername || 'guest'}
           </button>
+        </div>
+        </div>
+        <div className="w-full h-[2px] bg-[#fefefe]/5">
+            <div
+                className="h-full bg-[#ffbd59] shadow-[0_0_10px_#ffbd59] transition-all duration-1000 ease-out"
+                style={{ width: `${matchPercentage}%` }}
+            />
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-28 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
-        {/* Matches Left Badge */}
-        <div className="mb-2 bg-zinc-800/90 backdrop-blur border border-white/10 px-4 py-1.5 rounded-full shadow-lg pointer-events-none select-none z-10 whitespace-nowrap">
-            <span className="text-zinc-400 text-[9px] sm:text-[10px] uppercase tracking-wider">
-                🤝 You have <span className="text-[#ffbd59] font-bold font-mono">{currentUser?.matches_remaining === -1 ? '∞' : currentUser?.matches_remaining || 0}</span> matches left
-            </span>
-       </div>
+      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-24 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
 
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
 
-        <div className="max-w-lg w-full text-center relative z-10 mt-4 md:my-auto">
-          <h1 className="text-6xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-[#fefefe] mb-6">
+        <div className="max-w-md w-full text-center relative z-10 mt-8 md:my-auto">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-[#fefefe] mb-4">
             Yap with <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">
               Randos.
             </span>
           </h1>
           
-          {/* <p className="text-lg text-[#fefefe]/60 mb-12 max-w-md mx-auto leading-relaxed">
-            Instant anonymous connections. No login required. Just pure conversation.
-          </p> */}
-          <div className="mb-8 text-left">
+          <div className="mb-6 text-left">
             <div className="mb-2 ml-1 h-6 flex items-center">
                <FadeRotateHint />
             </div>
@@ -722,9 +731,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
               <button 
                 onClick={handleStartChat} 
                 disabled={isBanned}
-                className={`group relative w-full py-4 md:py-5 rounded-full bg-[#ffbd59] text-black text-base md:text-lg font-bold transition-all duration-200 shadow-[0_0_40px_-10px_rgba(255,189,89,0.3)] ${isBanned ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                className={`group relative w-full py-3.5 rounded-full bg-[#ffbd59] text-black text-lg font-bold transition-all duration-300 shadow-[0_0_20px_-5px_rgba(255,189,89,0.4)] ${isBanned ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-0.5 hover:shadow-[0_0_30px_-5px_rgba(255,189,89,0.6)]'}`}
               >
-                Start Chatting
+                Start Yapping
                 <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
               </button>
             </div>
