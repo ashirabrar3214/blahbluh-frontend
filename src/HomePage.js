@@ -521,7 +521,6 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
   }, [socket]);
 
   const matches = currentUser?.matches_remaining === -1 ? 50 : (currentUser?.matches_remaining || 0);
-  const maxMatches = 50;
 
   return (
     <div className="min-h-screen bg-[#050505] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30 relative">
