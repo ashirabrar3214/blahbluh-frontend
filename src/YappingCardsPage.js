@@ -66,7 +66,6 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
             </header>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 max-w-2xl mx-auto w-full">
             <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3 max-w-2xl mx-auto w-full">
                 {loading ? (
                     <div className="text-center py-10 text-[#fefefe]/50">Loading history...</div>
