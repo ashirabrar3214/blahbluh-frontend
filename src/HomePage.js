@@ -647,9 +647,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center md:items-start md:pl-20 lg:pl-32 justify-center px-4 sm:px-6 relative z-10 pt-20 pb-24">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 relative z-10 pt-20 pb-24">
         <div className="max-w-md w-full flex flex-col gap-6">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-[#fefefe] text-center md:text-left">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-[#fefefe] text-center">
             Yap with <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">
               Randos.
@@ -720,7 +720,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
               </div>
             </div>
           ) : (
-            <div className="w-full md:w-[90%]">
+            <div className="w-full">
               <button 
                 onClick={handleStartChat} 
                 disabled={isBanned}
