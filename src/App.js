@@ -13,6 +13,7 @@ import LoadingScreen from './components/LoadingScreen';
 import CallPopup from './components/CallPopup';
 import AdminDashboard from './AdminDashboard';
 import YappingCardsPage from './YappingCardsPage';
+import MobileBottomNav from './components/MobileBottomNav';
 
 const PhoneIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -655,6 +656,13 @@ useEffect(() => {
     navigate('/');
   }, [navigate]);
 
+  const refreshUser = useCallback(async () => {
+    if (currentUser?.id) {
+      const updated = await api.getUser(currentUser.id);
+      setCurrentUser(updated);
+    }
+  }, [currentUser?.id]);
+
   // 🔥 GLOBAL SIGNUP GATE
   if (currentPage === 'loading') {
     return <LoadingScreen message="Loading..." />;
@@ -746,7 +754,10 @@ useEffect(() => {
     </>
   );
 
+  const showMobileNav = currentUser && ['home', 'inbox', 'profile', 'yapping-cards'].includes(currentPage);
+
   return (
+    <>
       <Routes>
         <Route path="/invite/:token" element={<InvitePage currentUserId={currentUser?.id} />} />
         {/* Add this explicit route if you want proper browser history support */}
@@ -859,6 +870,7 @@ useEffect(() => {
                 <ProfilePage
                   currentUserId={currentUser.id}
                   currentUsername={currentUser.username}
+                  onProfileUpdate={refreshUser}
                   onBack={() => setCurrentPage('home')}
                   children={renderCallUI()}
                 />
@@ -904,6 +916,23 @@ useEffect(() => {
           )
         } />
       </Routes>
+      {showMobileNav && (
+        <MobileBottomNav 
+          onHome={() => setCurrentPage('home')}
+          onYaps={() => setCurrentPage('yapping-cards')}
+          onInbox={() => {
+            setUnreadCount(0);
+            setInboxKey(prev => prev + 1);
+            setCurrentPage('inbox');
+          }}
+          onProfile={() => setCurrentPage('profile')}
+          unreadCount={unreadCount}
+          pfpUrl={currentUser?.pfp}
+          isBanned={!!bannedInfo}
+          activeTab={currentPage}
+        />
+      )}
+    </>
   );
 }
 

@@ -193,8 +193,8 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      <header className="px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 flex items-center gap-3">
+    <div className="min-h-screen bg-[#0e0e0f] text-white flex flex-col">
+      <header className="px-4 py-3 bg-[#18181b]/80 backdrop-blur-xl border-b border-white/5 flex items-center gap-3">
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-800 transition-colors">
           <BackIcon />
         </button>

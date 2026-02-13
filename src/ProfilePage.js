@@ -20,7 +20,7 @@ const BackIcon = () => (
   </svg>
 );
 
-function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
+function ProfilePage({ currentUsername, currentUserId, onBack, onProfileUpdate, children }) {
   const [profile, setProfile] = useState({
     username: currentUsername || '',
     gender: '',
@@ -124,6 +124,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
         promises.push(api.sendUserInterests(currentUserId, editedProfile.interests));
       }
       await Promise.all(promises);
+      if (onProfileUpdate) onProfileUpdate();
     } catch (error) {
       console.error("Failed to save profile to backend:", error);
       // Revert optimistic update on failure
@@ -149,6 +150,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
       setEditedProfile(newProfile);
       try {
         await api.updateUserPfp(currentUserId, pfp, bg);
+        if (onProfileUpdate) onProfileUpdate();
       } catch (error) {
         console.error("Failed to update PFP:", error);
       }
@@ -178,11 +180,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans relative overflow-hidden selection:bg-[#ffbd59]/30">
-      {/* Ambient Background */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-[#ffbd59]/10 to-transparent pointer-events-none" />
-      <div className="absolute -top-20 -right-20 w-96 h-96 bg-[#ff907c]/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-40 -left-20 w-72 h-72 bg-[#ffbd59]/10 rounded-full blur-[80px] pointer-events-none" />
+    <div className="min-h-screen bg-[#0e0e0f] text-[#fefefe] flex flex-col font-sans relative overflow-hidden selection:bg-amber-500/30">
 
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between z-10 relative">
@@ -207,19 +205,19 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
 
       {/* Profile Content */}
       <div className="flex-1 px-6 py-4 overflow-y-auto z-10 relative">
-        <div className="max-w-lg mx-auto pb-10">
+        <div className="max-w-lg mx-auto pb-24">
           
           {/* Profile Picture */}
           <div className="flex flex-col items-center mb-10"> 
             <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#ffbd59] to-[#ff907c] rounded-full opacity-50 blur group-hover:opacity-75 transition duration-500"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-amber-600 rounded-full opacity-20 blur group-hover:opacity-40 transition duration-500"></div>
             <div className="relative w-32 h-32 rounded-full shadow-2xl">
               {/* Background Layer */}
               <div 
                 className={`absolute inset-0 rounded-full overflow-hidden ${
                   (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
                     ? 'bg-black' 
-                    : 'bg-gradient-to-br from-[#ffbd59] to-[#ff907c]'
+                    : 'bg-zinc-800'
                 }`}
                 style={
                   (isEditing ? editedProfile.pfp_background : profile.pfp_background) 
@@ -404,7 +402,7 @@ function ProfilePage({ currentUsername, currentUserId, onBack, children }) {
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 py-3.5 rounded-2xl bg-[#ffbd59] text-black font-bold hover:bg-[#ffbd59]/90 transition-colors text-sm shadow-lg shadow-[#ffbd59]/20"
+                className="flex-1 py-3.5 rounded-2xl bg-amber-500 text-black font-bold hover:bg-amber-400 transition-colors text-sm shadow-lg shadow-amber-500/20"
               >
                 Save Changes
               </button>

@@ -59,8 +59,7 @@ export default function InvitePage({ currentUserId }) {
     // Use the ID from the invite object to ensure it matches the yap_ session
     const targetRoomId = invite.room_id || `yap_${invite.id}`;
     return (
-      <div className="min-h-screen bg-black text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/10 rounded-full blur-[128px] pointer-events-none"></div>
+      <div className="min-h-screen bg-[#0e0e0f] text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
         <div className="max-w-md w-full bg-[#fefefe]/5 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] z-10 text-center">
           <h2 className="text-xl font-bold text-[#fefefe] mb-4">This invite was already answered</h2>
           <button
@@ -71,7 +70,7 @@ export default function InvitePage({ currentUserId }) {
                 isExistingChat: true
               }
             })}
-            className="w-full py-4 rounded-full bg-[#ffbd59] text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="w-full py-4 rounded-full bg-amber-500 text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             Open FireChat
           </button>
@@ -81,15 +80,13 @@ export default function InvitePage({ currentUserId }) {
   }
 
   return (
-    <div className="min-h-screen bg-black text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        {/* Fancy blob background */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/10 rounded-full blur-[128px] pointer-events-none"></div>
+    <div className="min-h-screen bg-[#0e0e0f] text-[#fefefe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
 
         <div className="max-w-md w-full bg-[#fefefe]/5 backdrop-blur-xl border border-[#fefefe]/10 p-8 rounded-[32px] z-10">
             
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
-                 <img src={invite.sender.pfp || 'https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg'} className="w-12 h-12 rounded-full border-2 border-[#ffbd59]" alt={invite.sender.username} />
+                 <img src={invite.sender.pfp || 'https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg'} className="w-12 h-12 rounded-full border-2 border-amber-500" alt={invite.sender.username} />
                  <div>
                     <h2 className="text-lg font-bold text-[#fefefe]">{invite.sender.username}</h2>
                     <p className="text-xs text-[#fefefe]/50">sent you a card</p>
@@ -98,7 +95,7 @@ export default function InvitePage({ currentUserId }) {
 
             {/* The Prompt */}
             <div className="mb-6">
-                <p className="text-xs text-[#ffbd59] font-bold uppercase tracking-widest mb-2">THE TOPIC</p>
+                <p className="text-xs text-amber-500 font-bold uppercase tracking-widest mb-2">THE TOPIC</p>
                 <h1 className="text-2xl md:text-3xl font-bold leading-tight">"{invite.prompt_text}"</h1>
             </div>
 
@@ -111,7 +108,7 @@ export default function InvitePage({ currentUserId }) {
                     onClick={() => setAnswer(opt)}
                     className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border ${
                       answer === opt
-                        ? 'bg-[#ffbd59] text-black border-[#ffbd59]'
+                        ? 'bg-amber-500 text-black border-amber-500'
                         : 'bg-[#fefefe]/5 text-[#fefefe] border-[#fefefe]/10 hover:bg-[#fefefe]/10'
                     }`}
                   >
@@ -125,7 +122,7 @@ export default function InvitePage({ currentUserId }) {
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                       placeholder="Type your answer here..."
-                      className="w-full bg-[#000000]/50 border border-[#fefefe]/20 rounded-2xl p-4 text-[#fefefe] placeholder:text-[#fefefe]/30 focus:outline-none focus:border-[#ffbd59] transition-all min-h-[120px] resize-none"
+                      className="w-full bg-[#000000]/50 border border-[#fefefe]/20 rounded-2xl p-4 text-[#fefefe] placeholder:text-[#fefefe]/30 focus:outline-none focus:border-amber-500 transition-all min-h-[120px] resize-none"
                   />
               </div>
             )}
@@ -134,7 +131,7 @@ export default function InvitePage({ currentUserId }) {
             <button
                 onClick={handleAcceptInvite}
                 disabled={sending}
-                className="w-full mt-6 py-4 rounded-full bg-[#ffbd59] text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="w-full mt-6 py-4 rounded-full bg-amber-500 text-black text-lg font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
                 {sending ? 'Sending...' : 'Send Answer & Chat'}
             </button>

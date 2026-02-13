@@ -113,7 +113,7 @@ const HelpIcon = () => (
 const MatchesChip = ({ count }) => (
   <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-full backdrop-blur-md shadow-sm">
     <span className="text-sm">🔥</span>
-    <span className="text-[#ffbd59] font-bold font-mono text-sm">{count === -1 ? '∞' : count}</span>
+    <span className="text-zinc-100 font-bold text-sm">{count === -1 ? '∞' : count}</span>
     <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Matches</span>
   </div>
 );
@@ -523,11 +523,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
   const matches = currentUser?.matches_remaining === -1 ? 50 : (currentUser?.matches_remaining || 0);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30 relative">
-      {/* Subtle Background Texture */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_center,_rgba(255,189,89,0.03)_0%,_rgba(0,0,0,0)_70%)]" />
-
-      <nav className="fixed top-0 w-full z-20 bg-[#050505]/80 backdrop-blur-xl border-b border-[#fefefe]/5">
+    <div className="min-h-screen bg-[#0e0e0f] text-zinc-100 flex flex-col font-sans selection:bg-amber-500/30 relative">
+      <nav className="fixed top-0 w-full z-20 bg-[#0e0e0f]/80 backdrop-blur-xl border-b border-white/5">
         <div className="px-4 h-16 flex justify-between items-center max-w-7xl mx-auto">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
@@ -564,7 +561,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
               {(friendRequests.length > 0 || bellNotifications.length > 0) && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff907c] text-black text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-[#ff907c]/50">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-blue-600/50">
                   {friendRequests.length + bellNotifications.length}
                 </span>
               )}
@@ -574,12 +571,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
                 {friendRequests.length > 0 && (
                   <>
                     <h3 className="text-[#fefefe] font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-[#ff907c] rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
                       Friend Requests
                     </h3>
                     <div className="space-y-3 mb-4">
                       {friendRequests.map(request => (
-                        <div key={request.id} className="flex items-center justify-between p-3 bg-[#fefefe]/5 rounded-lg border-l-4 border-[#ffbd59]">
+                        <div key={request.id} className="flex items-center justify-between p-3 bg-[#fefefe]/5 rounded-lg border-l-4 border-amber-500">
                           <div>
                             <p className="text-[#fefefe] text-sm font-medium">{request.from_user.username} sent you a friend request</p>
                             <p className="text-[#fefefe]/60 text-xs">Click accept to add them as a friend</p>
@@ -588,9 +585,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
                             onClick={() => handleAcceptFriend(request.id)}
                             disabled={processingRequests.has(request.id)}
                             className={`px-3 py-1 text-black text-xs rounded-lg transition-colors shadow-lg ${
-                              processingRequests.has(request.id) 
-                                ? 'bg-[#ffbd59]/50 cursor-not-allowed opacity-70' 
-                                : 'bg-[#ffbd59] hover:bg-[#ffbd59]/80'
+                              processingRequests.has(request.id)
+                                ? 'bg-amber-500/50 cursor-not-allowed opacity-70'
+                                : 'bg-amber-500 hover:bg-amber-400'
                             }`}
                           >
                             {processingRequests.has(request.id) ? 'Accepting...' : 'Accept'}
@@ -603,12 +600,12 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
                 {bellNotifications.length > 0 && (
                   <>
                     <h3 className="text-[#fefefe] font-bold mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 bg-[#ffbd59] rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
                       Notifications
                     </h3>
                     <div className="space-y-3">
                       {bellNotifications.map(notification => (
-                        <div key={notification.id} className="flex items-center justify-between p-3 bg-[#fefefe]/5 rounded-lg border-l-4 border-[#ffbd59]">
+                        <div key={notification.id} className="flex items-center justify-between p-3 bg-[#fefefe]/5 rounded-lg border-l-4 border-amber-500">
                           <div>
                             <p className="text-[#fefefe] text-sm font-medium">🎉 {notification.message}</p>
                             <p className="text-[#fefefe]/60 text-xs">{new Date(notification.timestamp).toLocaleTimeString()}</p>
@@ -649,9 +646,9 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 relative z-10 pt-20 pb-24">
         <div className="max-w-md w-full flex flex-col gap-6">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-[#fefefe] text-center">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-zinc-100 text-center">
             Yap with <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">
+            <span className="text-amber-500">
               Randos.
             </span>
           </h1>
@@ -678,7 +675,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
                 
                 {/* Spinner & Position */}
                 <div className="flex flex-col items-center">
-                   <div className="w-16 h-16 rounded-full border-2 border-t-[#ffbd59] border-[#fefefe]/10 animate-spin mb-4"></div>
+                   <div className="w-16 h-16 rounded-full border-2 border-t-amber-500 border-[#fefefe]/10 animate-spin mb-4"></div>
                    <h3 className="text-xl font-bold text-[#fefefe]">Finding a match<AnimatedDots /></h3>
                    <p className="text-[#fefefe]/60 text-sm">Position in queue: <span className="text-[#fefefe] font-mono">{queuePosition}</span></p>
                 </div>
@@ -686,7 +683,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
                 {/* The Prompt Card */}
                 {queueTopic && (
                     <div className="w-full bg-[#fefefe]/5 rounded-2xl p-5 border border-[#fefefe]/10 relative group">
-                        <div className="absolute -top-3 left-4 bg-[#ffbd59] text-black text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        <div className="absolute -top-3 left-4 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">
                             YOUR PROMPT
                         </div>
                         <p className="text-lg text-center font-medium text-[#fefefe]/90 my-2">
@@ -697,7 +694,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
                         <button 
                           onClick={handleSharePrompt}
                           disabled={sharing}
-                          className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#fefefe]/10 hover:bg-[#fefefe]/20 transition-all text-sm font-bold text-[#ffbd59]"
+                          className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#fefefe]/10 hover:bg-[#fefefe]/20 transition-all text-sm font-bold text-amber-500"
                         >
                           {sharing ? (
                               <span>Generating Link...</span>
@@ -724,40 +721,13 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
               <button 
                 onClick={handleStartChat} 
                 disabled={isBanned}
-                className={`group relative w-full py-3.5 rounded-full bg-[#ffbd59] text-black text-lg font-bold transition-all duration-300 shadow-[0_0_20px_-5px_rgba(255,189,89,0.4)] ${isBanned ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-0.5 hover:shadow-[0_0_30px_-5px_rgba(255,189,89,0.6)]'}`}
+                className={`group relative w-full py-3.5 rounded-full bg-amber-500 text-black text-lg font-bold transition-all duration-300 shadow-[0_0_20px_-5px_rgba(245,158,11,0.4)] ${isBanned ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-0.5 hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.6)]'}`}
               >
                 Start Yapping
                 <span className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
               </button>
             </div>
           )}
-        </div>
-      </div>
-      
-      {/* Mobile Bottom Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#050505]/90 backdrop-blur-xl border-t border-[#fefefe]/10 pb-4 pt-2 z-50">
-        <div className="flex justify-around items-center h-14">
-            <button onClick={() => window.location.reload()} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors">
-                <HomeIcon />
-                <span className="text-[10px] font-medium">Home</span>
-            </button>
-            <button onClick={onYappingCardsOpen} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors">
-                <CardsIcon />
-                <span className="text-[10px] font-medium">Yaps</span>
-            </button>
-            <button onClick={onInboxOpen} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors relative">
-                <InboxIcon />
-                <span className="text-[10px] font-medium">Inbox</span>
-                {!isBanned && unreadCount > 0 && (
-                    <span className="absolute top-0 right-3 w-2 h-2 bg-[#ffbd59] rounded-full animate-pulse"></span>
-                )}
-            </button>
-            <button onClick={onProfileOpen} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors">
-                <div className="w-5 h-5 rounded-full overflow-hidden bg-[#fefefe]/10">
-                     {pfpUrl ? <img src={pfpUrl} className="w-full h-full object-cover" alt="Profile" /> : <UserIcon />}
-                </div>
-                <span className="text-[10px] font-medium">Profile</span>
-            </button>
         </div>
       </div>
       

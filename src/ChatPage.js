@@ -1388,9 +1388,9 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
     return (
       <>
         {/* Main Chat Page - Blurred when icebreaker is active */}
-        <div className={`fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh] transition-all duration-300 ${isIcebreakerActive ? 'blur-sm pointer-events-none' : ''}`}>
+        <div className={`fixed inset-0 bg-[#0e0e0f] text-white flex flex-col font-sans h-[100dvh] transition-all duration-300 ${isIcebreakerActive ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header - Different for friend vs random chat */}
-        <header className="absolute top-0 left-0 right-0 z-30 px-3 py-2 md:px-4 md:py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
+        <header className="absolute top-0 left-0 right-0 z-30 px-3 py-2 md:px-4 md:py-3 bg-[#18181b]/90 backdrop-blur-xl border-b border-white/5 grid grid-cols-3 items-center shadow-sm transition-all">
           {isFirechat && (
              <div className="absolute top-full left-0 right-0 bg-red-500/10 text-red-400 text-[10px] font-bold text-center py-1 border-b border-red-500/20 backdrop-blur-md">
                 🔥 Firechat - Disappears in 24h
@@ -2017,7 +2017,7 @@ function ChatPage({ socket, user, currentUserId: propUserId, currentUsername: pr
   }
 
   return (
-    <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center font-sans h-[100dvh]">
+    <div className="fixed inset-0 bg-[#0e0e0f] text-white flex flex-col items-center justify-center font-sans h-[100dvh]">
       <div className="flex flex-col items-center gap-4">
         <div className="w-16 h-16 rounded-full border-2 border-t-blue-500 border-zinc-800 animate-spin"></div>
         <div className="text-center">

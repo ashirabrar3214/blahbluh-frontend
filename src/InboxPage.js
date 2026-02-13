@@ -121,9 +121,9 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0e0e0f] text-white flex flex-col font-sans">
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between bg-black/50 backdrop-blur-md border-b border-white/5">
+      <header className="px-6 py-4 flex items-center justify-between bg-[#0e0e0f]/80 backdrop-blur-md border-b border-white/5">
         <button 
           onClick={onBack}
           className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
@@ -158,7 +158,7 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
             </p>
           </div>
         ) : (
-          <div className="px-4 py-2">
+          <div className="px-4 py-2 pb-24">
             {friends.map((friend, index) => (
               <div
                 key={friend.userId || friend.id || index}
@@ -200,7 +200,7 @@ function InboxPage({ currentUserId, currentUsername, onBack, onChatOpen, socket,
                       {friend.username}
                     </h3>
                     {unreadCounts[friend.userId || friend.id] > 0 && (
-                      <span className="w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
                         {unreadCounts[friend.userId || friend.id] > 9 ? '9+' : unreadCounts[friend.userId || friend.id]}
                       </span>
                     )}

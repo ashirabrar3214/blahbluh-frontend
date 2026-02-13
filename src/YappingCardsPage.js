@@ -50,9 +50,9 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
     };
 
     return (
-        <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
+        <div className="min-h-screen bg-[#0e0e0f] text-[#fefefe] flex flex-col font-sans selection:bg-amber-500/30">
             {/* Header */}
-            <header className="px-6 py-4 flex items-center justify-between bg-[#000000]/50 backdrop-blur-md border-b border-[#fefefe]/5 sticky top-0 z-20">
+            <header className="px-6 py-4 flex items-center justify-between bg-[#0e0e0f]/80 backdrop-blur-md border-b border-[#fefefe]/5 sticky top-0 z-20">
                 <button 
                   onClick={onBack}
                   className="flex items-center gap-2 text-[#fefefe]/60 hover:text-[#fefefe] transition-colors"
@@ -67,6 +67,7 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
 
             {/* List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 max-w-2xl mx-auto w-full">
+            <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3 max-w-2xl mx-auto w-full">
                 {loading ? (
                     <div className="text-center py-10 text-[#fefefe]/50">Loading history...</div>
                 ) : invites.length === 0 ? (
@@ -79,7 +80,7 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
                         <div 
                             key={card.id} 
                             onClick={() => handleCardClick(card)}
-                            className={`bg-[#fefefe]/5 rounded-xl p-4 border border-[#fefefe]/5 transition-all ${!card.is_active ? 'cursor-pointer hover:bg-[#fefefe]/10 hover:border-[#ffbd59]/30' : 'opacity-75'}`}
+                            className={`bg-[#fefefe]/5 rounded-xl p-4 border border-[#fefefe]/5 transition-all ${!card.is_active ? 'cursor-pointer hover:bg-[#fefefe]/10 hover:border-amber-500/30' : 'opacity-75'}`}
                         >
                             <p className="text-[#fefefe] font-medium text-sm mb-2">"{card.prompt_text}"</p>
                             <div className="flex justify-between items-center text-xs">
@@ -91,7 +92,7 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
                                         ✓ Answered (Tap to Chat)
                                     </span>
                                 ) : (
-                                    <span className="text-[#ffbd59] font-bold">
+                                    <span className="text-amber-500 font-bold">
                                         ⏳ Pending
                                     </span>
                                 )}

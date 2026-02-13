@@ -259,9 +259,9 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
   if (isLoading) return <LoadingScreen message="Loading Firechat..." />;
 
   return (
-    <div className="fixed inset-0 bg-black text-white flex flex-col font-sans h-[100dvh]">
+    <div className="fixed inset-0 bg-[#0e0e0f] text-white flex flex-col font-sans h-[100dvh]">
       {/* Header */}
-      <header className="px-4 py-3 bg-zinc-900/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between z-30">
+      <header className="px-4 py-3 bg-[#18181b]/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between z-30">
          <button onClick={handleBack} className="p-2 -ml-2 text-zinc-400 hover:text-white">
             <BackIcon />
          </button>
@@ -278,7 +278,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
 
       {/* Prompt Banner */}
       {promptText && (
-        <div className="bg-zinc-900/50 p-4 border-b border-white/5 text-center">
+        <div className="bg-[#18181b]/50 p-4 border-b border-white/5 text-center">
           <p className="text-xs text-[#ffbd59] font-bold uppercase mb-1">Topic</p>
           <h2 className="text-lg font-medium italic">"{promptText}"</h2>
         </div>
