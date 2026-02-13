@@ -74,6 +74,13 @@ function AnimatedDots() {
   return <span>{dots}</span>;
 }
 
+const HomeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+  </svg>
+);
+
 const CardsIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
@@ -101,6 +108,14 @@ const HelpIcon = () => (
     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
     <line x1="12" y1="17" x2="12.01" y2="17"></line>
   </svg>
+);
+
+const MatchesChip = ({ count }) => (
+  <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-full backdrop-blur-md shadow-sm">
+    <span className="text-sm">🔥</span>
+    <span className="text-[#ffbd59] font-bold font-mono text-sm">{count === -1 ? '∞' : count}</span>
+    <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Matches</span>
+  </div>
 );
 
 function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCardsOpen, onAdminOpen, currentUsername, currentUserId, initialTags = [], notification: externalNotification, onNotificationChange, globalNotifications, globalFriendRequests, setGlobalNotifications, setGlobalFriendRequests, unreadCount, setSuggestedTopic, initialQueueState, setQueueState, children }) {
@@ -507,28 +522,43 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
 
   const matches = currentUser?.matches_remaining === -1 ? 50 : (currentUser?.matches_remaining || 0);
   const maxMatches = 50;
-  const matchPercentage = Math.min(100, Math.max(0, (matches / maxMatches) * 100));
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30">
-      <nav className="fixed top-0 w-full z-20 bg-[#000000]/80 backdrop-blur-xl border-b border-[#fefefe]/5">
-        <div className="px-4 h-16 flex justify-between items-center max-w-5xl mx-auto">
-        <div className="flex items-center">
-          <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-10 h-10 object-contain rounded-xl" />
+    <div className="min-h-screen bg-[#050505] text-[#fefefe] flex flex-col font-sans selection:bg-[#ffbd59]/30 relative">
+      {/* Subtle Background Texture */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_center,_rgba(255,189,89,0.03)_0%,_rgba(0,0,0,0)_70%)]" />
+
+      <nav className="fixed top-0 w-full z-20 bg-[#050505]/80 backdrop-blur-xl border-b border-[#fefefe]/5">
+        <div className="px-4 h-16 flex justify-between items-center max-w-7xl mx-auto">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-10 h-10 object-contain rounded-xl" />
+            {/* Desktop Primary Nav */}
+            <div className="hidden md:flex items-center gap-1 ml-4">
+                <button onClick={() => window.location.reload()} className="px-3 py-2 text-sm font-medium text-[#fefefe]/60 hover:text-[#fefefe] transition-colors">Home</button>
+                <button onClick={onYappingCardsOpen} className="px-3 py-2 text-sm font-medium text-[#fefefe]/60 hover:text-[#fefefe] transition-colors">Yaps</button>
+                <button onClick={onInboxOpen} className="px-3 py-2 text-sm font-medium text-[#fefefe]/60 hover:text-[#fefefe] transition-colors relative">
+                    Inbox
+                    {!isBanned && unreadCount > 0 && (
+                        <span className="absolute top-1 right-0 w-2 h-2 bg-[#ffbd59] rounded-full"></span>
+                    )}
+                </button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {isAdmin && (
             <button
               onClick={onAdminOpen}
-              className="px-4 py-2 bg-red-600/20 text-red-400 border border-red-500/50 rounded-xl font-bold hover:bg-red-600/40 transition-all text-xs md:text-sm"
+              className="hidden md:block px-3 py-1 bg-red-900/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold"
             >
-              ADMIN PANEL
+              ADMIN
             </button>
           )}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#fefefe]/5 hover:bg-[#fefefe]/10 transition-colors text-[#fefefe]/80 hover:text-[#fefefe] relative"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#fefefe]/10 transition-colors text-[#fefefe]/60 hover:text-[#fefefe] relative"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -598,66 +628,36 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
               </div>
             )}
           </div>
-          <button 
-            onClick={onYappingCardsOpen}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#fefefe]/5 hover:bg-[#fefefe]/10 transition-colors text-[#fefefe]/80 hover:text-[#fefefe]"
-            title="My Yaps"
-          >
-            <CardsIcon />
-          </button>
-          <button
-            onClick={() => {
-              if (isBanned) {
-                setBannerMessage("You cannot access inbox while banned.");
-                return;
-              }
-              onInboxOpen();
-            }}
-            className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors relative ${isBanned ? 'bg-red-500/10 text-red-500/50 cursor-not-allowed' : 'bg-[#fefefe]/5 hover:bg-[#fefefe]/10 text-[#fefefe]/80 hover:text-[#fefefe]'}`}
-          >
-            <InboxIcon />
-            {!isBanned && unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff907c] text-black text-xs rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+          
+          {/* Matches Chip */}
+          <MatchesChip count={matches} />
+
           <button
             onClick={onProfileOpen}
-            className="w-10 h-10 rounded-full overflow-hidden border border-[#fefefe]/10 hover:border-[#fefefe]/30 transition-all"
+            className="hidden md:block w-9 h-9 rounded-full overflow-hidden border border-[#fefefe]/10 hover:border-[#fefefe]/30 transition-all ml-2"
           >
             {pfpUrl ? (
               <img src={pfpUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-[#fefefe]/10 flex items-center justify-center text-[#fefefe]/60">
+              <div className="w-full h-full bg-[#fefefe]/10 flex items-center justify-center text-[#fefefe]/60 text-xs">
                 <UserIcon />
               </div>
             )}
           </button>
         </div>
         </div>
-        <div className="w-full h-[2px] bg-[#fefefe]/5">
-            <div
-                className="h-full bg-[#ffbd59] shadow-[0_0_10px_#ffbd59] transition-all duration-1000 ease-out"
-                style={{ width: `${matchPercentage}%` }}
-            />
-        </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 relative overflow-y-auto overflow-x-hidden pt-24 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-[0.5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#fefefe]/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#fefefe]/20">
-
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ffbd59]/20 rounded-full blur-[128px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#ff907c]/20 rounded-full blur-[128px] pointer-events-none"></div>
-
-        <div className="max-w-md w-full text-center relative z-10 mt-8 md:my-auto">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-[#fefefe] mb-4">
+      <div className="flex-1 flex flex-col items-center md:items-start md:pl-20 lg:pl-32 justify-center px-4 sm:px-6 relative z-10 pt-20 pb-24">
+        <div className="max-w-md w-full flex flex-col gap-6">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-[#fefefe] text-center md:text-left">
             Yap with <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffbd59] via-[#ffbd59] to-[#ff907c]">
               Randos.
             </span>
           </h1>
           
-          <div className="mb-6 text-left">
+          <div className="text-left">
             <div className="mb-2 ml-1 h-6 flex items-center">
                <FadeRotateHint />
             </div>
@@ -721,13 +721,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              {/* {notification === 'partner-disconnected' && (
-                <div className="px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm mb-2">
-                  Partner disconnected. ready to go again?
-                </div>
-              )} */}
-              
+            <div className="w-full md:w-[90%]">
               <button 
                 onClick={handleStartChat} 
                 disabled={isBanned}
@@ -738,6 +732,33 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
               </button>
             </div>
           )}
+        </div>
+      </div>
+      
+      {/* Mobile Bottom Nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#050505]/90 backdrop-blur-xl border-t border-[#fefefe]/10 pb-4 pt-2 z-50">
+        <div className="flex justify-around items-center h-14">
+            <button onClick={() => window.location.reload()} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors">
+                <HomeIcon />
+                <span className="text-[10px] font-medium">Home</span>
+            </button>
+            <button onClick={onYappingCardsOpen} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors">
+                <CardsIcon />
+                <span className="text-[10px] font-medium">Yaps</span>
+            </button>
+            <button onClick={onInboxOpen} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors relative">
+                <InboxIcon />
+                <span className="text-[10px] font-medium">Inbox</span>
+                {!isBanned && unreadCount > 0 && (
+                    <span className="absolute top-0 right-3 w-2 h-2 bg-[#ffbd59] rounded-full animate-pulse"></span>
+                )}
+            </button>
+            <button onClick={onProfileOpen} className="flex flex-col items-center gap-1 text-[#fefefe]/60 hover:text-[#ffbd59] transition-colors">
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-[#fefefe]/10">
+                     {pfpUrl ? <img src={pfpUrl} className="w-full h-full object-cover" alt="Profile" /> : <UserIcon />}
+                </div>
+                <span className="text-[10px] font-medium">Profile</span>
+            </button>
         </div>
       </div>
       
