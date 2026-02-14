@@ -16,13 +16,6 @@ const PlusIcon = () => (
   </svg>
 );
 
-const PulsingDot = () => (
-  <span className="relative flex h-2 w-2 ml-2">
-    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-  </span>
-);
-
 const getTimeAgo = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -87,7 +80,7 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
     return (
         <div className="min-h-screen bg-[#0e0e0f] text-[#fefefe] flex flex-col font-sans selection:bg-amber-500/30">
             {/* Header */}
-            <header className="px-4 py-3 bg-[#0e0e0f]/95 backdrop-blur-xl border-b border-[#fefefe]/5 sticky top-0 z-20">
+            <header className="px-4 pt-4 pb-0 bg-[#0e0e0f]/95 backdrop-blur-xl sticky top-0 z-20">
                 <div className="flex items-center justify-between mb-4">
                     <button 
                       onClick={onBack}
@@ -97,35 +90,33 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
                       <span className="text-sm font-medium">Back</span>
                     </button>
                     
-                    <div className="flex flex-col items-end">
-                        <h1 className="text-lg font-bold text-[#fefefe]">Yaps</h1>
-                        <span className="text-[10px] text-zinc-500 font-medium">
-                            You've sent {invites.length} Yaps
-                        </span>
-                    </div>
+                    <h1 className="text-lg font-bold text-[#fefefe]">Yaps</h1>
                     <div className="w-8"></div>
                 </div>
 
                 {/* Segment Control */}
-                <div className="flex p-1 bg-zinc-900/50 rounded-xl border border-white/5">
+                <div className="flex gap-8 px-2 border-b border-white/5">
                     {['all', 'waiting', 'answered'].map((f) => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all capitalize ${
+                            className={`pb-3 text-sm font-bold transition-all capitalize relative ${
                                 filter === f 
-                                    ? 'bg-zinc-800 text-white shadow-sm border border-white/10' 
+                                    ? 'text-white' 
                                     : 'text-zinc-500 hover:text-zinc-300'
                             }`}
                         >
                             {f}
+                            {filter === f && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-t-full" />
+                            )}
                         </button>
                     ))}
                 </div>
             </header>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4 max-w-2xl mx-auto w-full">
+            <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-3 max-w-2xl mx-auto w-full">
                 {loading ? (
                     <div className="text-center py-10 text-[#fefefe]/50 animate-pulse">Loading your yaps...</div>
                 ) : filteredInvites.length === 0 ? (
@@ -150,49 +141,32 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
                                 key={card.id} 
                                 onClick={() => handleCardClick(card)}
                                 className={`
-                                    relative overflow-hidden rounded-2xl p-5 border transition-all duration-300 group
-                                    active:scale-95
+                                    relative overflow-hidden rounded-xl p-4 border transition-all duration-200
+                                    active:scale-[0.99]
                                     ${isPending 
-                                        ? 'bg-zinc-900/20 border-amber-500/10 hover:border-amber-500/30 cursor-default' 
-                                        : 'bg-zinc-800 border-zinc-700 hover:border-zinc-500 hover:shadow-xl hover:-translate-y-0.5 cursor-pointer'
+                                        ? 'bg-zinc-900 border-zinc-800' 
+                                        : 'bg-zinc-800/50 border-zinc-700/50'
                                     }
                                 `}
                             >
-                                {/* Pending Glow */}
-                                {isPending && (
-                                    <div className="absolute inset-0 rounded-2xl border border-amber-500/20 shadow-[0_0_15px_-3px_rgba(245,158,11,0.1)] pointer-events-none" />
-                                )}
-
                                 {/* Top Row: Metadata */}
-                                <div className="flex justify-between items-start mb-4">
-                                    {!isPending ? (
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                                            {getTimeAgo(card.created_at)}
-                                        </span>
-                                    ) : (
-                                        <div /> /* Spacer */
-                                    )}
-                                    
-                                    {!isPending && (
-                                        <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm shadow-blue-500/40 animate-in fade-in zoom-in">
-                                            NEW
-                                        </span>
-                                    )}
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                        {getTimeAgo(card.created_at)}
+                                    </span>
                                 </div>
 
                                 {/* Middle: Prompt */}
-                                <p className={`font-bold text-2xl leading-tight mb-6 ${isPending ? 'text-zinc-500' : 'text-white'}`}>
+                                <p className={`font-bold text-lg leading-snug mb-3 ${isPending ? 'text-zinc-400' : 'text-white'}`}>
                                     "{card.prompt_text}"
                                 </p>
 
                                 {/* Blurred Reply Tease (Only for Answered) */}
                                 {!isPending && (
-                                    <div className="mb-4 relative overflow-hidden rounded-lg bg-zinc-900/50 p-3 border border-white/5">
-                                        <p className="text-zinc-400 text-sm filter blur-sm select-none">
-                                            "I never told anyone this but honestly I think that..."
-                                        </p>
+                                    <div className="mb-3 relative overflow-hidden rounded-md bg-black/20 p-2 border border-white/5">
+                                        <div className="h-3 w-3/4 bg-zinc-700/50 rounded blur-[2px]" />
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest bg-black/20 backdrop-blur-md px-2 py-1 rounded">
+                                            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
                                                 Tap to reveal
                                             </span>
                                         </div>
@@ -202,13 +176,13 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
                                 {/* Bottom: Status */}
                                 <div className="flex justify-end items-center">
                                     {isPending ? (
-                                        <div className="flex items-center text-amber-500/80 text-xs font-medium italic">
-                                            Still waiting
-                                            <PulsingDot />
+                                        <div className="flex items-center text-amber-500/60 text-[10px] font-bold uppercase tracking-wider">
+                                            Waiting
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 ml-1.5" />
                                         </div>
                                     ) : (
-                                        <span className="text-green-400 text-xs font-bold flex items-center gap-1">
-                                            Someone replied.
+                                        <span className="text-green-500/80 text-[10px] font-bold uppercase tracking-wider bg-green-500/10 px-2 py-0.5 rounded-full">
+                                            Replied
                                         </span>
                                     )}
                                 </div>
@@ -222,7 +196,7 @@ export default function YappingCardsPage({ currentUserId, onBack, onChatOpen }) 
             <div className="fixed bottom-8 left-0 right-0 flex justify-center z-30 pointer-events-none">
                 <button
                     onClick={onBack}
-                    className="pointer-events-auto flex items-center gap-2 px-6 py-3 bg-amber-500 text-black font-bold rounded-full shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all"
+                    className="pointer-events-auto flex items-center gap-2 px-6 py-3 bg-amber-500 text-black font-bold rounded-full shadow-md hover:scale-105 active:scale-95 transition-all"
                 >
                     <PlusIcon />
                     <span>Send another</span>
