@@ -35,6 +35,18 @@ const GifIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
 );
 
+const getFormattedTimeLeft = (expiresAt) => {
+  if (!expiresAt) return '';
+  const now = new Date();
+  const diff = expiresAt - now;
+  if (diff <= 0) return '00:00:00';
+  
+  const h = Math.floor(diff / (1000 * 60 * 60));
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((diff % (1000 * 60)) / 1000);
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
 function FireChatPage({ socket, user, currentUserId, currentUsername, initialChatData, onGoHome, children }) {
   const [chatId, setChatId] = useState(null);
   const [chatPartner, setChatPartner] = useState(null);
@@ -52,6 +64,9 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [actionToast, setActionToast] = useState(null);
   const [promptText, setPromptText] = useState(''); // NEW: Dedicated state
+  const [expiresAt, setExpiresAt] = useState(null);
+  const [timeLeft, setTimeLeft] = useState('');
+  const [isTopicExpanded, setIsTopicExpanded] = useState(false);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -102,6 +117,12 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
             
             // Save the prompt immediately
             setPromptText(invite.prompt_text || '');
+            
+            // Set expiry
+            if (invite.created_at) {
+                const created = new Date(invite.created_at);
+                setExpiresAt(new Date(created.getTime() + 24 * 60 * 60 * 1000));
+            }
 
             // Join Socket Room
             if (socket && socket.connected) {
@@ -119,6 +140,15 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
 
     initChat();
   }, [initialChatData?.chatId, currentUserId, currentUsername, socket, onGoHome, chatId]);
+
+  // --- TIMER ---
+  useEffect(() => {
+    if (!expiresAt) return;
+    const tick = () => setTimeLeft(getFormattedTimeLeft(expiresAt));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
@@ -263,26 +293,34 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
   return (
     <div className="fixed inset-0 bg-[#0e0e0f] text-white flex flex-col font-sans h-[100dvh]">
       {/* Header */}
-      <header className="px-4 py-3 bg-[#18181b]/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between z-30">
-         <button onClick={handleBack} className="p-2 -ml-2 text-zinc-400 hover:text-white">
+      <header className="px-4 py-3 bg-[#120808]/95 backdrop-blur-xl border-b border-white/5 flex items-center justify-between z-30 shadow-[0_4px_20px_-10px_rgba(234,88,12,0.1)]">
+         <button onClick={handleBack} className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors">
             <BackIcon />
          </button>
          
-         <div className="flex flex-col items-center" onClick={() => setShowPublicProfile(true)}>
+         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowPublicProfile(true)}>
             <span className="text-sm font-bold text-white">{chatPartner?.username}</span>
-            <span className="text-[10px] text-red-400 font-bold tracking-wide">🔥 Firechat</span>
+            <span className="text-xs font-mono text-orange-500/80 font-medium tracking-wide flex items-center gap-1">🔥 {timeLeft}</span>
          </div>
 
-         <button onClick={() => setShowBlockPopup(true)} className="p-2 -mr-2 text-zinc-400 hover:text-red-400">
+         <button onClick={() => setShowBlockPopup(true)} className="p-2 -mr-2 text-zinc-400 hover:text-red-400 transition-colors">
             <BlockIcon />
          </button>
       </header>
 
       {/* Prompt Banner */}
       {promptText && (
-        <div className="bg-[#18181b]/50 p-4 border-b border-white/5 text-center">
-          <p className="text-xs text-[#ffbd59] font-bold uppercase mb-1">Topic</p>
-          <h2 className="text-lg font-medium italic">"{promptText}"</h2>
+        <div 
+            onClick={() => setIsTopicExpanded(!isTopicExpanded)}
+            className={`
+                relative z-20 bg-[#0e0e0f] border-b border-white/5 px-4 py-2 text-center cursor-pointer transition-all duration-300 ease-in-out
+                ${isTopicExpanded ? 'py-4' : 'py-2'}
+            `}
+        >
+          <p className={`text-xs text-zinc-500 leading-relaxed transition-all ${isTopicExpanded ? 'line-clamp-none' : 'line-clamp-1'}`}>
+             <span className="text-orange-500/60 font-bold mr-2 text-[10px] uppercase tracking-wider">Topic</span>
+             {promptText}
+          </p>
         </div>
       )}
 
@@ -308,13 +346,20 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
                             setActiveActionMenu(msg.id);
                             setActionMenuView('main');
                         }}
-                        className={`opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-white ${isOwn ? 'mr-2' : 'ml-2 order-last'}`}
+                        className={`p-1 text-zinc-700 hover:text-zinc-400 transition-colors ${isOwn ? 'mr-2' : 'ml-2 order-last'}`}
                      >
                         <MoreIcon />
                      </button>
                      
                      {/* Bubble */}
-                     <div className={`max-w-[75%] ${isMedia ? '' : `px-4 py-2 rounded-2xl ${isOwn ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-200'}`}`}>
+                     <div className={`
+                        relative max-w-[75%] rounded-2xl shadow-sm transition-all
+                        ${isMedia ? 'bg-transparent' : 
+                          (isOwn 
+                            ? 'px-4 py-2.5 bg-[#2a120a] text-[#ffdecb] border border-[#4a2015] rounded-br-sm' 
+                            : 'px-4 py-2.5 bg-zinc-800 text-zinc-200 border border-zinc-700 rounded-bl-sm')
+                        }
+                     `}>
                          {msg.replyTo && <div className="text-[10px] opacity-75 border-l-2 pl-2 mb-1">Replying to {msg.replyTo.username}</div>}
                          
                          {isMedia ? (
@@ -329,7 +374,10 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
 
                          {/* Reactions */}
                          {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                             <div className="absolute -bottom-2 right-0 bg-zinc-900 border border-zinc-700 rounded-full px-1.5 py-0.5 text-[10px] flex gap-1 shadow-sm z-10">
+                             <div className={`
+                                absolute -bottom-2 ${isOwn ? 'right-2' : 'left-2'} 
+                                bg-zinc-900 border border-zinc-800 rounded-full px-1.5 py-0.5 text-[10px] flex gap-1 shadow-sm z-10
+                             `}>
                                  {Object.keys(msg.reactions).map(e => <span key={e}>{e}</span>)}
                              </div>
                          )}
@@ -363,14 +411,14 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-black/90 border-t border-white/5">
+      <div className="p-4 bg-black/90 border-t border-white/5 z-30">
           {replyingTo && (
               <div className="flex justify-between text-xs text-zinc-400 bg-zinc-900 p-2 rounded-lg mb-2">
                   <span>Replying to {replyingTo.username}</span>
                   <button onClick={() => setReplyingTo(null)}>✕</button>
               </div>
           )}
-          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2 items-center bg-zinc-900 rounded-full px-2 py-1.5 border border-zinc-800">
+          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2 items-center bg-zinc-900 rounded-full px-2 py-1.5 border border-zinc-800 transition-all duration-300 focus-within:border-orange-500/30 focus-within:shadow-[0_0_20px_-5px_rgba(234,88,12,0.2)]">
              <input 
                 ref={inputRef}
                 value={newMessage}
