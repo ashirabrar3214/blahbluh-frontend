@@ -35,7 +35,7 @@ const GifIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
 );
 
-function FireChatPage({ socket, user, currentUserId, currentUsername, initialChatData, onGoHome }) {
+function FireChatPage({ socket, user, currentUserId, currentUsername, initialChatData, onGoHome, children }) {
   const [chatId, setChatId] = useState(null);
   const [chatPartner, setChatPartner] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -125,7 +125,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     if (!socket || !chatId) return;
 
     const handleNewMessage = (msg) => {
-        if (msg.chatId === chatId) {
+        if (msg.chatId === chatId && msg.userId !== currentUserId) {
             setMessages(prev => {
                 if (prev.some(m => m.id === msg.id)) return prev;
                 return [...prev, { ...msg, reactions: msg.reactions || {} }];
@@ -391,6 +391,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
       {showPublicProfile && <PublicProfile targetUserId={chatPartner?.id} currentUserId={currentUserId} onBack={() => setShowPublicProfile(false)} />}
       {viewingClip && <VideoModal src={viewingClip.src} type={viewingClip.type} onClose={() => setViewingClip(null)} />}
       {actionToast && <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold">{actionToast}</div>}
+      {children}
     </div>
   );
 }

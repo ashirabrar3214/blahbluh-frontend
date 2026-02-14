@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Routes, Route, useParams, useNavigate } from 'react-router-dom';
+import { Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
 import ChatPage from './ChatPage';
 import FireChatPage from './FireChatPage';
@@ -68,6 +68,7 @@ function App() {
   const currentPageRef = useRef(currentPage);
   const chatExitRef = useRef(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // --- WebRTC STATE (Global) ---
   const [callStatus, setCallStatus] = useState('idle'); // 'idle', 'calling', 'incoming', 'connected'
@@ -754,7 +755,9 @@ useEffect(() => {
     </>
   );
 
-  const showMobileNav = currentUser && ['home', 'inbox', 'profile', 'yapping-cards'].includes(currentPage);
+  const showMobileNav = currentUser && 
+    ['home', 'inbox', 'profile', 'yapping-cards'].includes(currentPage) &&
+    !location.pathname.startsWith('/chat/');
 
   return (
     <>
