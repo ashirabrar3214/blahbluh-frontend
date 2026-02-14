@@ -207,9 +207,10 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
     setReplyingTo(null);
   };
 
-  const handleSendMedia = (url, type) => {
+  const handleSendMedia = (url, type = 'gif') => {
       setActiveKeyboard(null);
       const msgData = {
+          id: `temp-${Date.now()}`,
           chatId,
           message: url,
           type,
@@ -218,6 +219,7 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
           timestamp: new Date().toISOString(),
           reactions: {}
       };
+      setMessages(prev => [...prev, msgData]);
       socket?.emit('send-message', msgData);
   };
 
@@ -316,7 +318,11 @@ function FireChatPage({ socket, user, currentUserId, currentUsername, initialCha
                          {msg.replyTo && <div className="text-[10px] opacity-75 border-l-2 pl-2 mb-1">Replying to {msg.replyTo.username}</div>}
                          
                          {isMedia ? (
-                             msg.type === 'clip' ? <ClipPlayer url={msg.message} onPlay={setViewingClip} /> : <img src={msg.message} alt="media" className="rounded-lg max-w-full" />
+                             msg.type === 'clip' ? (
+                               <ClipPlayer url={msg.message} onPlay={setViewingClip} />
+                             ) : (
+                               <img src={msg.message} alt="media" className={msg.type === 'sticker' ? 'w-32 h-32 object-contain' : 'rounded-lg max-w-full'} />
+                             )
                          ) : (
                              <p className="text-[15px]">{msg.message}</p>
                          )}
