@@ -14,6 +14,14 @@ import CallPopup from './components/CallPopup';
 import AdminDashboard from './AdminDashboard';
 import YappingCardsPage from './YappingCardsPage';
 import MobileBottomNav from './components/MobileBottomNav';
+import TermsOfService from './legal/TermsOfService';
+import PrivacyPolicy from './legal/PrivacyPolicy';
+import ContactUs from './legal/ContactUs';
+import AboutUs from './marketing/AboutUs';
+import Blog from './marketing/Blog';
+import BlogPost from './marketing/BlogPost';
+import FAQ from './marketing/FAQ';
+import TrustSafety from './marketing/TrustSafety';
 
 const PhoneIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -386,7 +394,7 @@ useEffect(() => {
     console.log('App: Setting up global socket connection for user:', currentUser.id);
     // Setup global socket connection
     globalSocketRef.current = io(
-    process.env.REACT_APP_API_URL || 'http://localhost:3000',
+    process.env.REACT_APP_API_URL || 'http://100.70.9.53:3001',
     {
       transports: ['websocket'],
       reconnection: true,
@@ -763,6 +771,14 @@ useEffect(() => {
     <>
       <Routes>
         <Route path="/invite/:token" element={<InvitePage currentUserId={currentUser?.id} />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:id" element={<BlogPost />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/trust-safety" element={<TrustSafety />} />
         {/* Add this explicit route if you want proper browser history support */}
         <Route path="/chat/:chatId" element={
             currentUser ? (

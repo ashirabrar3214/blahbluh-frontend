@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://100.70.9.53:3001';
 export const api = {
   // [CHANGE 6] Accept 'email' as 3rd argument
   async generateUserId(firebaseUid, username, email) {
@@ -122,6 +122,17 @@ export const api = {
     const data = await response.json();
     console.log('API: submitReport response:', data);
     return data;
+  },
+
+  async submitContactMessage(contactData) {
+    console.log('API: submitContactMessage called with data:', contactData);
+    const response = await fetch(`${API_BASE_URL}/api/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contactData)
+    });
+    // If endpoint doesn't exist yet, we might want to mock success or handle 404 gracefully in UI
+    return response.ok ? await response.json() : { success: false };
   },
 
   async addFriend(userId, friendId) {

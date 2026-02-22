@@ -1,6 +1,4 @@
 import React from 'react';
-import Navbar from './Navbar';
-import Footer from '../legal/Footer';
 
 const FAQ = () => {
   const faqs = [
@@ -27,21 +25,17 @@ const FAQ = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0e0e0f] text-zinc-100 flex flex-col font-sans pt-20">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8 max-w-3xl flex-1">
-        <h1 className="text-3xl font-bold mb-8 text-center text-white">Frequently Asked Questions</h1>
-        
-        <div className="space-y-6">
-          {faqs.map((faq, index) => (
-            <div key={index} className="bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-white mb-2">{faq.question}</h3>
-              <p className="text-zinc-400 leading-relaxed">{faq.answer}</p>
-            </div>
-          ))}
-        </div>
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <h1 className="text-3xl font-bold mb-8 text-center">Frequently Asked Questions</h1>
+      
+      <div className="space-y-6">
+        {faqs.map((faq, index) => (
+          <div key={index} className="bg-white border rounded-lg p-6 shadow-sm">
+            <h3 className="text-xl font-medium text-gray-900 mb-2">{faq.question}</h3>
+            <p className="text-gray-600">{faq.answer}</p>
+          </div>
+        ))}
       </div>
-      <Footer />
     </div>
   );
 };

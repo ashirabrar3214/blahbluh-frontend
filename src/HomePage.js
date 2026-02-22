@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getAuth } from 'firebase/auth';
+import { Link } from 'react-router-dom';
 import { api } from './api';
 import TagInput from './TagInput';
 import './TagInput.css';
@@ -623,7 +624,7 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 relative z-10 pt-20 pb-24">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 relative z-10 pt-40 pb-40 md:pb-64">
         <div className="max-w-md w-full flex flex-col gap-6">
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-zinc-100 text-center">
             Yap with <br/>
@@ -632,8 +633,8 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
             </span>
           </h1>
           
-          <div className="text-left">
-            <div className="mb-2 ml-1 h-6 flex items-center">
+          <div className="w-full flex flex-col items-center">
+            <div className="mb-2 h-6 flex items-center justify-center">
                <FadeRotateHint />
             </div>
             <TagInput tags={tags} onTagsChange={(newTags) => {
@@ -710,9 +711,41 @@ function HomePage({ socket, onChatStart, onProfileOpen, onInboxOpen, onYappingCa
         </div>
       </div>
       
-      <div className="py-6 text-center text-[#fefefe]/40 text-xs font-medium">
-        &copy; 2025 blahbluh. Crafted for anonymity.
-      </div>
+      <footer className="w-full border-t border-white/5 bg-[#0e0e0f] pt-12 pb-8 px-6 mt-auto relative z-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="col-span-2 md:col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <img src="https://pub-43e3d36a956c411fb92f0c0771910642.r2.dev/logo-yellow.svg" alt="blahbluh" className="w-8 h-8 rounded-lg" />
+              <span className="text-xl font-bold text-white tracking-tight">blahbluh</span>
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="text-white font-bold mb-4">Legal</h4>
+            <ul className="space-y-2 text-sm text-zinc-500">
+              <li><Link to="/terms" className="hover:text-amber-500 transition-colors">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="hover:text-amber-500 transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/trust-safety" className="hover:text-amber-500 transition-colors">Trust & Safety</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold mb-4">Resources</h4>
+            <ul className="space-y-2 text-sm text-zinc-500">
+              <li><Link to="/blog" className="hover:text-amber-500 transition-colors">Blog</Link></li>
+              <li><Link to="/faq" className="hover:text-amber-500 transition-colors">FAQ</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold mb-4">Company</h4>
+            <ul className="space-y-2 text-sm text-zinc-500">
+              <li><Link to="/about" className="hover:text-amber-500 transition-colors">About Us</Link></li>
+              <li><Link to="/contact" className="hover:text-amber-500 transition-colors">Contact</Link></li>
+            </ul>
+          </div>
+        </div>
+      </footer>
 
       {/* Contact / Help Button */}
       <a

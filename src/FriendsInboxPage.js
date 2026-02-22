@@ -86,7 +86,7 @@ function FriendsInboxPage({ currentUserId, currentUsername, onBack }) {
   useEffect(() => {
     loadFriendChats();
     
-    socketRef.current = io('https://blahbluh-production.up.railway.app', {
+    socketRef.current = io(process.env.REACT_APP_API_URL || 'http://100.70.9.53:3001', {
       transports: ['websocket'],
       reconnection: true,
     });
